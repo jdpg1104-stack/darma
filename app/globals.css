@@ -1,0 +1,285 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Darma · hoja global y tokens de diseño
+
+   REGLA: ningún componente escribe un hex a mano. Todo color sale de una
+   variable de aquí. Es lo único que hace posible que el tema claro funcione sin
+   revisar la app pantalla por pantalla.
+
+   TIPOGRAFÍA: pila del SISTEMA, a propósito. Cero fuentes externas — la CSP
+   (next.config.ts) bloquea fonts.googleapis.com, y no es un descuido: cada
+   petición a un tercero desde una app de salud emocional es un tercero que sabe
+   que la persona estuvo aquí. Además evita el salto de layout del FOUT y ahorra
+   dos round-trips que bloquean el render.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Paleta de Darma (tema OSCURO, el de referencia) ──────────────────────
+     Oscuro por defecto: la mayor parte del uso de una app así ocurre de noche,
+     y es cuando más importa no deslumbrar. */
+  --bg: #0e1116;      /* fondo del documento */
+  --panel: #161b22;   /* tarjeta / superficie elevada */
+  --panel2: #1c232d;  /* superficie sobre superficie (inputs, chips) */
+  --ink: #eef2f7;     /* texto principal */
+  --muted: #9aa7b8;   /* texto secundario y metadatos */
+  --line: #273241;    /* bordes y separadores */
+
+  /* Acentos. --accent es la ÚNICA acción primaria de cada pantalla; --accent2
+     marca lo conseguido (validado, escuchado, completado). Si algo neutro se
+     pinta de acento, es un bug de diseño. */
+  --accent: #7c5cff;
+  --accent2: #26d0a5;
+  --warn: #ffb020;
+  --danger: #ff5d73;
+  --gold: #f2c14e;    /* karma y niveles */
+
+  --radius: 16px;
+
+  /* Compañeros RGB — para rgba(var(--x-rgb), α) en halos y superposiciones sin
+     duplicar el hex en cada sitio. */
+  --accent-rgb: 124, 92, 255;
+  --accent2-rgb: 38, 208, 165;
+  --danger-rgb: 255, 93, 115;
+  --gold-rgb: 242, 193, 78;
+
+  /* Tinta sobre los rellenos de acento. INVARIANTE AL TEMA a propósito: el
+     violeta y el verde valen igual en claro y en oscuro, así que el texto que va
+     ENCIMA también debe ser el mismo. No lo redefinas más abajo. */
+  --on-accent: #ffffff;
+  --on-accent2: #06201a;
+
+  /* Escala tipográfica y espaciado */
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+  --touch: 44px;               /* objetivo táctil mínimo accesible */
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.38);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur: 220ms;
+
+  color-scheme: dark;
+}
+
+/* ── Tema CLARO ─────────────────────────────────────────────────────────────
+   Dos vías, y las dos importan:
+     · `prefers-color-scheme` → respeta lo que la persona ya eligió en su
+       sistema operativo, sin pedirle que lo configure otra vez aquí.
+     · `[data-theme]` → el interruptor explícito dentro de la app.
+   El bloque de `prefers-color-scheme` se acota con `:root:not([data-theme])`:
+   sin eso, la preferencia del sistema pisaría la elección manual y el
+   interruptor no funcionaría en la mitad de los dispositivos.
+
+   Los acentos NO se aclaran aquí: siguen siendo el relleno correcto. Lo que
+   cambia son las superficies y las tintas. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f6f8fb;
+    --panel: #ffffff;
+    --panel2: #eef2f7;
+    --ink: #131820;
+    --muted: #5b6879;
+    --line: #dde4ee;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --panel2: #eef2f7;
+  --ink: #131820;
+  --muted: #5b6879;
+  --line: #dde4ee;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1116;
+  --panel: #161b22;
+  --panel2: #1c232d;
+  --ink: #eef2f7;
+  --muted: #9aa7b8;
+  --line: #273241;
+  color-scheme: dark;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────*/
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* El contenido ancho hace su propio scroll en su contenedor; el documento
+     nunca se desplaza en horizontal. */
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  /* Reserva la franja del indicador de inicio en móviles con notch. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  line-height: 1.25;
+  text-wrap: balance;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+p { margin: 0; text-wrap: pretty; }
+
+a { color: inherit; text-decoration: none; }
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+.mono { font-family: var(--font-mono); }
+
+/* Foco SIEMPRE visible. No lo quites "porque se ve feo": es la única forma de
+   navegar la app con teclado, y hay gente que la usa así. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.3);
+  color: var(--ink);
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Primitivas compartidas ────────────────────────────────────────────────*/
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--touch);
+  padding: 12px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    filter var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.btn:active { transform: scale(0.97); }
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb), 0.32);
+}
+.btn--primary:hover { filter: brightness(1.08); }
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--muted);
+}
+.btn--ghost:hover { border-color: var(--muted); color: var(--ink); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Solo para lectores de pantalla: el texto está en el DOM (y en el árbol de
+   accesibilidad) pero no se pinta. `clip-path` en vez de `display:none`, que
+   lo sacaría también del árbol y no serviría de nada. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Movimiento ────────────────────────────────────────────────────────────
+   Se respeta `prefers-reduced-motion` de verdad: quien lo activa suele hacerlo
+   por vértigo o migraña, no por gusto. Todo se vuelve instantáneo en lugar de
+   simplemente "más rápido". */
+@keyframes darma-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: darma-fade-in var(--dur) var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn:active { transform: none; }
+}

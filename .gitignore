@@ -1,0 +1,61 @@
+# ── Dependencias ────────────────────────────────────────────────────────────
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/versions
+
+# ── Build de Next / Vercel ──────────────────────────────────────────────────
+/.next/
+/out/
+/build
+/dist
+next-env.d.ts
+.vercel
+*.tsbuildinfo
+
+# ── Entorno ─────────────────────────────────────────────────────────────────
+# ⚠️ NUNCA se versiona un .env. La service_role key de Supabase salta TODAS las
+# políticas RLS, incluida la que aísla identity_vault (el único punto del
+# sistema donde existe el vínculo con la persona real). Filtrarla no es "una
+# credencial expuesta": es el anonimato de todo el mundo. La plantilla sin
+# valores está en .env.example y esa sí se versiona.
+.env
+.env.*
+!.env.example
+
+# ── Supabase (CLI local) ────────────────────────────────────────────────────
+# Las migraciones SÍ se versionan (supabase/migrations/); lo que se ignora es el
+# estado efímero del contenedor local y las semillas con datos reales.
+/supabase/.branches
+/supabase/.temp
+/supabase/.env
+
+# ── Pruebas y cobertura ─────────────────────────────────────────────────────
+/coverage
+/playwright-report
+/test-results
+/blob-report
+/.nyc_output
+
+# ── Registros y depuración ──────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Editor y sistema operativo ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# ── Caché de herramientas ───────────────────────────────────────────────────
+.eslintcache
+.turbo
