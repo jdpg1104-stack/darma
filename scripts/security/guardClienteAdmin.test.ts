@@ -95,6 +95,24 @@ test('extraerImports coge estáticos, dinámicos y require', () => {
   }
 })
 
+test('extraerImports IGNORA las importaciones solo de tipos', () => {
+  // TypeScript borra `import type` al compilar: no genera JavaScript y no
+  // arrastra nada al bundle. Contarlo daba un falso positivo real —un formulario
+  // marcado como fuga por importar un `type RolAdmin`— y un guard de seguridad
+  // que grita en falso acaba desactivado, precisamente el día antes de que
+  // hiciera falta.
+  const soloTipos = [
+    "import type { A } from './a.ts'",
+    "export type { B } from './b.ts'",
+  ].join('\n')
+  assert.deepEqual(extraerImports(soloTipos), [])
+
+  // Pero lo MIXTO sí importa valor en tiempo de ejecución y tiene que contar:
+  // `import { type X, algo }` deja `algo` en el JavaScript compilado.
+  const mixto = "import { type C, valor } from './c.ts'"
+  assert.deepEqual(extraerImports(mixto), ['./c.ts'])
+})
+
 test('resolverImport ignora los paquetes de node_modules', () => {
   assert.equal(resolverImport('@supabase/supabase-js', join(RAIZ, 'lib', 'x.ts'), RAIZ), null)
 })

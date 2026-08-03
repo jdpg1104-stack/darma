@@ -42,6 +42,12 @@ export const TABS_ADMIN: readonly TabAdmin[] = [
   { id: 'crisis',       ruta: '/panel/crisis',       etiqueta: 'Crisis',       rolMinimo: 'moderador' },
   // Propiedad de B11. Este bloque solo enlaza la ruta; no toca su código.
   { id: 'moderacion',   ruta: '/moderacion',         etiqueta: 'Moderación',   rolMinimo: 'moderador' },
+  // Redacción de encuestas del feed. Sin esta entrada la página no es que
+  // estuviera oculta: `puedeVerRuta()` falla cerrado ante rutas desconocidas,
+  // así que estaba INACCESIBLE incluso para un superadmin. Es el comportamiento
+  // correcto del guard —una página que se olvida de registrarse queda cerrada,
+  // no abierta— y por eso registrarla es el paso obligatorio, no un adorno.
+  { id: 'encuestas',    ruta: '/encuestas',          etiqueta: 'Encuestas',    rolMinimo: 'moderador' },
   { id: 'economia',     ruta: '/panel/economia',     etiqueta: 'Economía',     rolMinimo: 'operaciones' },
   { id: 'roles',        ruta: '/panel/roles',        etiqueta: 'Roles',        rolMinimo: 'superadmin' },
 ] as const

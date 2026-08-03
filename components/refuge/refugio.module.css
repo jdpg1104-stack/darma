@@ -307,3 +307,16 @@
     transition: none;
   }
 }
+
+/* Acción «Hablar en privado» en el perfil ajeno. Va suelta, sin tarjeta: es una
+   decisión, no una sección. */
+.accionPerfil {
+  margin-top: 20px;
+}
+
+.avisoAccion {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}

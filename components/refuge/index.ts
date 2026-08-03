@@ -35,3 +35,6 @@ export type { DialogoFraseRecuperacionProps } from './DialogoFraseRecuperacion'
 
 export { TarjetaCrisis } from './TarjetaCrisis'
 export type { TarjetaCrisisProps } from './TarjetaCrisis'
+
+export { BotonHablarEnPrivado } from './BotonHablarEnPrivado'
+export type { BotonHablarEnPrivadoProps } from './BotonHablarEnPrivado'

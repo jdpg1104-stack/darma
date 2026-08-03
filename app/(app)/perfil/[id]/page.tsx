@@ -38,6 +38,7 @@ import { RejillaInsignias } from '@/components/perfil/RejillaInsignias'
 import { leerPerfilAjeno } from '@/components/perfil/consultas'
 import { esquemaIdPerfil } from '@/components/perfil/validacion'
 import { MedidorKarma } from '@/components/ui'
+import { BotonHablarEnPrivado } from '@/components/refuge'
 import estilos from '@/components/perfil/perfil.module.css'
 
 export const dynamic = 'force-dynamic'
@@ -92,6 +93,15 @@ export default async function PaginaPerfilAjeno({
         insignias={ajeno.insignias}
         titulo="Insignias"
         textoVacio="Todavía no hay insignias que enseñar aquí."
+      />
+
+      {/* El puente al chat cifrado. Va DESPUÉS del nivel y las insignias a
+          propósito: abrir un refugio con alguien es una decisión que se toma
+          después de saber quién es, no al entrar en su perfil. */}
+      <BotonHablarEnPrivado
+        miId={sesion.userId}
+        otroId={ajeno.perfil.id}
+        otroAlias={ajeno.perfil.alias}
       />
     </div>
   )

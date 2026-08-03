@@ -10,5 +10,8 @@
     }
   },
 
-  "crons": []
+  "crons": [
+    { "path": "/api/cron/diario", "schedule": "11 4 * * *" },
+    { "path": "/api/cron/frecuente", "schedule": "7 * * * *" }
+  ]
 }

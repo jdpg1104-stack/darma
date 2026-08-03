@@ -54,6 +54,30 @@ export function listarRefugios(cursor?: string | null): Promise<PaginaCursor<Res
   return pedir(`/api/refuges${query}`)
 }
 
+/**
+ * Abre un refugio. Los sobres se preparan ANTES en el navegador
+ * (`prepararSobresDeSalaNueva`): aquí ya viajan cifrados, y la clave del
+ * refugio no aparece por ningún lado de esta petición.
+ *
+ * El `title` es el único texto en claro de todo el bloque, y por eso la ruta lo
+ * limita a 60 caracteres: nunca se rellena con parte de un mensaje.
+ */
+export function crearRefugio(cuerpo: {
+  kind: 'duo' | 'circulo'
+  title?: string | null
+  topic?: string | null
+  miembros: readonly string[]
+  sobres: ReadonlyArray<{
+    recipientId: string
+    wrappedKeyB64: string
+    wrapNonceB64: string
+    senderFingerprint: string
+    keyVersion: number
+  }>
+}): Promise<{ refugeId: string }> {
+  return pedir('/api/refuges', { method: 'POST', body: JSON.stringify(cuerpo) })
+}
+
 export function listarMensajes(
   refugeId: string,
   opciones: { cursor?: string | null; limite?: number } = {},

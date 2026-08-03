@@ -104,7 +104,27 @@ export function resolverImport(especificador: string, desde: string, raiz: strin
 }
 
 const IMPORT_RE =
-  /(?:^|\n)\s*(?:import|export)\s+(?:[\s\S]*?\sfrom\s+)?['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|require\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+  /(?:^|\n)\s*((?:import|export)\s+(?:[\s\S]*?\sfrom\s+)?['"]([^'"]+)['"])|import\s*\(\s*['"]([^'"]+)['"]\s*\)|require\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+
+/**
+ * ¿Es una importación SOLO DE TIPOS? (`import type { X } from '…'`).
+ *
+ * TypeScript la borra al compilar: no genera ni una línea de JavaScript y por
+ * tanto **no arrastra nada al bundle**. Distinguirla no es una concesión, es
+ * exactitud — y aquí la exactitud es lo que decide si este guard sirve.
+ *
+ * Un guard de seguridad que da falsos positivos termina desactivado, y el día
+ * que lo desactiven será por un caso inofensivo como este, no por el peligroso.
+ * Prefiero que sea preciso a que sea ruidoso.
+ *
+ * Ojo con lo que NO se ignora: `import { type X, algo }` mezclado sí importa
+ * valor en tiempo de ejecución, y la comprobación de abajo solo salta cuando
+ * `type` va inmediatamente después de `import`/`export`, que es la forma que el
+ * compilador garantiza que desaparece entera.
+ */
+function esImportacionSoloDeTipos(sentencia: string): boolean {
+  return /^\s*(?:import|export)\s+type\s/.test(sentencia)
+}
 
 /** Especificadores importados por un archivo (estáticos, dinámicos y require). */
 export function extraerImports(fuente: string): string[] {
@@ -112,7 +132,9 @@ export function extraerImports(fuente: string): string[] {
   IMPORT_RE.lastIndex = 0
   let m: RegExpExecArray | null
   while ((m = IMPORT_RE.exec(fuente)) !== null) {
-    const esp = m[1] ?? m[2] ?? m[3]
+    const sentencia = m[1]
+    if (sentencia && esImportacionSoloDeTipos(sentencia)) continue
+    const esp = m[2] ?? m[3] ?? m[4]
     if (esp) out.push(esp)
   }
   return out

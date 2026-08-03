@@ -160,6 +160,8 @@ const DEUDA_LITERALES_CONOCIDA: readonly string[] = [
   // que la abra en inglés y encuentre el texto en español está buscando un
   // teléfono en un idioma que no entiende, en el peor momento posible.
   'app/ayuda/page.tsx',
+  'app/(admin)/encuestas/FormularioEncuesta.tsx',
+  'app/(admin)/encuestas/page.tsx',
 ]
 
 function relativo(absoluto: string): string {
