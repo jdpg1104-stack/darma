@@ -10,13 +10,11 @@
 // ============================================================================
 
 import type { ReactNode } from 'react'
-import { BotonCrisis } from '@/components/ui'
 
 export default function LayoutPost({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      <BotonCrisis />
     </>
   )
 }

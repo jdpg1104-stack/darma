@@ -14,13 +14,10 @@
 
 import type { ReactNode } from 'react'
 
-import { BotonCrisis } from '@/components/ui'
-
 export default function LayoutFeed({ children }: { children: ReactNode }) {
   return (
     <>
       <main id="contenido">{children}</main>
-      <BotonCrisis posicion="flotante" />
     </>
   )
 }

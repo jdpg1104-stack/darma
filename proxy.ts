@@ -50,6 +50,16 @@ const PUBLIC_ROUTES = [
   // Bearer no llegaría nunca a comprobarse y el ranking se quedaría congelado
   // sin que nada fallara de forma visible.
   '/api/ranking/snapshot',
+  // Webhooks de Apple y Google. Llegan de servidor a servidor, sin cookie, y se
+  // autentican con la FIRMA del propio mensaje (JWS), que es más fuerte que una
+  // sesión. Solo el prefijo `/webhook/`: el resto de `/api/billing/` sí exige
+  // sesión.
+  //
+  // Sin esto la avería es silenciosa y cara: las tiendas reciben un 401,
+  // concluyen que el endpoint falla y reintentan durante DÍAS, así que la
+  // persona paga y no recibe sus cristales hasta que se le ocurre tocar
+  // «Restaurar compras». Nada falla de forma visible en nuestro lado.
+  '/api/billing/webhook/',
   '/api/health',
 ]
 

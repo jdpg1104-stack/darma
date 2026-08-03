@@ -28,7 +28,7 @@ import { siguienteCursor } from '@/lib/video/cursor'
 import { LIMITE_FEED_DEFECTO } from '@/lib/video/validacion'
 import type { ItemVideo, PaginaCursor } from '@/lib/video/tipos'
 import { FeedVertical } from '@/components/video'
-import { BotonCrisis, EstadoVacio } from '@/components/ui'
+import { EstadoVacio } from '@/components/ui'
 import estilos from './animo.module.css'
 
 export const runtime = 'nodejs'
@@ -75,8 +75,6 @@ export default async function PaginaAnimo() {
       ) : (
         <FeedVertical inicial={inicial} idioma={IDIOMA_POR_DEFECTO} />
       )}
-
-      <BotonCrisis />
     </main>
   )
 }

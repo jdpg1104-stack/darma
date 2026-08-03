@@ -19,13 +19,10 @@
 // competición.
 // ============================================================================
 
-import { BotonCrisis } from '@/components/ui'
-
 export default function LayoutPerfil({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
       <main id="contenido">{children}</main>
-      <BotonCrisis posicion="flotante" />
     </>
   )
 }

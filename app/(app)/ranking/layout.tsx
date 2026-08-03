@@ -16,13 +16,10 @@
 // estar visible sin buscarla, y funcionar sin JavaScript.
 // ============================================================================
 
-import { BotonCrisis } from '@/components/ui'
-
 export default function LayoutRanking({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
       <main id="contenido">{children}</main>
-      <BotonCrisis posicion="flotante" />
     </>
   )
 }

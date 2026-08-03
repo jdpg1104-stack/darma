@@ -20,13 +20,11 @@
 // ============================================================================
 
 import type { ReactNode } from 'react'
-import { BotonCrisis } from '@/components/ui'
 
 export default function LayoutPublicar({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      <BotonCrisis posicion="flotante" />
     </>
   )
 }
