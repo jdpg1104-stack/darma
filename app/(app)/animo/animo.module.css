@@ -1,0 +1,21 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   /animo · contenedor de pantalla.
+
+   `100dvh` y no `100vh` por lo mismo que en las tarjetas: en móvil la barra del
+   navegador se retrae y con `vh` la última franja queda cortada.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pantalla {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.vacio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-6, 24px);
+}

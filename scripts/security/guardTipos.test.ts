@@ -68,11 +68,24 @@ test('lib/supabase/database.types.ts existe y es consumible', () => {
   assert.ok(existsSync(ruta), `${RUTA_TIPOS} no existe y doce bloques lo consumen (CONTRATOS §3)`)
 
   const contenido = readFileSync(ruta, 'utf8')
-  assert.match(contenido, /ARCHIVO GENERADO/, 'debe llevar cabecera de archivo generado')
+
+  // El archivo va SIN cabecera, y esta comprobación existe para que nadie se la
+  // vuelva a poner con buena intención.
+  //
+  // Este mismo guard compara el archivo byte a byte con la salida del generador
+  // (`normalizar()` no ignora los comentarios, a propósito). Así que un
+  // comentario que avise de «archivo generado, no editar a mano» es
+  // precisamente lo que hace fallar el CI: la advertencia se convierte en la
+  // infracción. Ya pasó una vez.
+  //
+  // Dónde vive esa documentación: `HANDOFF/CONTRATOS.md` §3, que es donde no
+  // estorba.
   assert.ok(
-    contenido.includes(COMANDO_REGENERAR),
-    'la cabecera debe decir con qué comando se regenera',
+    !contenido.includes('ARCHIVO GENERADO'),
+    `${RUTA_TIPOS} debe ser byte a byte la salida del generador: sin cabecera ni comentarios añadidos. ` +
+      `El comando que lo regenera está documentado en CONTRATOS §3 (${COMANDO_REGENERAR}).`,
   )
+  assert.match(contenido, /^export type Json =/m, 'debe empezar por la salida cruda del generador')
   assert.match(contenido, /export type Database/)
 
   // Las tablas de las dos migraciones tienen que estar todas.

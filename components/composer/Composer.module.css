@@ -1,0 +1,200 @@
+/* Composer · CSS Module.
+
+   Todo sale de las variables de app/globals.css (F4). Ni un hex aquí:
+   CONTRATOS §10. */
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.leyenda {
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.opciones {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: var(--touch);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  cursor: pointer;
+}
+
+/* El estado seleccionado NO se comunica solo con el color: el radio nativo sigue
+   ahí y visible. Color como único portador de información es exactamente lo que
+   deja fuera al 8 % de los hombres con daltonismo. */
+.opcion:has(.radio:checked) {
+  border-color: var(--accent);
+}
+
+.opcion:has(.radio:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.radio {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.opcionTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opcionTitulo {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.opcionAyuda {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 220px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.textarea::placeholder {
+  color: var(--muted);
+}
+
+.textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.piePista {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* El contador usa color Y texto ("faltan 4"): el tono es refuerzo, no el dato. */
+.contador {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+}
+
+.contadorNormal {
+  color: var(--muted);
+}
+
+.contadorAviso {
+  color: light-dark(color-mix(in oklab, var(--warn) 70%, #000), var(--warn));
+}
+
+.contadorError {
+  color: light-dark(color-mix(in oklab, var(--danger) 70%, #000), var(--danger));
+}
+
+/* Aviso de datos de contacto: ámbar, no rojo. No ha fallado nada todavía y
+   quien lo lee no ha hecho nada mal. */
+.aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+/* Error del servidor. Rojo SOLO aquí, y con `role="alert"` en el marcado: el
+   color no es el único portador del estado. */
+.error {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid
+    light-dark(color-mix(in oklab, var(--danger) 70%, #000), var(--danger));
+  border-radius: var(--radius-sm);
+  background: var(--panel2);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.select {
+  min-height: var(--touch);
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* El mensaje de reciprocidad NO es un error: ni rojo, ni icono de alerta. Es la
+   regla de la casa explicada, y quien la lee muchas veces está mal. */
+.reciprocidad {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--panel2);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.enlaceSecundario {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.enlaceSecundario:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.publicado {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.confirmacion {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+}

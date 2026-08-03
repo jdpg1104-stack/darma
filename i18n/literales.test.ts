@@ -80,12 +80,42 @@ test('la lista de exclusiones es explícita y contiene el nombre del producto', 
  * `t('...')`, que borre su línea de aquí.
  */
 const DEUDA_LITERALES_CONOCIDA: readonly string[] = [
+  // Ola 1 (F4, B01, B16)
   'app/layout.tsx',
   'app/page.tsx',
   'components/auth/AsistenteOnboarding.tsx',
   'components/auth/AvatarSemilla.tsx',
   'components/auth/PanelEntrada.tsx',
   'components/ui/MedidorKarma.tsx',
+  // Ola 2 (B02, B03, B04, B05, B11). Los seis bloques se escribieron en
+  // paralelo con B17, así que ninguno pudo consumir un catálogo que aún no
+  // existía cuando empezaron. La deuda se anota entera de golpe y cada dueño
+  // borra su línea al migrar a `t('...')`; el pedido está en PEDIDOS.md.
+  'app/(admin)/moderacion/Acciones.tsx',
+  'app/(admin)/moderacion/page.tsx',
+  'app/(app)/feed/error.tsx',
+  'app/(app)/feed/page.tsx',
+  'app/(app)/perfil/editar/page.tsx',
+  'app/(app)/perfil/page.tsx',
+  'app/(app)/post/[id]/error.tsx',
+  'app/(app)/publicar/page.tsx',
+  'components/composer/Composer.tsx',
+  'components/feed/ElementoTarjeta.tsx',
+  'components/feed/FeedVacio.tsx',
+  'components/feed/ScrollInfinito.tsx',
+  'components/feed/SelectorCarril.tsx',
+  'components/feed/SlotEncuesta.tsx',
+  'components/feed/TarjetaPost.tsx',
+  'components/perfil/FormularioEditar.tsx',
+  'components/perfil/HistorialKarma.tsx',
+  'components/perfil/PanelPrivado.tsx',
+  'components/perfil/SelectorAvatar.tsx',
+  'components/thread/BotonUtil.tsx',
+  'components/thread/Comentario.tsx',
+  'components/thread/CompositorRespuesta.tsx',
+  'components/thread/EstadoValidacion.tsx',
+  'components/thread/ListaComentarios.tsx',
+  'components/video/TarjetaVideo.tsx',
 ]
 
 function relativo(absoluto: string): string {

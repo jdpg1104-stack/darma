@@ -1,0 +1,25 @@
+-- ============================================================================
+-- Darma · 0006 · Volver a cerrar `profiles.shadow_banned`
+--
+-- La migración `0101_b01_auth` concedió `select (shadow_banned)` a
+-- `authenticated`. Es comprensible cómo se llegó ahí: sin ese permiso la
+-- política `posts_read` de 0001 no se podía evaluar y el feed devolvía 42501
+-- (ver la cabecera de `0005`), así que conceder la columna «arreglaba» el
+-- síntoma.
+--
+-- Pero abre justo lo que el shadow-ban necesita que esté cerrado: si la persona
+-- silenciada puede consultar su propio estado —o el de otros—, sabe que lo está
+-- y se crea otra cuenta en cinco minutos. Un shadow-ban que se puede consultar
+-- es un baneo normal con pasos de más.
+--
+-- `0005` ya resolvió la causa real moviendo la comprobación a
+-- `esta_silenciado()`, una función `security definer` que sí ve la columna sin
+-- exponerla. Con eso en su sitio, el permiso sobra.
+--
+-- Nota para quien venga después: si el feed vuelve a dar
+-- `42501 permission denied for table profiles`, la respuesta NO es conceder
+-- esta columna. Es que alguna política está consultando `profiles` con una
+-- subconsulta en vez de con una función.
+-- ============================================================================
+
+revoke select (shadow_banned) on public.profiles from anon, authenticated;

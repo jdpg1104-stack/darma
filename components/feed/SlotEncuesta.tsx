@@ -1,0 +1,38 @@
+// ============================================================================
+// El hueco de la encuesta.
+//
+// B02 define la POSICIÓN y el TIPO; la tarjeta con la pregunta, las opciones y
+// los porcentajes la pinta B09. Este componente existe para que el hueco esté
+// reservado desde el primer día: si B09 llegara y el feed no tuviera dónde
+// meterse, habría que rehacer el interleave, el cursor y sus pruebas.
+//
+// Mientras tanto NO se pinta un esqueleto ni un «cargando»: no hay nada
+// cargando, hay una funcionalidad que aún no existe, y un esqueleto perpetuo
+// hace pensar a la gente que la app está rota. Se pinta un enlace honesto.
+//
+// ⚠️ Contrato para B09: sustituir el cuerpo de este componente conservando la
+// prop `encuestaId`. El feed ya trae el id resuelto por
+// `feed_encuestas_keyset`, así que hidratar la encuesta NO debe añadir una
+// consulta por tarjeta (eso sería un N+1 en la pantalla más cargada de la app):
+// lo suyo es una sola consulta por página con `in (ids)`.
+// ============================================================================
+
+import { Chip, Tarjeta } from '@/components/ui'
+
+import estilos from './Feed.module.css'
+
+export interface SlotEncuestaProps {
+  /** uuid de `public.polls`. B09 lo hidrata. */
+  encuestaId: string
+}
+
+export function SlotEncuesta({ encuestaId }: SlotEncuestaProps) {
+  return (
+    <Tarjeta como="section" className={estilos.tarjeta} data-encuesta={encuestaId}>
+      <p className={estilos.encuesta}>
+        <Chip>Encuesta</Chip>
+        ¿Alguien más se siente así? Responder es anónimo, incluso para quien preguntó.
+      </p>
+    </Tarjeta>
+  )
+}

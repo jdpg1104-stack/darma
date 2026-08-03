@@ -1,0 +1,150 @@
+/* ============================================================================
+   Estilos del hilo. Todo sale de las variables de app/globals.css (dueño F4):
+   ni un hex escrito aquí (CONTRATOS §10).
+   ========================================================================= */
+
+.hilo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.post {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* `pre-wrap` y no `<p>` por párrafos: el cuerpo de un desahogo se renderiza
+   como TEXTO, nunca como HTML. Los saltos de línea que escribió la persona se
+   respetan; su markup, si lo hubiera, no se interpreta. */
+.cuerpo {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.autor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.alias {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.comentario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.contador {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.contadorLimite {
+  color: var(--warn);
+}
+
+.campo {
+  width: 100%;
+  min-height: 128px;
+  resize: vertical;
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font: inherit;
+  line-height: 1.6;
+}
+
+.campo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* El banner de respuestas nuevas. NO inserta nada en el hilo por su cuenta:
+   mover el texto bajo el dedo de alguien que está leyendo algo doloroso es
+   agresivo. Aparece, espera y solo actúa si lo pulsan. */
+.banner {
+  position: sticky;
+  top: 8px;
+  z-index: 2;
+  align-self: center;
+}
+
+.aviso {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.recursos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recursos ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

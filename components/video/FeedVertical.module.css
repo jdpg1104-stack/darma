@@ -1,0 +1,167 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   B07 · Feed vertical de /animo.
+
+   ⚠️ `100dvh`, NUNCA `100vh`. En Safari y Chrome de móvil la barra de
+   direcciones se retrae al hacer scroll: con `vh` la tarjeta se calcula contra
+   el viewport GRANDE y la última franja —justo donde va el botón del +1— queda
+   cortada bajo la barra. Es el bug que hace que un feed «se sienta roto» sin
+   que nadie sepa decir por qué. `dvh` sigue al viewport dinámico.
+
+   Todos los colores salen de las variables de app/globals.css (dueño F4). Ni un
+   hex aquí.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.contenedor {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  /* Sin esto, en iOS el rebote elástico muestra el fondo del documento entre
+     tarjetas y el snap se siente pegajoso. */
+  overscroll-behavior-y: contain;
+  background: var(--bg);
+}
+
+.tarjeta {
+  position: relative;
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.medio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+/* La miniatura es lo que se ve en las tarjetas SIN iframe (todas salvo la
+   activa y sus dos vecinas). Diez iframes de YouTube a la vez son ~4 MB de JS
+   de terceros y se llevan por delante el presupuesto de 120 KB por ruta. */
+.miniatura {
+  filter: brightness(0.75);
+}
+
+/* Superficie que recoge el toque. Va SOBRE el iframe a propósito: los controles
+   nativos de YouTube llevan enlaces que sacan a la persona de Darma, y el
+   iframe no nos deja interceptarlos desde dentro.
+
+   Es un <button> vacío y transparente, separado de la capa de texto, porque el
+   contenido de un botón solo puede ser contenido de frase: un <h2> dentro de un
+   <button> es HTML inválido y los lectores de pantalla lo anuncian mal. */
+.toque {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.capa {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+  padding-bottom: calc(var(--space-6, 24px) + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent 45%);
+  color: #fff;
+  /* El texto no intercepta el toque: lo recoge `.toque`, que está debajo. */
+  pointer-events: none;
+}
+
+.titulo {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.progreso {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+
+.progresoRelleno {
+  height: 100%;
+  background: var(--accent2);
+  transition: width 400ms linear;
+}
+
+.completado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent2);
+  color: var(--on-accent2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Botón 🔇: la salida de un toque cuando el navegador aún no ha visto un gesto
+   válido. Sin él, la persona no tiene forma de entender por qué no hay sonido. */
+.silencio {
+  position: absolute;
+  top: calc(var(--space-4, 16px) + env(safe-area-inset-top, 0px));
+  right: var(--space-4, 16px);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.silencio:focus-visible,
+.toque:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  scroll-snap-align: start;
+}
+
+/* Con `prefers-reduced-motion` el autoplay ya está apagado en JS; aquí se apaga
+   además la animación del snap, que es movimiento igualmente. */
+@media (prefers-reduced-motion: reduce) {
+  .contenedor {
+    scroll-behavior: auto;
+  }
+  .progresoRelleno {
+    transition: none;
+  }
+}

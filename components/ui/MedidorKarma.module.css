@@ -1,0 +1,86 @@
+/* MedidorKarma · CSS Module.
+   Todo color sale de un token de app/globals.css. Ni un hex de marca.
+
+   El medidor muestra SOLO reputación —nunca saldo gastable ni cristales, que
+   son privados (CONTRATOS §2)—, así que se puede pintar tanto en el perfil
+   propio como en el ajeno sin decidir nada en tiempo de render. */
+
+.medidor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.etiqueta {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.karma {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* La unidad va en tono apagado para que la cifra domine: lo que importa de un
+   vistazo es cuánto, no la palabra "karma". */
+.unidad {
+  margin-left: 4px;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pista {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+/* El relleno usa el degradado de marca como RELLENO, no como texto: --accent
+   (#7c5cff) no cumple AA como texto pero sí sobra para una superficie. */
+.relleno {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width var(--dur-slow, 420ms) var(--ease, ease-out);
+}
+
+.carril {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Variante compacta para la tarjeta de perfil dentro del feed, donde el medidor
+   acompaña y no protagoniza. */
+.compacto .pista {
+  height: 5px;
+}
+
+.compacto .etiqueta {
+  font-size: 13.5px;
+}
+
+.compacto .carril {
+  font-size: 11.5px;
+}
+
+/* La animación de la barra es decorativa: quien pide menos movimiento la ve
+   saltar al valor final, que es exactamente la misma información. */
+@media (prefers-reduced-motion: reduce) {
+  .relleno {
+    transition: none;
+  }
+}

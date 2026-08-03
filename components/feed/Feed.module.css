@@ -1,0 +1,276 @@
+/* ==========================================================================
+   Estilos del feed. Solo variables de app/globals.css (dueño F4): ni un hex
+   escrito a mano, para que el tema claro y el oscuro salgan gratis y para que
+   cambiar la paleta no obligue a peinar veinte componentes (CONTRATOS §10).
+   ========================================================================== */
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* El feed es una columna de lectura, no un lienzo: pasada cierta anchura, la
+     línea se hace demasiado larga y se pierde el renglón al volver. */
+  max-width: 42rem;
+  margin-inline: auto;
+  padding-inline: 12px;
+}
+
+/* ── Tarjeta de post ─────────────────────────────────────────────────────── */
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.identidad {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.alias {
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.etiquetas {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.cuerpo {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.6;
+  /* Un desahogo se escribe con saltos de línea y se lee como se escribió. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.enlaceHilo {
+  /* El área de la tarjeta entera lleva al hilo, pero el elemento clicable es un
+     <a> de verdad: enfocable con teclado, abrible con clic derecho y anunciado
+     por el lector de pantalla. Un <div onClick> no es nada de eso. */
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  /* Texto solo para el lector de pantalla. */
+  overflow: hidden;
+  text-indent: -9999px;
+  white-space: nowrap;
+}
+
+.tarjeta {
+  position: relative;
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  /* Por encima del enlace que cubre la tarjeta: si no, el botón de voto sería
+     inalcanzable y cada intento de votar abriría el hilo. */
+  position: relative;
+  z-index: 1;
+}
+
+.contador {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* ── Pie de recursos de ayuda ────────────────────────────────────────────────
+   La regla más delicada del feed. Esto NO es una alerta:
+     · sin rojo de fondo, sin icono de advertencia, sin la palabra «riesgo»;
+     · no dice nada sobre quien escribió, dice algo a quien lee;
+     · usa --accent2 (el verde de la calma), nunca --danger.
+   Pintar de rojo un post de alguien que está mal lo señala delante de toda la
+   comunidad y convierte a una persona en una alerta del sistema. Se prioriza,
+   no se etiqueta (CONTRATOS §9). */
+.recursos {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.enlaceRecursos {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--accent2);
+}
+
+/* ── Tarjeta de contenido curado ─────────────────────────────────────────── */
+
+.contenido {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.miniatura {
+  width: 96px;
+  height: 54px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--panel2);
+}
+
+.titulo {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.enlaceTitulo {
+  color: inherit;
+  text-decoration: none;
+}
+
+.enlaceTitulo:hover,
+.enlaceTitulo:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.resumen {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* ── Slot de encuesta (lo rellena B09) ───────────────────────────────────── */
+
+.encuesta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+/* ── Selector de carril ──────────────────────────────────────────────────── */
+
+.carriles {
+  display: flex;
+  gap: 8px;
+  max-width: 42rem;
+  margin: 0 auto 12px;
+  padding-inline: 12px;
+}
+
+.carril {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.carril[aria-current='page'] {
+  color: var(--ink);
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+/* ── Acción del estado vacío ─────────────────────────────────────────────── */
+
+.accionVacio {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ── Scroll infinito ─────────────────────────────────────────────────────── */
+
+.centinela {
+  /* Altura mínima para que el IntersectionObserver tenga algo que observar
+     incluso cuando la lista termina justo en el borde del viewport. */
+  height: 1px;
+}
+
+.estadoScroll {
+  padding: 16px 12px 48px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+  max-width: 42rem;
+  margin-inline: auto;
+}
+
+.reintentar {
+  min-height: var(--touch);
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ── Botón de voto ───────────────────────────────────────────────────────── */
+
+.voto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch);
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.voto[aria-pressed='true'] {
+  color: var(--ink);
+  border-color: var(--accent2);
+}
+
+.voto:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voto {
+    transition: none;
+  }
+}
