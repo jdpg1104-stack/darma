@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 import { guardarClaveRefugio } from '@/lib/crypto/almacen'
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 
 import { crearRefugio } from './api'
 import { asegurarIdentidad, prepararSobresDeSalaNueva } from './identidad'
@@ -42,6 +43,7 @@ export interface BotonHablarEnPrivadoProps {
  * qué, en vez de abrir un refugio que la otra persona nunca podrá leer.
  */
 export function BotonHablarEnPrivado({ miId, otroId, otroAlias }: BotonHablarEnPrivadoProps) {
+  const t = useTraductor()
   const router = useRouter()
   const [estado, setEstado] = useState<'listo' | 'creando'>('listo')
   const [error, setError] = useState<string | null>(null)
@@ -54,10 +56,7 @@ export function BotonHablarEnPrivado({ miId, otroId, otroAlias }: BotonHablarEnP
       const { clave, sobres } = await prepararSobresDeSalaNueva(identidad, [otroId])
 
       if (sobres.length === 0) {
-        setError(
-          `${otroAlias} todavía no ha abierto sus refugios, así que aún no podemos ` +
-            'cifrar la conversación para esa persona. Vuelve a intentarlo más adelante.',
-        )
+        setError(t('refugios.privado.sinClave', { alias: otroAlias }))
         setEstado('listo')
         return
       }
@@ -74,11 +73,7 @@ export function BotonHablarEnPrivado({ miId, otroId, otroAlias }: BotonHablarEnP
       await guardarClaveRefugio(miId, refugeId, clave)
       router.push(`/refugios/${refugeId}`)
     } catch (e) {
-      setError(
-        e instanceof Error && e.message
-          ? e.message
-          : 'No hemos podido abrir el refugio. Inténtalo otra vez.',
-      )
+      setError(e instanceof Error && e.message ? e.message : t('refugios.privado.error'))
       setEstado('listo')
     }
   }
@@ -86,7 +81,7 @@ export function BotonHablarEnPrivado({ miId, otroId, otroAlias }: BotonHablarEnP
   return (
     <div className={estilos.accionPerfil}>
       <Boton onClick={abrir} disabled={estado === 'creando'}>
-        {estado === 'creando' ? 'Abriendo…' : 'Hablar en privado'}
+        {t(estado === 'creando' ? 'refugios.privado.abriendo' : 'refugios.privado.abrir')}
       </Boton>
       {error ? (
         <p className={estilos.avisoAccion} role="status">

@@ -25,6 +25,7 @@
 
 import { useState } from 'react'
 import { Boton, Tarjeta } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import { MIN_COMMENT_LENGTH, MAX_COMMENT_LENGTH } from '@/lib/moderation'
 import type { RespuestaComentar, TarjetaRecursosDatos } from '@/app/api/comments/tipos'
 import { EstadoValidacion, type Estado } from './EstadoValidacion.tsx'
@@ -75,6 +76,7 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
   // del servidor va vacío y el cliente arranca con el texto; de ahí el
   // `suppressHydrationWarning` del textarea, que es exactamente para esto: un
   // valor que solo existe en el navegador.
+  const t = useTraductor()
   const [texto, setTexto] = useState(() => leerBorrador(postId))
   const [enviando, setEnviando] = useState(false)
   const [estado, setEstado] = useState<Estado | null>(null)
@@ -115,7 +117,7 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
         setEstado(null)
         // El mensaje del servidor ya está escrito para personas y nunca trae
         // detalle interno (`lib/auth/errores.ts`): se muestra tal cual.
-        setError(sobre.message ?? 'No hemos podido publicarlo. Tu texto sigue aquí.')
+        setError(sobre.message ?? t('hilo.errorPublicar'))
         return
       }
 
@@ -140,7 +142,7 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
       alPublicar?.(datos)
     } catch {
       setEstado(null)
-      setError('No hemos podido publicarlo. Tu texto sigue aquí, no se ha perdido.')
+      setError(t('hilo.errorPublicar'))
     } finally {
       setEnviando(false)
     }
@@ -150,7 +152,7 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
     <Tarjeta como="section">
       <form onSubmit={enviar}>
         <label className={estilos.oculto} htmlFor={`respuesta-${postId}`}>
-          Escríbele algo
+          {t('hilo.etiquetaRespuesta')}
         </label>
         <textarea
           id={`respuesta-${postId}`}
@@ -159,7 +161,7 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
           value={texto}
           onChange={(e) => cambiar(e.target.value)}
           maxLength={MAX_COMMENT_LENGTH}
-          placeholder="¿Qué le dirías a alguien a quien quieres si estuviera pasando por esto?"
+          placeholder={t('hilo.responderMarcador')}
           aria-describedby={`contador-${postId}`}
         />
 
@@ -169,11 +171,11 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
             className={`${estilos.contador} ${faltan > 0 ? estilos.contadorLimite : ''}`}
           >
             {faltan > 0
-              ? `Te faltan ${faltan} caracteres`
-              : `${longitud} / ${MAX_COMMENT_LENGTH}`}
+              ? t('hilo.faltanCaracteres', { n: faltan })
+              : t('publicar.contador', { n: longitud, max: MAX_COMMENT_LENGTH })}
           </span>
           <Boton type="submit" disabled={!puedeEnviar} cargando={enviando}>
-            Enviar
+            {t('hilo.responder')}
           </Boton>
         </div>
       </form>

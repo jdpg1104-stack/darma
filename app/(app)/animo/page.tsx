@@ -29,25 +29,43 @@ import { LIMITE_FEED_DEFECTO } from '@/lib/video/validacion'
 import type { ItemVideo, PaginaCursor } from '@/lib/video/tipos'
 import { FeedVertical } from '@/components/video'
 import { EstadoVacio } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import estilos from './animo.module.css'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export const metadata = {
-  title: 'Ánimo · Darma',
-  description: 'Vídeos cortos de bienestar, curados. Sin comentarios, sin nadie mirando.',
+/**
+ * `generateMetadata` y no un `metadata` constante: el título y la descripción
+ * de la pestaña también son copy, y en una app en dos idiomas un `<title>` en
+ * español es lo primero que se ve y lo último que alguien revisa.
+ */
+export async function generateMetadata() {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('contenido.meta.titulo'),
+    description: t('contenido.meta.descripcion'),
+  }
 }
 
-/** Idioma del feed. Provisional: sale del contrato de B17 en cuanto exista un
- *  `idiomaDeSesion()`. Anotado en PEDIDOS.md. */
-const IDIOMA_POR_DEFECTO = 'es'
+/**
+ * Idioma del CATÁLOGO de vídeos, que NO es el de la interfaz.
+ *
+ * Se queda en `'es'` a propósito aunque el traductor ya sepa resolver el locale:
+ * cambiarlo aquí cambia qué filas devuelve `feed_animo()`, y si el catálogo
+ * todavía no tiene vídeos en inglés, quien lea la app en inglés se encontraría
+ * con `/animo` vacía. Eso es una decisión de contenido y de datos, no de copy;
+ * anotada en HANDOFF/PEDIDOS.md para B07/B08.
+ */
+const IDIOMA_DEL_CATALOGO = 'es'
 
 export default async function PaginaAnimo() {
   await requireSesion()
 
+  const t = obtenerTraductor(await resolverLocale())
+
   const supabase = await createClient()
-  const filas = await paginaFeed(supabase, IDIOMA_POR_DEFECTO, null, LIMITE_FEED_DEFECTO)
+  const filas = await paginaFeed(supabase, IDIOMA_DEL_CATALOGO, null, LIMITE_FEED_DEFECTO)
 
   const items: ItemVideo[] = []
   for (const fila of filas) {
@@ -68,12 +86,12 @@ export default async function PaginaAnimo() {
       {items.length === 0 ? (
         <div className={estilos.vacio}>
           <EstadoVacio
-            titulo="Todavía no hay vídeos para ti"
-            descripcion="Estamos curando contenido nuevo. Vuelve en un rato."
+            titulo={t('contenido.vacioTitulo')}
+            descripcion={t('contenido.vacioDescripcion')}
           />
         </div>
       ) : (
-        <FeedVertical inicial={inicial} idioma={IDIOMA_POR_DEFECTO} />
+        <FeedVertical inicial={inicial} idioma={IDIOMA_DEL_CATALOGO} />
       )}
     </main>
   )

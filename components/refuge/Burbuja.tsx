@@ -1,3 +1,5 @@
+'use client'
+
 // ============================================================================
 // B10 · Una burbuja del hilo.
 //
@@ -11,9 +13,16 @@
 //  · el otro — hay llave y aun así no cuadra. Eso es un mensaje corrupto o
 //    cifrado con otra clave (alguien rotó), y NO tiene arreglo. Decir «pide la
 //    llave» en ese caso mandaría a la persona a una acción que no funciona.
+//
+// La hora se formatea con el LOCALE ACTIVO y no con un `es-ES` fijo. `'use
+// client'` es explícito desde la traducción: esta burbuja solo se pinta dentro
+// de `Hilo`, que ya es cliente, así que no aparece ninguna frontera nueva.
 // ============================================================================
 
+import { useMemo } from 'react'
+
 import type { MensajeDescifrado } from '@/lib/crypto/tipos'
+import { useLocale, useTraductor } from '@/i18n/Proveedor'
 import estilos from './refugio.module.css'
 
 export interface BurbujaProps {
@@ -22,9 +31,14 @@ export interface BurbujaProps {
   mio: boolean
 }
 
-const HORA = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' })
-
 export function Burbuja({ mensaje, mio }: BurbujaProps) {
+  const t = useTraductor()
+  const locale = useLocale()
+  const hora = useMemo(
+    () => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }),
+    [locale],
+  )
+
   const esSistema = mensaje.kind === 'system'
   const ilegible = mensaje.texto === null
 
@@ -37,19 +51,22 @@ export function Burbuja({ mensaje, mio }: BurbujaProps) {
     .join(' ')
 
   return (
-    <article className={clases} aria-label={mio ? 'Mensaje tuyo' : 'Mensaje recibido'}>
+    <article
+      className={clases}
+      aria-label={t(mio ? 'refugios.burbuja.mia' : 'refugios.burbuja.recibida')}
+    >
       {mensaje.texto !== null ? (
         // Texto plano en un nodo de texto. NUNCA dangerouslySetInnerHTML: el
         // contenido lo escribe una persona y renderizarlo como HTML es XSS
         // servido en el sitio con más superficie de riesgo de la app.
         mensaje.texto
       ) : mensaje.ilegiblePorClave ? (
-        <span>Mensaje cerrado: este dispositivo no tiene la llave de esta conversación.</span>
+        <span>{t('refugios.burbuja.sinLlave')}</span>
       ) : (
-        <span>Este mensaje no se puede abrir. Puede que se escribiera con una clave anterior.</span>
+        <span>{t('refugios.burbuja.ilegible')}</span>
       )}
       <time className={estilos.hora} dateTime={mensaje.createdAt}>
-        {HORA.format(new Date(mensaje.createdAt))}
+        {hora.format(new Date(mensaje.createdAt))}
       </time>
     </article>
   )

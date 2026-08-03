@@ -1,71 +1,48 @@
 import type { Metadata } from 'next'
 
+import { obtenerTraductor, resolverLocale, type Traductor } from '@/i18n'
+
 // Landing pública. Server Component puro: cero JavaScript de cliente, cero
 // estado, cero dependencias nuevas. Es la primera pantalla que ve alguien que
 // probablemente no está en su mejor momento — tiene que cargar al instante y
 // explicarse sola, sin animaciones ni ruido.
 
-export const metadata: Metadata = {
-  title: 'Darma · Red social anónima de crecimiento emocional',
-  description:
-    'Red social anónima de crecimiento emocional basada en reciprocidad. Escucha a tres personas y desbloquea tu voz.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('auth.landing.metaTitulo'),
+    description: t('auth.landing.metaDescripcion'),
+  }
 }
 
-// Renderizado estático: esta página no depende de la sesión ni de la base de
-// datos, así que se sirve desde el CDN de Vercel. A cientos de miles de
-// usuarios, la portada no debería tocar el servidor ni una vez.
-export const dynamic = 'force-static'
+// ⚠️ ESTA PÁGINA YA NO ES `force-static`, y el motivo es el idioma.
+//
+// El texto sale del catálogo según el locale de la petición (cookie
+// `darma_idioma` → `Accept-Language`), y `force-static` hace que `cookies()` y
+// `headers()` devuelvan vacío: la portada se habría servido SIEMPRE en español
+// desde el CDN, también a quien llega con el navegador en inglés. Una landing
+// cacheada en un solo idioma no es una optimización, es la mitad de la gente
+// leyendo algo que no entiende en el peor momento posible.
+//
+// El coste es real y hay que decirlo: la portada pasa a renderizarse por
+// petición. Si hace falta recuperar la caché, la vía es una ruta por idioma
+// (`/es`, `/en`) con `generateStaticParams`, no volver a fijar el texto.
 
-/** Los tres niveles de implicación. De menos a más compromiso, a propósito:
- *  nadie debería tener que empezar contando lo peor que le pasa. */
+/** Claves de los tres niveles de implicación. De menos a más compromiso, a
+ *  propósito: nadie debería tener que empezar contando lo peor que le pasa. */
 const NIVELES = [
-  {
-    n: '01',
-    nombre: 'Ánimo',
-    resumen: 'Un gesto de un segundo.',
-    detalle:
-      'Lees a alguien y le haces saber que no está solo. Sin escribir nada, sin exponerte. Es la puerta de entrada y no pide nada a cambio.',
-    color: 'var(--gold)',
-  },
-  {
-    n: '02',
-    nombre: 'Escucha',
-    resumen: 'Respondes de verdad.',
-    detalle:
-      'Escribes a alguien que se ha desahogado. No consejos rápidos: escucha. Cada escucha validada suma un crédito, y tres créditos abren tu turno de hablar.',
-    color: 'var(--accent2)',
-  },
-  {
-    n: '03',
-    nombre: 'Apoyo',
-    resumen: 'Te quedas.',
-    detalle:
-      'Acompañas un proceso, no un mensaje suelto. Círculos, seguimiento y presencia sostenida. Es el nivel que desbloquea quien ya ha demostrado que escucha.',
-    color: 'var(--accent)',
-  },
+  { n: '01', clave: 'animo', color: 'var(--gold)' },
+  { n: '02', clave: 'escucha', color: 'var(--accent2)' },
+  { n: '03', clave: 'apoyo', color: 'var(--accent)' },
 ] as const
 
 /** El bucle. Está aquí como dato para que la página y la documentación cuenten
  *  exactamente lo mismo. */
-const BUCLE = [
-  {
-    paso: 'Escuchas a 3 personas',
-    texto:
-      'Comentarios reales, validados por calidad. Un «ánimo!» repetido no cuenta.',
-  },
-  {
-    paso: 'Desbloqueas tu voz',
-    texto:
-      'Tres escuchas equivalen a una publicación. La regla vive en la base de datos, no en un botón que se pueda saltar.',
-  },
-  {
-    paso: 'Alguien te escucha a ti',
-    texto:
-      'Quien te responde ya ha pasado por lo mismo que tú acabas de hacer. Por eso responde como responde.',
-  },
-] as const
+const BUCLE = ['escuchas', 'desbloqueas', 'teEscuchan'] as const
 
-export default function Home() {
+export default async function Home() {
+  const t: Traductor = obtenerTraductor(await resolverLocale())
+
   return (
     <main
       id="contenido"
@@ -81,21 +58,19 @@ export default function Home() {
       {/* ── Cabecera ───────────────────────────────────────────────────── */}
       <header style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <span className="chip" style={{ alignSelf: 'flex-start' }}>
-          Anónimo por diseño
+          {t('auth.landing.chip')}
         </span>
 
         <h1 style={{ fontSize: 'clamp(34px, 6vw, 56px)', margin: 0 }}>
-          Aquí nadie sabe quién eres.
+          {t('auth.landing.tituloLinea1')}
           <br />
           <span style={{ color: 'var(--accent)' }}>
-            Y aun así, alguien te escucha.
+            {t('auth.landing.tituloLinea2')}
           </span>
         </h1>
 
         <p style={{ color: 'var(--muted)', fontSize: 18, maxWidth: '58ch' }}>
-          Darma es una red social anónima de crecimiento emocional basada en
-          reciprocidad. Sin foto, sin nombre real, sin voz. Solo personas que
-          han decidido escuchar antes de hablar.
+          {t('auth.landing.intro')}
         </p>
 
         <div
@@ -108,10 +83,10 @@ export default function Home() {
           }}
         >
           <a className="btn btn--primary" href="/entrar">
-            Entrar
+            {t('auth.entrar')}
           </a>
           <a className="btn btn--ghost" href="#como-funciona">
-            Cómo funciona
+            {t('auth.landing.comoFunciona')}
           </a>
         </div>
       </header>
@@ -124,11 +99,10 @@ export default function Home() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h2 id="titulo-niveles" style={{ fontSize: 26 }}>
-            Tres niveles, y empiezas por el más fácil
+            {t('auth.landing.nivelesTitulo')}
           </h2>
           <p style={{ color: 'var(--muted)', maxWidth: '62ch' }}>
-            No hace falta contar nada para participar. Se sube de nivel
-            haciendo, no pagando.
+            {t('auth.landing.nivelesIntro')}
           </p>
         </div>
 
@@ -161,10 +135,14 @@ export default function Home() {
               >
                 {nivel.n}
               </span>
-              <h3 style={{ fontSize: 20 }}>{nivel.nombre}</h3>
-              <p style={{ fontWeight: 600 }}>{nivel.resumen}</p>
+              <h3 style={{ fontSize: 20 }}>
+                {t(`auth.landing.niveles.${nivel.clave}.nombre`)}
+              </h3>
+              <p style={{ fontWeight: 600 }}>
+                {t(`auth.landing.niveles.${nivel.clave}.resumen`)}
+              </p>
               <p style={{ color: 'var(--muted)', fontSize: 15 }}>
-                {nivel.detalle}
+                {t(`auth.landing.niveles.${nivel.clave}.detalle`)}
               </p>
             </li>
           ))}
@@ -185,11 +163,10 @@ export default function Home() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h2 id="titulo-bucle" style={{ fontSize: 26 }}>
-            El bucle: escuchar es lo que da derecho a hablar
+            {t('auth.landing.bucleTitulo')}
           </h2>
           <p style={{ color: 'var(--muted)', maxWidth: '62ch' }}>
-            En casi toda red social, hablar es gratis y escuchar es opcional.
-            Aquí es al revés. Es la única regla que hace falta entender.
+            {t('auth.landing.bucleIntro')}
           </p>
         </div>
 
@@ -203,9 +180,9 @@ export default function Home() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           }}
         >
-          {BUCLE.map((item, i) => (
+          {BUCLE.map((clave, i) => (
             <li
-              key={item.paso}
+              key={clave}
               style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
             >
               <span
@@ -219,9 +196,11 @@ export default function Home() {
               >
                 {i + 1} {i < BUCLE.length - 1 ? '→' : '↺'}
               </span>
-              <h3 style={{ fontSize: 17 }}>{item.paso}</h3>
+              <h3 style={{ fontSize: 17 }}>
+                {t(`auth.landing.bucle.${clave}.paso`)}
+              </h3>
               <p style={{ color: 'var(--muted)', fontSize: 15 }}>
-                {item.texto}
+                {t(`auth.landing.bucle.${clave}.texto`)}
               </p>
             </li>
           ))}
@@ -236,8 +215,7 @@ export default function Home() {
             margin: 0,
           }}
         >
-          Tu primera publicación es gratuita. A partir de ahí, el ciclo se
-          sostiene solo.
+          {t('auth.landing.primeraGratis')}
         </p>
       </section>
 
@@ -250,13 +228,12 @@ export default function Home() {
           alignItems: 'flex-start',
         }}
       >
-        <h2 style={{ fontSize: 24 }}>¿Empezamos escuchando?</h2>
+        <h2 style={{ fontSize: 24 }}>{t('auth.landing.cierreTitulo')}</h2>
         <p style={{ color: 'var(--muted)', maxWidth: '58ch' }}>
-          No pedimos tu nombre, ni tu cara, ni tu voz. Eliges un seudónimo y ya
-          estás dentro.
+          {t('auth.landing.cierreTexto')}
         </p>
         <a className="btn btn--primary" href="/entrar">
-          Entrar en Darma
+          {t('auth.entrarEnDarma')}
         </a>
       </section>
 
@@ -274,16 +251,13 @@ export default function Home() {
           fontSize: 14,
         }}
       >
-        <p style={{ maxWidth: '52ch' }}>
-          Darma es apoyo entre iguales, no atención sanitaria. Si estás en
-          peligro, busca ayuda profesional de inmediato.
-        </p>
+        <p style={{ maxWidth: '52ch' }}>{t('auth.landing.pie')}</p>
         <nav
-          aria-label="Enlaces legales y de ayuda"
+          aria-label={t('auth.landing.enlacesPie')}
           style={{ display: 'flex', gap: 18 }}
         >
-          <a href="/ayuda">Ayuda urgente</a>
-          <a href="/legal">Legal</a>
+          <a href="/ayuda">{t('auth.landing.ayudaUrgente')}</a>
+          <a href="/legal">{t('legal.titulo')}</a>
         </nav>
       </footer>
     </main>

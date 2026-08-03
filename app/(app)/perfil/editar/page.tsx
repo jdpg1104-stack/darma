@@ -7,8 +7,10 @@
 // avatar_seed, bio, availability) están todos en el `grant select` público.
 // ============================================================================
 
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { requirePerfil } from '@/lib/auth/session'
 import { FormularioEditar } from '@/components/perfil/FormularioEditar'
 import { leerPerfilEditable } from '@/components/perfil/consultas'
@@ -18,13 +20,17 @@ import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = {
-  title: 'Editar tu perfil · Darma',
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('perfil.edicion.metaTitulo'),
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function PaginaEditarPerfil() {
   const sesion = await requirePerfil()
+  const t = obtenerTraductor(await resolverLocale())
 
   // UNA consulta a las columnas públicas por PK. No se piden saldos: esta
   // pantalla no los pinta ni los edita, y traerlos "por si acaso" es cómo un
@@ -34,18 +40,15 @@ export default async function PaginaEditarPerfil() {
 
   return (
     <div className={estilos.pagina}>
-      <h1 className={estilos.alias}>Editar tu perfil</h1>
+      <h1 className={estilos.alias}>{t('perfil.edicion.titulo')}</h1>
 
-      <p className={estilos.pista}>
-        Tu nivel y tu karma no se editan: se derivan de lo que haces. Es lo que
-        hace que signifiquen algo.
-      </p>
+      <p className={estilos.pista}>{t('perfil.edicion.pista')}</p>
 
       <FormularioEditar perfil={propio.perfil} bio={propio.bio} accion={editarPerfil} />
 
       <div className={estilos.acciones}>
         <Link className={estilos.enlaceAccion} href="/perfil">
-          Volver a tu perfil
+          {t('perfil.volverAlPerfil')}
         </Link>
       </div>
     </div>

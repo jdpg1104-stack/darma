@@ -1,3 +1,5 @@
+'use client'
+
 // ============================================================================
 // B10 · El número de seguridad
 //
@@ -11,10 +13,16 @@
 // por un canal que Darma no controla: se leen los quince dígitos en voz alta,
 // por teléfono o en persona. Si coinciden, nadie se interpuso.
 //
-// Server Component: cero bytes de JS.
+// Los DÍGITOS no pasan por el catálogo y no cambian con el idioma: son la
+// huella, y traducir un número es la mejor forma de que dos personas comparen
+// cosas distintas. Lo que se traduce es la frase que los envuelve.
+//
+// `'use client'` desde la traducción; este bloque solo se pinta dentro de
+// `Hilo`, que ya es cliente.
 // ============================================================================
 
 import { numeroSeguridad } from '@/lib/crypto/huella'
+import { useTraductor } from '@/i18n/Proveedor'
 import estilos from './refugio.module.css'
 
 export interface NumeroSeguridadProps {
@@ -25,6 +33,8 @@ export interface NumeroSeguridadProps {
 }
 
 export function NumeroSeguridad({ fingerprint, alias }: NumeroSeguridadProps) {
+  const t = useTraductor()
+
   let numero: string
   try {
     numero = numeroSeguridad(fingerprint)
@@ -32,27 +42,21 @@ export function NumeroSeguridad({ fingerprint, alias }: NumeroSeguridadProps) {
     // Una huella que no se puede leer NO se enseña «a medias»: enseñar un
     // número inventado sería peor que no enseñar ninguno, porque la gente lo
     // compararía y le saldría distinto sin motivo.
-    return (
-      <p className={estilos.explicacion}>
-        Todavía no podemos mostrar el número de seguridad de esta conversación.
-      </p>
-    )
+    return <p className={estilos.explicacion}>{t('refugios.numero.noDisponible')}</p>
   }
 
   return (
     <div className={estilos.numeroBloque}>
       <p className={estilos.explicacion}>
-        Número de seguridad de esta conversación
-        {alias ? ` con ${alias}` : ''}:
+        {alias ? t('refugios.numero.tituloCon', { alias }) : t('refugios.numero.titulo')}
       </p>
-      <output className={estilos.numero} aria-label={`Número de seguridad: ${numero.split('').join(' ')}`}>
+      <output
+        className={estilos.numero}
+        aria-label={t('refugios.numero.etiqueta', { digitos: numero.split('').join(' ') })}
+      >
         {numero}
       </output>
-      <p className={estilos.explicacion}>
-        Leedlo en voz alta los dos, por teléfono o en persona. Si os sale el mismo,
-        nadie se ha metido en medio. Darma no puede comprobarlo por vosotros: por eso
-        os lo enseñamos.
-      </p>
+      <p className={estilos.explicacion}>{t('refugios.numero.explicacion')}</p>
     </div>
   )
 }

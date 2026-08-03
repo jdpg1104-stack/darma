@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { useEffect, useState } from 'react'
+import { useTraductor } from '@/i18n/Proveedor'
 import estilos from './pwa.module.css'
 
 export interface AvisoSinConexionProps {
@@ -27,6 +28,7 @@ export interface AvisoSinConexionProps {
 }
 
 export function AvisoSinConexion({ mensaje }: AvisoSinConexionProps) {
+  const t = useTraductor()
   // Arranca en `false` y NO se inicializa con `navigator.onLine`: leerlo en el
   // primer render rompe la hidratación (el servidor no tiene `navigator`). El
   // efecto lo corrige en el mismo tick.
@@ -52,9 +54,9 @@ export function AvisoSinConexion({ mensaje }: AvisoSinConexionProps) {
     // evita.
     <div className={estilos.aviso} role="status" aria-live="polite">
       <span className={estilos.punto} aria-hidden="true" />
-      <span>{mensaje ?? 'Sin conexión. Puedes leer lo que ya se había cargado.'}</span>
+      <span>{mensaje ?? t('comun.pwa.sinConexion')}</span>
       <a className={estilos.enlaceAyuda} href="/ayuda">
-        Ver ayuda
+        {t('comun.pwa.verAyuda')}
       </a>
     </div>
   )

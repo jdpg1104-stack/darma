@@ -1,6 +1,13 @@
+'use client'
+
 // ============================================================================
-// B06 · Insignia de movimiento respecto al corte anterior. Server Component,
-// puro: cero JS de cliente.
+// B06 · Insignia de movimiento respecto al corte anterior.
+//
+// ⚠️ Lleva `'use client'` DESDE LA MIGRACIÓN A i18n. No cambia lo que pesa:
+// `Tablero` —que sí es cliente— ya lo importaba, así que este componente ya
+// viajaba al navegador dentro de ese bundle. La marca solo lo hace explícito y
+// le permite leer el catálogo con `useTraductor()`; `MiPosicion`, que es Server
+// Component, lo sigue renderizando sin cambios.
 //
 // TRES DECISIONES QUE NO SON DE ESTILO:
 //
@@ -19,6 +26,7 @@
 //     pantalla que anuncia «▲ 3» no dice nada; «sube 3 puestos» sí.
 // ============================================================================
 
+import { useTraductor } from '@/i18n/Proveedor'
 import { Insignia } from '../ui/index.ts'
 import type { KarmaLevel } from '@/lib/karma'
 import estilos from './ranking.module.css'
@@ -32,6 +40,8 @@ export interface InsigniaMovimientoProps {
 }
 
 export function InsigniaMovimiento({ movimiento, esHistorico = false, nivel }: InsigniaMovimientoProps) {
+  const t = useTraductor()
+
   if (esHistorico) {
     return <Insignia nivel={nivel} />
   }
@@ -42,7 +52,7 @@ export function InsigniaMovimiento({ movimiento, esHistorico = false, nivel }: I
         <span aria-hidden="true" className={estilos.flecha}>
           ✦
         </span>
-        Nuevo
+        {t('ranking.movimientoNuevo')}
       </span>
     )
   }
@@ -53,22 +63,23 @@ export function InsigniaMovimiento({ movimiento, esHistorico = false, nivel }: I
         <span aria-hidden="true" className={estilos.flecha}>
           ·
         </span>
-        <span className="sr-only">Se mantiene en el mismo puesto</span>
-        <span aria-hidden="true">Igual</span>
+        <span className="sr-only">{t('ranking.movimientoIgualSr')}</span>
+        <span aria-hidden="true">{t('ranking.movimientoIgual')}</span>
       </span>
     )
   }
 
   const subio = movimiento > 0
   const puestos = Math.abs(movimiento)
-  const plural = puestos === 1 ? 'puesto' : 'puestos'
 
   return (
     <span className={`${estilos.movimiento} ${subio ? estilos.masAdelante : estilos.masAtras}`}>
       <span aria-hidden="true" className={estilos.flecha}>
         {subio ? '▲' : '▼'}
       </span>
-      <span className="sr-only">{subio ? `Sube ${puestos} ${plural}` : `Baja ${puestos} ${plural}`}</span>
+      <span className="sr-only">
+        {t(subio ? 'ranking.movimientoSube' : 'ranking.movimientoBaja', { n: puestos })}
+      </span>
       <span aria-hidden="true">{puestos}</span>
     </span>
   )

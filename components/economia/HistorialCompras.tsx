@@ -17,6 +17,7 @@
 // ============================================================================
 
 import { EstadoVacio, Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale, type Locale, type Traductor } from '@/i18n'
 import type { MovimientoPublico } from '@/lib/billing/ledger'
 import { CATALOGO_REGALOS, esTipoRegalo } from '@/lib/billing/regalos'
 
@@ -27,12 +28,18 @@ export interface HistorialComprasProps {
   movimientos: readonly MovimientoPublico[]
 }
 
-export function HistorialCompras({ movimientos }: HistorialComprasProps) {
+export async function HistorialCompras({ movimientos }: HistorialComprasProps) {
+  const locale = await resolverLocale()
+  const t = obtenerTraductor(locale)
+
   if (movimientos.length === 0) {
     return (
       <Tarjeta className={estilos.tienda}>
-        <h2>Tus movimientos</h2>
-        <EstadoVacio titulo="Todavía no hay movimientos" descripcion="Aquí aparecerá lo que compres y lo que gastes." />
+        <h2>{t('karma.economia.historial.titulo')}</h2>
+        <EstadoVacio
+          titulo={t('karma.economia.historial.vacioTitulo')}
+          descripcion={t('karma.economia.historial.vacioDescripcion')}
+        />
         <FraseLineaRoja />
       </Tarjeta>
     )
@@ -40,20 +47,20 @@ export function HistorialCompras({ movimientos }: HistorialComprasProps) {
 
   return (
     <Tarjeta className={estilos.tienda}>
-      <h2>Tus movimientos</h2>
+      <h2>{t('karma.economia.historial.titulo')}</h2>
       <ul className={estilos.historial}>
         {movimientos.map((movimiento) => (
           // La clave combina fecha y motivo: no hay `id` en el tipo público, y
           // ponerlo solo para tener clave sería filtrar el bigint interno.
           <li key={`${movimiento.fecha}:${movimiento.motivo}`} className={estilos.movimiento}>
-            <span>{describir(movimiento)}</span>
+            <span>{describir(movimiento, t)}</span>
             <span>
               <span className={estilos.delta}>
                 {movimiento.delta > 0 ? '+' : ''}
                 {movimiento.delta}
               </span>{' '}
               <time className={estilos.fecha} dateTime={movimiento.fecha}>
-                {formatearFecha(movimiento.fecha)}
+                {formatearFecha(movimiento.fecha, locale)}
               </time>
             </span>
           </li>
@@ -64,23 +71,36 @@ export function HistorialCompras({ movimientos }: HistorialComprasProps) {
   )
 }
 
-function describir(movimiento: MovimientoPublico): string {
+function describir(movimiento: MovimientoPublico, t: Traductor): string {
   const { motivo, origen } = movimiento
 
-  if (origen === 'refund') return 'Reembolso'
-  if (motivo === 'boost') return 'Impulso a un post'
+  if (origen === 'refund') return t('karma.economia.historial.reembolso')
+  if (motivo === 'boost') return t('karma.economia.historial.impulso')
   if (motivo.startsWith('gift:')) {
     const tipo = motivo.slice('gift:'.length)
-    const etiqueta = esTipoRegalo(tipo) ? CATALOGO_REGALOS[tipo].etiqueta : 'Regalo'
-    return movimiento.delta > 0 ? `${etiqueta} (recibido)` : `${etiqueta} (enviado)`
+    // La etiqueta del regalo sale del catálogo de B12 (`lib/billing/regalos.ts`)
+    // y todavía es español fijo. Anotado en HANDOFF/PEDIDOS.md: no es de este
+    // bloque y cambiarlo aquí sería traducir el dato, no la pantalla.
+    const etiqueta = esTipoRegalo(tipo)
+      ? CATALOGO_REGALOS[tipo].etiqueta
+      : t('karma.economia.historial.regalo')
+    return t(
+      movimiento.delta > 0
+        ? 'karma.economia.historial.regaloRecibido'
+        : 'karma.economia.historial.regaloEnviado',
+      { etiqueta },
+    )
   }
-  if (motivo.startsWith('crystals_')) return `Compra de ${motivo.slice('crystals_'.length)} cristales`
-  return 'Movimiento'
+  if (motivo.startsWith('crystals_')) {
+    return t('karma.economia.historial.compra', { n: motivo.slice('crystals_'.length) })
+  }
+  return t('karma.economia.historial.movimiento')
 }
 
-/** Fecha corta en español. `Intl` está en el runtime; no añade JS al cliente. */
-function formatearFecha(iso: string): string {
+/** Fecha corta en el idioma activo. `Intl` está en el runtime; no añade JS al
+ *  cliente. */
+function formatearFecha(iso: string, locale: Locale): string {
   const fecha = new Date(iso)
   if (Number.isNaN(fecha.getTime())) return ''
-  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(fecha)
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(fecha)
 }

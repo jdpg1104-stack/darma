@@ -16,16 +16,20 @@
 
 import Link from 'next/link'
 
-import { ETIQUETA_PERIODO, PERIODOS, type PeriodoRanking } from '@/lib/ranking/tipos'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
+import { PERIODOS, type PeriodoRanking } from '@/lib/ranking/tipos'
+import { CLAVE_PERIODO } from './periodos.ts'
 import estilos from './ranking.module.css'
 
 export interface SelectorPeriodoProps {
   activo: PeriodoRanking
 }
 
-export function SelectorPeriodo({ activo }: SelectorPeriodoProps) {
+export async function SelectorPeriodo({ activo }: SelectorPeriodoProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
-    <nav className={estilos.selector} aria-label="Periodo del ranking">
+    <nav className={estilos.selector} aria-label={t('ranking.periodoEtiqueta')}>
       {PERIODOS.map((periodo) => {
         const esActivo = periodo === activo
         return (
@@ -35,7 +39,7 @@ export function SelectorPeriodo({ activo }: SelectorPeriodoProps) {
             className={`${estilos.opcion} ${esActivo ? estilos.activa : ''}`}
             aria-current={esActivo ? 'page' : undefined}
           >
-            {ETIQUETA_PERIODO[periodo]}
+            {t(CLAVE_PERIODO[periodo])}
           </Link>
         )
       })}

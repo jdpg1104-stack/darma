@@ -23,6 +23,7 @@
 import { useCallback, useState } from 'react'
 import { Boton, EstadoVacio } from '@/components/ui'
 import type { ComentarioHilo, PaginaCursor } from '@/app/api/comments/tipos'
+import { useTraductor } from '@/i18n/Proveedor'
 import { Comentario } from './Comentario.tsx'
 import { BotonUtil } from './BotonUtil.tsx'
 import { HiloEnVivo } from './HiloEnVivo.tsx'
@@ -50,6 +51,7 @@ export function ListaComentarios({
   soyAutorDelPost,
   puedeResponder,
 }: ListaComentariosProps) {
+  const t = useTraductor()
   const [items, setItems] = useState<ComentarioHilo[]>(inicial.items)
   const [cursor, setCursor] = useState<string | null>(inicial.siguienteCursor)
   const [cargando, setCargando] = useState(false)
@@ -110,11 +112,9 @@ export function ListaComentarios({
     return (
       <div className={estilos.hilo}>
         <EstadoVacio
-          titulo="Todavía no le ha respondido nadie"
+          titulo={t('hilo.sinRespuestas')}
           descripcion={
-            puedeResponder
-              ? 'Si te apetece, puedes ser la primera persona en escucharle.'
-              : 'Cuando alguien te escriba, aparecerá aquí.'
+            puedeResponder ? t('hilo.primeraPersona') : t('hilo.cuandoTeEscriban')
           }
           tono="cuidado"
         />
@@ -158,7 +158,7 @@ export function ListaComentarios({
           cargando={cargando}
           onClick={() => void cargar(cursor, false)}
         >
-          Ver más respuestas
+          {t('hilo.verMas')}
         </Boton>
       ) : null}
 

@@ -17,6 +17,7 @@
 // ============================================================================
 
 import { Chip } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
@@ -38,6 +39,7 @@ export const runtime = 'nodejs'
 export default async function PaginaCrisis() {
   await requireAdmin('moderador', { accion: `${ACCIONES.panel}.crisis` })
 
+  const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
   const [filas, cola] = await Promise.all([
     leerRollup(admin, ventanaDias(DIAS_VENTANA_DETALLE)),
@@ -47,50 +49,54 @@ export default async function PaginaCrisis() {
 
   return (
     <section>
-      <h1>Cobertura de revisión de crisis</h1>
+      <h1>{t('admin.crisis.titulo')}</h1>
 
       <p>
         <strong>{porcentaje(crisis.cobertura)}</strong>{' '}
         <Chip tono={crisis.semaforo === 'verde' ? 'logro' : 'peligro'}>
-          {crisis.semaforo === 'verde' ? 'Al día' : 'Incidente'}
+          {crisis.semaforo === 'verde' ? t('admin.crisis.alDia') : t('admin.crisis.incidente')}
         </Chip>
       </p>
 
       <p>
-        {crisis.revisados} de {crisis.eventos} eventos de riesgo alto o crítico revisados por
-        una persona en los últimos {DIAS_VENTANA_DETALLE} días. El objetivo es 100 % y no es
-        negociable.
+        {t('admin.crisis.resumen', {
+          revisados: crisis.revisados,
+          eventos: crisis.eventos,
+          dias: DIAS_VENTANA_DETALLE,
+        })}
       </p>
 
       <dl>
         <div>
-          <dt>En cola ahora mismo</dt>
+          <dt>{t('admin.crisis.enCola')}</dt>
           <dd>{entero(crisis.pendientes)}</dd>
         </div>
         <div>
-          <dt>El más antiguo sin atender</dt>
+          <dt>{t('admin.crisis.masAntiguo')}</dt>
           <dd>
             {duracion(crisis.masAntiguoPendienteSegundos)}
             {crisis.masAntiguoPendienteSegundos !== null &&
             crisis.masAntiguoPendienteSegundos > LIMITE_PENDIENTE_CRISIS_SEGUNDOS
-              ? ' · por encima del límite de 15 minutos'
+              ? t('admin.crisis.porEncimaDelLimite', {
+                  minutos: Math.round(LIMITE_PENDIENTE_CRISIS_SEGUNDOS / 60),
+                })
               : ''}
           </dd>
         </div>
         <div>
-          <dt>p95 de atención</dt>
+          <dt>{t('admin.crisis.p95')}</dt>
           <dd>{duracion(crisis.p95AtencionSegundos)}</dd>
         </div>
       </dl>
 
       <TablaSerie
-        titulo={`Serie diaria de los últimos ${DIAS_VENTANA_DETALLE} días`}
+        titulo={t('admin.tabla.serieDiaria', { dias: DIAS_VENTANA_DETALLE })}
         columnas={[
-          { clave: 'dia', etiqueta: 'Día' },
-          { clave: 'eventos', etiqueta: 'Eventos' },
-          { clave: 'revisados', etiqueta: 'Revisados' },
-          { clave: 'cobertura', etiqueta: 'Cobertura' },
-          { clave: 'sinAtender', etiqueta: 'Sin atender' },
+          { clave: 'dia', etiqueta: t('admin.tabla.dia') },
+          { clave: 'eventos', etiqueta: t('admin.tabla.eventos') },
+          { clave: 'revisados', etiqueta: t('admin.tabla.revisados') },
+          { clave: 'cobertura', etiqueta: t('admin.tabla.cobertura') },
+          { clave: 'sinAtender', etiqueta: t('admin.tabla.sinAtender') },
         ]}
         filas={filas.map((f) => {
           const eventos = Number(f.metricas.crisis_eventos ?? 0)

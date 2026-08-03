@@ -11,8 +11,8 @@
 // ============================================================================
 
 import { Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { REGALOS, repartir } from '@/lib/billing/regalos'
-import { EXPLICACION_REGALO } from '@/lib/billing/textos'
 
 import { BotonRegalar } from './BotonRegalar'
 import { FraseLineaRoja } from './FraseLineaRoja'
@@ -26,11 +26,18 @@ export interface SelectorRegaloProps {
   cristales: number
 }
 
-export function SelectorRegalo({ recipientId, refType, refId, cristales }: SelectorRegaloProps) {
+export async function SelectorRegalo({
+  recipientId,
+  refType,
+  refId,
+  cristales,
+}: SelectorRegaloProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <Tarjeta className={estilos.tienda}>
-      <h2>Enviar un regalo</h2>
-      <p className={estilos.explicacion}>{EXPLICACION_REGALO}</p>
+      <h2>{t('karma.economia.regalo.titulo')}</h2>
+      <p className={estilos.explicacion}>{t('karma.economia.explicacionRegalo')}</p>
 
       <ul className={estilos.regalos}>
         {REGALOS.map((regalo) => {
@@ -47,7 +54,10 @@ export function SelectorRegalo({ recipientId, refType, refId, cristales }: Selec
               {/* Los tres números a la vista. `neto` es lo que recibe la otra
                   persona, y es el que importa: se nombra primero. */}
               <span className={estilos.referencia}>
-                llegan {reparto.neto} · {reparto.comision} sostienen Darma
+                {t('karma.economia.regalo.reparto', {
+                  neto: reparto.neto,
+                  comision: reparto.comision,
+                })}
               </span>
               {alcanza ? (
                 <BotonRegalar
@@ -58,7 +68,7 @@ export function SelectorRegalo({ recipientId, refType, refId, cristales }: Selec
                   {...(refId ? { refId } : {})}
                 />
               ) : (
-                <span className={estilos.explicacion}>Te faltan cristales</span>
+                <span className={estilos.explicacion}>{t('karma.economia.regalo.sinCristales')}</span>
               )}
             </li>
           )

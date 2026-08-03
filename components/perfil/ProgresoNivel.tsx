@@ -10,6 +10,7 @@
 // Server Component.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { MedidorKarma } from '../ui/index.ts'
 import type { ResumenKarma } from './tipos.ts'
 import estilos from './perfil.module.css'
@@ -21,11 +22,13 @@ export interface ProgresoNivelProps {
   conDetallePrivado?: boolean
 }
 
-export function ProgresoNivel({ resumen, conDetallePrivado = false }: ProgresoNivelProps) {
+export async function ProgresoNivel({ resumen, conDetallePrivado = false }: ProgresoNivelProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <section className={estilos.seccion} aria-labelledby="titulo-progreso">
       <h2 className={estilos.tituloSeccion} id="titulo-progreso">
-        Nivel
+        {t('perfil.progresoTitulo')}
       </h2>
 
       <MedidorKarma karmaReputacion={resumen.reputacion} />
@@ -33,23 +36,25 @@ export function ProgresoNivel({ resumen, conDetallePrivado = false }: ProgresoNi
       {conDetallePrivado ? (
         <>
           <p className={estilos.pista}>
-            Hoy llevas {resumen.hoy.ganado} de {resumen.hoy.tope} de karma.{' '}
+            {t('karma.hoyLlevas', { n: resumen.hoy.ganado, tope: resumen.hoy.tope })}{' '}
             {resumen.hoy.restante > 0
-              ? `Puedes sumar ${resumen.hoy.restante} más.`
+              ? t('karma.puedesSumar', { n: resumen.hoy.restante })
               : // El tope RECORTA, no rechaza: quien ayuda de más nunca recibe
                 // un error por ayudar. El copy tiene que decir exactamente eso.
-                'Has llegado al máximo del día. Lo que hagas ahora cuenta igual para quien lo recibe.'}
+                t('karma.topeAlcanzado')}
           </p>
 
           {resumen.desglose30d.length > 0 ? (
             <dl className={estilos.desglose}>
               {resumen.desglose30d.map((d) => (
                 <div className={estilos.desgloseFila} key={d.kind}>
-                  <dt className={estilos.desgloseEtiqueta}>{d.descripcion}</dt>
+                  {/* La descripción se pide por `kind`, no se lee de `d.descripcion`:
+                      esa cadena la resuelve `KARMA_WEIGHTS` de lib/karma.ts, que es
+                      la SSOT de la economía y está en un solo idioma. */}
+                  <dt className={estilos.desgloseEtiqueta}>{t(`karma.tipos.${d.kind}`)}</dt>
                   <dd className={estilos.desgloseValor}>
                     {d.total >= 0 ? '+' : '−'}
-                    {Math.abs(d.total)} · {d.veces}{' '}
-                    {d.veces === 1 ? 'vez' : 'veces'}
+                    {Math.abs(d.total)} · {d.veces} {t('karma.veces', { n: d.veces })}
                   </dd>
                 </div>
               ))}

@@ -143,10 +143,37 @@ export interface LiteralEncontrado {
 
 const RE_ACENTO = /[áéíóúÁÉÍÓÚñÑüÜ¿¡]/
 
+/**
+ * Marcas de que lo capturado es CÓDIGO y no copy.
+ *
+ * El escáner busca texto entre `>` y `<`, y en un `.tsx` real eso también casa
+ * con trozos de JavaScript: el `) : null` de un ternario, un `return (`, un
+ * `case 'contenido':`, o los dos lados de una comparación. Al terminar la
+ * migración, los 20 «hallazgos» que quedaban eran TODOS de esta clase, en
+ * archivos con el texto ya migrado del todo.
+ *
+ * Eso no es un detalle de limpieza: obligaba a mantener esos archivos en la
+ * lista de deuda conocida, y una lista de deuda que incluye archivos limpios
+ * deja de proteger — nadie sabe ya cuáles están de verdad pendientes. Con este
+ * filtro la lista se pudo vaciar entera, que es el estado en el que el guard
+ * sirve: cualquier texto sin traducir, en cualquier archivo, falla.
+ *
+ * Se paga un precio y conviene saberlo: una frase de interfaz que llevara un
+ * paréntesis o unas comillas rectas dejará de detectarse. Es la dirección
+ * correcta en la que equivocarse — este guard es una red, no una demostración,
+ * y una red que salta cada día se acaba quitando.
+ */
+// Se incluye el identificador con punto (`estilos.deltaPositivo`, `item.url`):
+// es lo que delata el resto de un ternario partido en varias líneas, donde el
+// tramo capturado no llega a contener ningún paréntesis.
+const RE_PINTA_DE_CODIGO =
+  /[(){}[\]=;]|=>|^(?:case|return|default|await|const|let)\b|['"`]|\b[A-Za-z_$][\w$]*\.[A-Za-z_$]/
+
 function esSospechoso(bruto: string): boolean {
   const texto = bruto.trim()
   if (texto.length < 3) return false
   if (!/\p{L}/u.test(texto)) return false // solo símbolos: ·, →, —
+  if (RE_PINTA_DE_CODIGO.test(texto)) return false
   if (EXCLUSIONES_LITERALES.includes(texto)) return false
   // Heurística conservadora a propósito (ficha B17 §9): o lleva una vocal
   // acentuada (o signo español) o son al menos dos palabras. Un "Ok" suelto o
@@ -194,6 +221,20 @@ export function buscarLiteralesEnFuente(
   //   · el `>` no puede venir de una flecha `=>`.
   const reJsx = /(?<!=)>([^<>{}]+)</g
   for (let m = reJsx.exec(contenido); m !== null; m = reJsx.exec(contenido)) {
+    // Tercer filtro, añadido tras la primera migración real: una comparación
+    // dentro de una expresión JSX —`{longitud > 0 && longitud < MINIMO && (`—
+    // deja el tramo « 0 && longitud » entre un `>` y un `<`, y el escáner lo
+    // denunciaba como copy sin traducir. Cinco componentes ya migrados del todo
+    // seguían apareciendo en la lista por esto.
+    //
+    // No es cosmético: un guard con falsos positivos obliga a mantener en la
+    // línea base archivos que ya están limpios, y una línea base que miente
+    // deja de proteger — que es justo lo que este guard existe para evitar.
+    //
+    // El texto de una interfaz no lleva `&&`, `||` ni `===`. Si algún día lo
+    // llevara, el sitio de ese texto es el catálogo, no el JSX.
+    if (/&&|\|\||\?\?|===|!==|>=|<=/.test(m[1])) continue
+
     if (esSospechoso(m[1])) {
       hallazgos.push({ archivo, linea: lineaDe(m.index), texto: m[1].trim(), donde: 'jsx' })
     }

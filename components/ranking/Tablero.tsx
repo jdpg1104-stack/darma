@@ -22,6 +22,7 @@
 
 import { useCallback, useState } from 'react'
 
+import { useTraductor } from '@/i18n/Proveedor'
 import { Avatar, Boton } from '../ui/index.ts'
 import type { FilaRanking, PeriodoRanking, TableroRanking } from '@/lib/ranking/tipos'
 import { InsigniaMovimiento } from './InsigniaMovimiento.tsx'
@@ -41,6 +42,7 @@ interface RespuestaApi {
 }
 
 export function Tablero({ periodo, inicial, miId }: TableroProps) {
+  const t = useTraductor()
   const [items, setItems] = useState<FilaRanking[]>(inicial.items)
   const [cursor, setCursor] = useState<string | null>(inicial.siguienteCursor)
   const [cargando, setCargando] = useState(false)
@@ -85,7 +87,7 @@ export function Tablero({ periodo, inicial, miId }: TableroProps) {
             aria-current={fila.perfil.id === miId ? 'true' : undefined}
           >
             <span className={estilos.posicion}>
-              <span className="sr-only">Puesto </span>
+              <span className="sr-only">{t('ranking.puesto')} </span>
               {fila.posicion}
             </span>
 
@@ -100,9 +102,7 @@ export function Tablero({ periodo, inicial, miId }: TableroProps) {
 
             <span className={estilos.escuchas}>
               {fila.escuchas}
-              <span className="sr-only">
-                {fila.escuchas === 1 ? ' persona acompañada' : ' personas acompañadas'}
-              </span>
+              <span className="sr-only"> {t('ranking.personas', { n: fila.escuchas })}</span>
             </span>
 
             <InsigniaMovimiento
@@ -117,14 +117,14 @@ export function Tablero({ periodo, inicial, miId }: TableroProps) {
       {cursor ? (
         <div className={estilos.masAcciones}>
           <Boton variante="secundario" onClick={cargarMas} cargando={cargando}>
-            Ver más
+            {t('ranking.verMas')}
           </Boton>
         </div>
       ) : null}
 
       {fallo ? (
         <p className={estilos.error} role="status">
-          No hemos podido cargar más. Inténtalo otra vez en un momento.
+          {t('ranking.errorCargarMas')}
         </p>
       ) : null}
     </>

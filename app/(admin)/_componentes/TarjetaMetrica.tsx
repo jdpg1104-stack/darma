@@ -14,6 +14,7 @@
 
 import type { ReactNode } from 'react'
 import { Chip, Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { Semaforo } from '../_lib/dashboard.ts'
 
 const TONO_POR_SEMAFORO = {
@@ -22,10 +23,11 @@ const TONO_POR_SEMAFORO = {
   rojo: 'peligro',
 } as const
 
-const PALABRA_POR_SEMAFORO = {
-  verde: 'Bien',
-  ambar: 'Atención',
-  rojo: 'Incidente',
+/** La palabra del semáforo, por clave. El color nunca comunica solo. */
+const CLAVE_POR_SEMAFORO = {
+  verde: 'admin.semaforo.verde',
+  ambar: 'admin.semaforo.ambar',
+  rojo: 'admin.semaforo.rojo',
 } as const
 
 export interface TarjetaMetricaProps {
@@ -40,7 +42,7 @@ export interface TarjetaMetricaProps {
   children?: ReactNode
 }
 
-export function TarjetaMetrica({
+export async function TarjetaMetrica({
   titulo,
   valor,
   descripcion,
@@ -48,12 +50,14 @@ export function TarjetaMetrica({
   detalles,
   children,
 }: TarjetaMetricaProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <Tarjeta como="section">
       <header>
         <h2>{titulo}</h2>
         {semaforo ? (
-          <Chip tono={TONO_POR_SEMAFORO[semaforo]}>{PALABRA_POR_SEMAFORO[semaforo]}</Chip>
+          <Chip tono={TONO_POR_SEMAFORO[semaforo]}>{t(CLAVE_POR_SEMAFORO[semaforo])}</Chip>
         ) : null}
       </header>
 

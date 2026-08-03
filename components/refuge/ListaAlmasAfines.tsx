@@ -18,6 +18,7 @@
 import { useState } from 'react'
 
 import { Avatar, Boton, Chip, EstadoVacio } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import type { AlmaAfin } from '@/lib/crypto/tipos'
 import { MenuBloquear } from './MenuBloquear'
 import { olvidarAlmaAfin } from './api'
@@ -27,13 +28,18 @@ export interface ListaAlmasAfinesProps {
   almas: readonly AlmaAfin[]
 }
 
-const ETIQUETA: Readonly<Record<AlmaAfin['disponibilidad'], { texto: string; tono: 'neutro' | 'logro' | 'aviso' }>> = {
-  disponible: { texto: 'Disponible', tono: 'logro' },
-  necesito_hablar: { texto: 'Necesita hablar', tono: 'aviso' },
-  ausente: { texto: 'Ausente', tono: 'neutro' },
+/** Clave de catálogo y tono por estado. El TEXTO no vive aquí: vive en
+ *  `refugios.almas.disponibilidad.*`, que existe en los dos idiomas. */
+const ETIQUETA: Readonly<
+  Record<AlmaAfin['disponibilidad'], { clave: string; tono: 'neutro' | 'logro' | 'aviso' }>
+> = {
+  disponible: { clave: 'refugios.almas.disponibilidad.disponible', tono: 'logro' },
+  necesito_hablar: { clave: 'refugios.almas.disponibilidad.necesito_hablar', tono: 'aviso' },
+  ausente: { clave: 'refugios.almas.disponibilidad.ausente', tono: 'neutro' },
 }
 
 export function ListaAlmasAfines({ almas }: ListaAlmasAfinesProps) {
+  const t = useTraductor()
   const [ocultas, setOcultas] = useState<ReadonlySet<string>>(new Set())
 
   const visibles = almas.filter((a) => !ocultas.has(a.id))
@@ -42,8 +48,8 @@ export function ListaAlmasAfines({ almas }: ListaAlmasAfinesProps) {
     return (
       <EstadoVacio
         tono="cuidado"
-        titulo="Todavía no has guardado a nadie"
-        descripcion="Las almas afines son las personas que te han acompañado y a las que puedes volver. Se guardan desde su perfil, y ellas no reciben ningún aviso por ello."
+        titulo={t('refugios.almas.vacioTitulo')}
+        descripcion={t('refugios.almas.vacioDescripcion')}
       />
     )
   }
@@ -75,14 +81,14 @@ export function ListaAlmasAfines({ almas }: ListaAlmasAfinesProps) {
               <span className={estilos.filaTitulo}>{alma.alias}</span>
               <span className={estilos.filaMeta}>
                 {/* Texto, no solo color: el chip lleva la palabra escrita. */}
-                <Chip tono={estadoDisponibilidad.tono}>{estadoDisponibilidad.texto}</Chip>
+                <Chip tono={estadoDisponibilidad.tono}>{t(estadoDisponibilidad.clave)}</Chip>
                 {alma.note ? ` · ${alma.note}` : ''}
               </span>
             </span>
             <span className={estilos.almaAcciones}>
               <MenuBloquear userId={alma.id} alias={alma.alias} />
               <Boton variante="fantasma" tamano="sm" onClick={() => void olvidar(alma.id)}>
-                Quitar
+                {t('refugios.almas.quitar')}
               </Boton>
             </span>
           </li>

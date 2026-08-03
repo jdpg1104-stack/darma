@@ -19,8 +19,8 @@
 // ============================================================================
 
 import { Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { PaqueteCristales } from '@/lib/billing/catalogo'
-import { EXPLICACION_CRISTALES, TIENDA_SOLO_EN_LA_APP } from '@/lib/billing/textos'
 
 import { BotonComprar } from './BotonComprar'
 import { FraseLineaRoja } from './FraseLineaRoja'
@@ -35,13 +35,24 @@ export interface TiendaCristalesProps {
   disponible: boolean
 }
 
-export function TiendaCristales({ paquetes, cristales, karmaSpendable, disponible }: TiendaCristalesProps) {
+export async function TiendaCristales({
+  paquetes,
+  cristales,
+  karmaSpendable,
+  disponible,
+}: TiendaCristalesProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <Tarjeta className={estilos.tienda}>
-      <h2>Cristales</h2>
+      <h2>{t('karma.economia.tienda.titulo')}</h2>
       <SaldoCristales cristales={cristales} karmaSpendable={karmaSpendable} />
 
-      <FraseLineaRoja explicacion={disponible ? EXPLICACION_CRISTALES : TIENDA_SOLO_EN_LA_APP} />
+      <FraseLineaRoja
+        explicacion={t(
+          disponible ? 'karma.economia.explicacionCristales' : 'karma.economia.soloEnLaApp',
+        )}
+      />
 
       <ul className={estilos.paquetes}>
         {paquetes.map((paquete) => (
@@ -51,7 +62,9 @@ export function TiendaCristales({ paquetes, cristales, karmaSpendable, disponibl
             {/* Orden de magnitud, no precio: cada tienda localiza el suyo a
                 partir del tier. Se dice con el «aprox.» delante para que nadie
                 lo lea como el importe que va a pagar. */}
-            <span className={estilos.referencia}>aprox. {paquete.precioReferencia}</span>
+            <span className={estilos.referencia}>
+              {t('karma.economia.tienda.aprox', { precio: paquete.precioReferencia })}
+            </span>
             <BotonComprar sku={paquete.sku} etiqueta={paquete.etiqueta} disponible={disponible} />
           </li>
         ))}

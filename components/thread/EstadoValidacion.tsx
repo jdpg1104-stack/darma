@@ -1,5 +1,11 @@
+'use client'
+
 // ============================================================================
-// EstadoValidacion — qué ha pasado con tu escucha. Server Component.
+// EstadoValidacion — qué ha pasado con tu escucha.
+//
+// `'use client'` por el idioma: lo pinta `CompositorRespuesta`, que es de
+// cliente, así que el texto sale del contexto de locale (`useTraductor`). Sin
+// estado ni efectos propios.
 //
 // Tres estados y ni uno más: «en revisión», «contó como escucha» y «no válido,
 // y esto es lo que le falta».
@@ -17,6 +23,7 @@
 // ============================================================================
 
 import { Chip } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import estilos from './hilo.module.css'
 
 export type Estado = 'en_revision' | 'valido' | 'no_valido'
@@ -37,10 +44,12 @@ export function EstadoValidacion({
   karmaGanado = 0,
   creditoGanado = 0,
 }: EstadoValidacionProps) {
+  const t = useTraductor()
+
   if (estado === 'en_revision') {
     return (
       <div className={estilos.acciones} role="status">
-        <Chip tono="neutro">Comprobando tu mensaje…</Chip>
+        <Chip tono="neutro">{t('hilo.comprobando')}</Chip>
       </div>
     )
   }
@@ -48,7 +57,7 @@ export function EstadoValidacion({
   if (estado === 'no_valido') {
     return (
       <div className={estilos.acciones} role="status">
-        <Chip tono="aviso">No ha contado como escucha</Chip>
+        <Chip tono="aviso">{t('hilo.noContada')}</Chip>
         {motivo ? <p className={estilos.aviso}>{motivo}</p> : null}
       </div>
     )
@@ -56,17 +65,15 @@ export function EstadoValidacion({
 
   return (
     <div className={estilos.acciones} role="status">
-      <Chip tono="logro">
-        {creditoGanado > 0 ? 'Ha contado como escucha' : 'Publicado'}
-      </Chip>
-      {karmaGanado > 0 ? <Chip tono="logro">{`+${karmaGanado} de karma`}</Chip> : null}
+      <Chip tono="logro">{creditoGanado > 0 ? t('hilo.validado') : t('hilo.publicado')}</Chip>
+      {karmaGanado > 0 ? (
+        <Chip tono="logro">{t('hilo.karmaGanado', { n: karmaGanado })}</Chip>
+      ) : null}
       {/* Karma 0 con la escucha contada = tope diario alcanzado. Se dice, no se
           esconde: alguien que ha ayudado mucho hoy merece saber por qué su
           contador no sube, en vez de pensar que la app se ha equivocado. */}
       {creditoGanado > 0 && karmaGanado === 0 ? (
-        <p className={estilos.aviso}>
-          Hoy ya has llegado al máximo diario de karma. Tu escucha cuenta igual.
-        </p>
+        <p className={estilos.aviso}>{t('hilo.topeDiarioEscucha')}</p>
       ) : null}
       {motivo ? <p className={estilos.aviso}>{motivo}</p> : null}
     </div>

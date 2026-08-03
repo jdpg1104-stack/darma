@@ -22,6 +22,7 @@
 import { useEffect } from 'react'
 
 import estilos from '@/components/feed/Feed.module.css'
+import { useTraductor } from '@/i18n/Proveedor'
 
 export default function ErrorFeed({
   error,
@@ -30,6 +31,8 @@ export default function ErrorFeed({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const t = useTraductor()
+
   useEffect(() => {
     // A la consola del navegador, no a la pantalla. `console.error` está
     // permitido por el eslint del repo justamente para esto.
@@ -38,12 +41,12 @@ export default function ErrorFeed({
 
   return (
     <section role="alert" className={estilos.estadoScroll}>
-      <h1>No hemos podido cargar tu feed</h1>
-      <p>Ha sido cosa nuestra, no tuya. Vuelve a intentarlo en un momento.</p>
+      <h1>{t('feed.error.titulo')}</h1>
+      <p>{t('feed.error.descripcion')}</p>
       <button type="button" className={estilos.reintentar} onClick={reset}>
-        Reintentar
+        {t('comun.reintentar')}
       </button>
-      {error.digest ? <p>Referencia: {error.digest}</p> : null}
+      {error.digest ? <p>{t('feed.error.referencia', { digest: error.digest })}</p> : null}
     </section>
   )
 }

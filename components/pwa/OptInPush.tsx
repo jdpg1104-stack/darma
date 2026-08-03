@@ -30,6 +30,7 @@
 // ============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTraductor } from '@/i18n/Proveedor'
 import {
   CLAVE_OPTIN,
   aceptar,
@@ -66,6 +67,7 @@ function guardar(estado: EstadoOptIn): void {
 }
 
 export function OptInPush({ momento }: OptInPushProps) {
+  const t = useTraductor()
   const [clavePublica, setClavePublica] = useState<string | null>(null)
   const [estado, setEstado] = useState<EstadoOptIn | null>(null)
   const [ocupado, setOcupado] = useState(false)
@@ -180,17 +182,13 @@ export function OptInPush({ momento }: OptInPushProps) {
   return (
     <section className={estilos.tarjeta} aria-labelledby="optin-push-titulo">
       <h2 className={estilos.titulo} id="optin-push-titulo">
-        ¿Quieres que te avisemos?
+        {t('comun.pwa.push.titulo')}
       </h2>
       {/* La explicación dice lo que NO se hace, que es lo que a la gente le
-          preocupa de verdad al conceder notificaciones. */}
-      <p className={estilos.texto}>
-        Te avisaríamos cuando alguien te escuche, cuando tu mensaje ayude a
-        alguien y si un Alma Afín necesita hablar. Nunca para que vuelvas, nunca
-        con rachas y nunca con lo que alguien escribió: el aviso no enseña el
-        texto, porque una pantalla bloqueada la lee cualquiera. De noche todo
-        espera hasta la mañana, salvo un Alma Afín en crisis.
-      </p>
+          preocupa de verdad al conceder notificaciones. En inglés dice lo mismo:
+          es la lista de lo que la app no va a hacer con su pantalla de bloqueo,
+          y traducida a medias no se puede evaluar. */}
+      <p className={estilos.texto}>{t('comun.pwa.push.explicacion')}</p>
       <div className={estilos.acciones}>
         <button
           type="button"
@@ -198,14 +196,14 @@ export function OptInPush({ momento }: OptInPushProps) {
           onClick={() => void onAceptar()}
           disabled={ocupado}
         >
-          Sí, avísame
+          {t('comun.pwa.push.si')}
         </button>
         <button
           type="button"
           className={`${estilos.boton} ${estilos.secundario}`}
           onClick={onAplazar}
         >
-          Ahora no
+          {t('comun.pwa.push.ahoraNo')}
         </button>
       </div>
     </section>

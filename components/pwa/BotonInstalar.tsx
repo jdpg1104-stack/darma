@@ -18,6 +18,7 @@
 // ============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTraductor } from '@/i18n/Proveedor'
 import estilos from './pwa.module.css'
 
 /** `BeforeInstallPromptEvent` no está en las libs de TypeScript (es una API
@@ -33,6 +34,7 @@ export interface BotonInstalarProps {
 }
 
 export function BotonInstalar({ etiqueta }: BotonInstalarProps) {
+  const t = useTraductor()
   const [evento, setEvento] = useState<EventoInstalacion | null>(null)
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export function BotonInstalar({ etiqueta }: BotonInstalarProps) {
       className={`${estilos.boton} ${estilos.secundario}`}
       onClick={() => void instalar()}
     >
-      {etiqueta ?? 'Instalar Darma'}
+      {etiqueta ?? t('comun.pwa.instalar')}
     </button>
   )
 }

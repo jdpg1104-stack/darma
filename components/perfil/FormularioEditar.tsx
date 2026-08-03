@@ -23,6 +23,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 
+import { useTraductor } from '@/i18n/Proveedor'
 import { Boton } from '../ui/index.ts'
 import { SelectorAvatar } from './SelectorAvatar.tsx'
 import type { Disponibilidad, EstadoEdicion, PerfilPublico } from './tipos.ts'
@@ -39,31 +40,34 @@ export interface FormularioEditarProps {
 
 const ESTADO_INICIAL: EstadoEdicion = { ok: false, mensaje: null, campo: null }
 
-const OPCIONES_DISPONIBILIDAD: ReadonlyArray<{ valor: Disponibilidad; texto: string }> = [
-  { valor: 'disponible', texto: 'Disponible para escuchar' },
-  { valor: 'necesito_hablar', texto: 'Necesito hablar' },
-  { valor: 'ausente', texto: 'Ausente' },
+/** Valor + clave de catálogo. El texto visible sale del catálogo, no de aquí. */
+const OPCIONES_DISPONIBILIDAD: ReadonlyArray<{ valor: Disponibilidad; clave: string }> = [
+  { valor: 'disponible', clave: 'perfil.disponibleParaEscuchar' },
+  { valor: 'necesito_hablar', clave: 'perfil.disponibilidad.necesito_hablar' },
+  { valor: 'ausente', clave: 'perfil.disponibilidad.ausente' },
 ]
 
 /** Botón de envío separado para poder usar `useFormStatus`, que solo funciona
  *  DENTRO del `<form>` al que pertenece. */
 function BotonGuardar() {
+  const t = useTraductor()
   const { pending } = useFormStatus()
   return (
     <Boton type="submit" cargando={pending}>
-      Guardar
+      {t('comun.guardar')}
     </Boton>
   )
 }
 
 export function FormularioEditar({ perfil, bio, accion }: FormularioEditarProps) {
+  const t = useTraductor()
   const [estado, enviar] = useActionState(accion, ESTADO_INICIAL)
 
   return (
     <form className={estilos.formulario} action={enviar}>
       <div className={estilos.campo}>
         <label className={estilos.etiqueta} htmlFor="alias">
-          Alias
+          {t('perfil.edicion.etiquetaAlias')}
         </label>
         <input
           className={estilos.entrada}
@@ -82,8 +86,7 @@ export function FormularioEditar({ perfil, bio, accion }: FormularioEditarProps)
           aria-describedby="pista-alias"
         />
         <p className={estilos.pista} id="pista-alias">
-          Entre 3 y 24 caracteres. Letras, números, guiones bajos y espacios. Es
-          único: si ya lo tiene alguien, te lo diremos.
+          {t('perfil.edicion.pistaAlias')}
         </p>
       </div>
 
@@ -95,7 +98,7 @@ export function FormularioEditar({ perfil, bio, accion }: FormularioEditarProps)
 
       <div className={estilos.campo}>
         <label className={estilos.etiqueta} htmlFor="bio">
-          Sobre ti
+          {t('perfil.biografia')}
         </label>
         <textarea
           className={estilos.area}
@@ -107,15 +110,13 @@ export function FormularioEditar({ perfil, bio, accion }: FormularioEditarProps)
           aria-describedby="pista-bio"
         />
         <p className={estilos.pista} id="pista-bio">
-          Hasta 280 caracteres. Sin correos, teléfonos, enlaces ni usuarios de
-          otras redes: aquí nadie comparte datos de contacto, y es lo que hace
-          que este sea un sitio seguro para contar lo que te pasa.
+          {t('perfil.edicion.pistaBio')}
         </p>
       </div>
 
       <div className={estilos.campo}>
         <label className={estilos.etiqueta} htmlFor="disponibilidad">
-          Cómo estás ahora
+          {t('perfil.disponibilidad.titulo')}
         </label>
         <select
           className={estilos.selector}
@@ -125,7 +126,7 @@ export function FormularioEditar({ perfil, bio, accion }: FormularioEditarProps)
         >
           {OPCIONES_DISPONIBILIDAD.map((o) => (
             <option value={o.valor} key={o.valor}>
-              {o.texto}
+              {t(o.clave)}
             </option>
           ))}
         </select>

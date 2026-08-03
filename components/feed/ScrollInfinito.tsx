@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { Carril, ElementoFeed, PaginaFeed } from '@/app/api/feed/tipos'
+import { useTraductor } from '@/i18n/Proveedor'
 
 import estilos from './Feed.module.css'
 import { ListaFeed } from './ListaFeed'
@@ -44,6 +45,7 @@ interface RespuestaFeed {
 }
 
 export function ScrollInfinito({ cursorInicial, carril, limite = 20 }: ScrollInfinitoProps) {
+  const t = useTraductor()
   const [elementos, setElementos] = useState<ElementoFeed[]>([])
   const [error, setError] = useState(false)
   const [agotado, setAgotado] = useState(cursorInicial === null)
@@ -107,10 +109,10 @@ export function ScrollInfinito({ cursorInicial, carril, limite = 20 }: ScrollInf
       <p className={estilos.estadoScroll}>
         {error ? (
           <button type="button" className={estilos.reintentar} onClick={() => void cargarSiguiente()}>
-            No se ha podido cargar más. Reintentar
+            {t('feed.scrollError')}
           </button>
         ) : agotado ? (
-          'Has llegado al final por ahora.'
+          t('feed.finDeLista')
         ) : null}
       </p>
     </>

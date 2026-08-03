@@ -17,6 +17,7 @@
 // `revoked_at`, nunca un `delete`, justo para poder contestarla.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
@@ -37,6 +38,7 @@ interface FilaRol {
 export default async function PaginaRoles() {
   await requireAdmin('superadmin', { accion: ACCIONES.rolesLista })
 
+  const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
   const { data } = await admin
     .from('admin_roles')
@@ -48,32 +50,33 @@ export default async function PaginaRoles() {
 
   return (
     <section>
-      <h1>Roles del centro de mando</h1>
+      <h1>{t('admin.roles.titulo')}</h1>
       <p>
-        La única fuente de verdad es la tabla <code>admin_roles</code> en Postgres. No hay
-        ninguna lista de correos ni de uuids en el código ni en el entorno, y no debe haberla:
-        una lista en código convierte cada cambio de permisos en un despliegue sin registro.
+        {t('admin.roles.fuenteVerdad1')} <code>admin_roles</code>{' '}
+        {t('admin.roles.fuenteVerdad2')}
       </p>
       <p>
-        Para conceder o revocar, <code>POST</code> y <code>DELETE</code> sobre{' '}
-        <code>/api/admin/roles</code>. Nadie puede cambiar su propio rol, y el sistema no se
-        deja quedar sin ningún superadministrador activo: las dos reglas se aplican dentro de
-        la base de datos, no en esta pantalla.
+        {t('admin.roles.concederRevocar1')} <code>POST</code>{' '}
+        {t('admin.roles.concederRevocar2')} <code>DELETE</code>{' '}
+        {t('admin.roles.concederRevocar3')} <code>/api/admin/roles</code>.{' '}
+        {t('admin.roles.concederRevocar4')}
       </p>
 
       <TablaSerie
-        titulo="Roles concedidos (los revocados también se conservan)"
+        titulo={t('admin.roles.tablaTitulo')}
         columnas={[
-          { clave: 'userId', etiqueta: 'Persona' },
-          { clave: 'rol', etiqueta: 'Rol' },
-          { clave: 'estado', etiqueta: 'Estado' },
-          { clave: 'concedidoEn', etiqueta: 'Concedido' },
-          { clave: 'concedidoPor', etiqueta: 'Por' },
+          { clave: 'userId', etiqueta: t('admin.roles.colPersona') },
+          { clave: 'rol', etiqueta: t('admin.roles.colRol') },
+          { clave: 'estado', etiqueta: t('admin.roles.colEstado') },
+          { clave: 'concedidoEn', etiqueta: t('admin.roles.colConcedido') },
+          { clave: 'concedidoPor', etiqueta: t('admin.roles.colPor') },
         ]}
         filas={filas.map((f) => ({
           userId: f.user_id,
           rol: f.role,
-          estado: f.revoked_at ? `Revocado el ${fecha(f.revoked_at)}` : 'Activo',
+          estado: f.revoked_at
+            ? t('admin.roles.revocadoEl', { fecha: fecha(f.revoked_at) })
+            : t('admin.roles.activo'),
           concedidoEn: fecha(f.granted_at),
           concedidoPor: f.granted_by ?? '—',
         }))}

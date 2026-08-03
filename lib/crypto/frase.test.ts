@@ -148,9 +148,93 @@ test('FALLO · la copia de otra persona no se abre con tu frase', async () => {
   await abrirRespaldo(miRespaldo, miFrase.join(' '))
 })
 
-test('las tres advertencias de la pantalla están escritas y son las de la ficha', () => {
+// ── Las tres advertencias, en los dos idiomas ───────────────────────────────
+//
+// `ADVERTENCIAS_RESPALDO` son CLAVES desde que la pantalla se tradujo. El test
+// dejó de poder mirar la cadena en español —era la única que había— y ahora
+// mira las dos: que la clave exista en `es` y en `en`, y que cada versión siga
+// diciendo la cosa dura que tiene que decir.
+//
+// Las expresiones son deliberadamente concretas. Una comprobación de «que no
+// esté vacío» dejaría pasar «tu historial podría verse afectado», que es
+// exactamente la clase de suavizado que este test existe para impedir: quien
+// lea eso y pierda la frase perderá su historial sin haber entendido nunca que
+// lo estaba jugando.
+
+const ADVERTENCIAS_ESPERADAS: ReadonlyArray<{
+  clave: string
+  es: RegExp
+  en: RegExp
+}> = [
+  {
+    clave: 'refugios.respaldo.advertencias.historial',
+    es: /puede leer todo tu historial/i,
+    en: /can read your entire history/i,
+  },
+  {
+    clave: 'refugios.respaldo.advertencias.irrecuperable',
+    es: /Darma no puede recuperarla/i,
+    en: /Darma cannot recover it/i,
+  },
+  {
+    clave: 'refugios.respaldo.advertencias.sinCopia',
+    es: /cambiar de móvil borra tus conversaciones/i,
+    en: /switching phones erases your conversations/i,
+  },
+]
+
+test('las tres advertencias de la pantalla son claves de catálogo, en el orden de la ficha', () => {
   assert.equal(ADVERTENCIAS_RESPALDO.length, 3)
-  assert.match(ADVERTENCIAS_RESPALDO[0], /puede leer todo tu historial/)
-  assert.match(ADVERTENCIAS_RESPALDO[1], /Darma no puede recuperarla/)
-  assert.match(ADVERTENCIAS_RESPALDO[2], /cambiar de móvil borra tus conversaciones/)
+  assert.deepEqual(
+    [...ADVERTENCIAS_RESPALDO],
+    ADVERTENCIAS_ESPERADAS.map((a) => a.clave),
+  )
+})
+
+test('las tres advertencias existen y NO se han suavizado en ninguno de los dos idiomas', async () => {
+  const { obtenerTraductor } = await import('../../i18n/index.ts')
+
+  for (const { clave, es, en } of ADVERTENCIAS_ESPERADAS) {
+    for (const [locale, esperado] of [
+      ['es', es],
+      ['en', en],
+    ] as const) {
+      const texto = obtenerTraductor(locale)(clave)
+      // `obtenerTraductor` devuelve la clave tal cual cuando no existe: si eso
+      // llegara a la pantalla, alguien vería «refugios.respaldo…» justo antes
+      // de decidir sobre su historial.
+      assert.notEqual(texto, clave, `falta ${clave} en ${locale}`)
+      assert.match(
+        texto,
+        esperado,
+        `«${texto}» ya no dice lo que ${clave} tiene que decir en ${locale}`,
+      )
+    }
+  }
+})
+
+test('ninguna advertencia se escuda en un condicional: las tres cosas PASAN', async () => {
+  const { obtenerTraductor } = await import('../../i18n/index.ts')
+
+  // «might», «may», «could», «podría», «puede que» convierten un hecho en un
+  // riesgo remoto. La única forma verbal de «poder» admitida es la del permiso
+  // —«quien tenga la frase PUEDE leer», «Darma NO PUEDE recuperarla»—, que es
+  // afirmación, no hipótesis. Por eso la lista prohíbe las construcciones
+  // hipotéticas concretas y no el verbo entero.
+  const HIPOTETICOS: Readonly<Record<'es' | 'en', RegExp>> = {
+    es: /\b(podr[íi]as?|puede que|quiz[áa]s?|tal vez|es posible que)\b/i,
+    en: /\b(might|may|could|possibly|potentially)\b/i,
+  }
+
+  for (const locale of ['es', 'en'] as const) {
+    const t = obtenerTraductor(locale)
+    for (const clave of ADVERTENCIAS_RESPALDO) {
+      const texto = t(clave)
+      assert.doesNotMatch(
+        texto,
+        HIPOTETICOS[locale],
+        `«${texto}» (${clave}, ${locale}) suaviza la advertencia con un condicional`,
+      )
+    }
+  }
 })

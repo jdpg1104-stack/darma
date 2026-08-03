@@ -26,6 +26,10 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { Boton } from '@/components/ui'
+// El traductor de CLIENTE. El proveedor lo monta `app/layout.tsx`; aquí solo se
+// consume. `obtenerTraductor()` de `@/i18n` necesita el locale de la petición y
+// no lo hay en el navegador.
+import { useTraductor } from '@/i18n/Proveedor'
 import {
   OPCIONES_MIN,
   OPCION_MAX,
@@ -59,6 +63,7 @@ interface Creada {
 type Resultado = { tipo: 'ok'; datos: Creada } | { tipo: 'error'; mensaje: string } | null
 
 export function FormularioEncuesta() {
+  const t = useTraductor()
   const [pregunta, setPregunta] = useState('')
   const [opciones, setOpciones] = useState<string[]>(Array(CASILLAS).fill(''))
   const [idioma, setIdioma] = useState<'es' | 'en'>('es')
@@ -104,10 +109,13 @@ export function FormularioEncuesta() {
         // lleva stack, ni SQL, ni nombre de tabla (CONTRATOS §4).
         setResultado({
           tipo: 'error',
-          mensaje: sobre.message ?? 'No se ha podido crear la encuesta.',
+          mensaje: sobre.message ?? t('admin.encuestas.formulario.errorCrear'),
         })
       } catch {
-        setResultado({ tipo: 'error', mensaje: 'No se ha podido conectar. Inténtalo otra vez.' })
+        setResultado({
+          tipo: 'error',
+          mensaje: t('admin.encuestas.formulario.errorConexion'),
+        })
       }
     })
   }
@@ -120,7 +128,7 @@ export function FormularioEncuesta() {
       }}
     >
       <p>
-        <label htmlFor="pregunta">Pregunta</label>
+        <label htmlFor="pregunta">{t('admin.encuestas.formulario.pregunta')}</label>
         <br />
         <textarea
           id="pregunta"
@@ -129,22 +137,28 @@ export function FormularioEncuesta() {
           rows={2}
           required
           onChange={(e) => setPregunta(e.target.value)}
-          placeholder="¿Cómo ha ido tu semana?"
+          placeholder={t('admin.encuestas.formulario.preguntaEjemplo')}
         />
         <br />
         <small>
-          {pregunta.trim().length} / {PREGUNTA_MAX}. Ni pide un diagnóstico ni un dato clínico, y
-          admite una respuesta honesta que no sea la peor ni la mejor.
+          {pregunta.trim().length} / {PREGUNTA_MAX}.{' '}
+          {t('admin.encuestas.formulario.ayudaPregunta')}
         </small>
       </p>
 
       <fieldset>
-        <legend>Opciones (entre {OPCIONES_MIN} y {CASILLAS})</legend>
+        <legend>
+          {t('admin.encuestas.formulario.opcionesLeyenda', {
+            min: OPCIONES_MIN,
+            max: CASILLAS,
+          })}
+        </legend>
         {opciones.map((valor, i) => (
           <p key={i}>
             <label htmlFor={`opcion-${i}`}>
-              Opción {i + 1}
-              {i < OPCIONES_MIN ? '' : ' (opcional)'}
+              {i < OPCIONES_MIN
+                ? t('admin.encuestas.formulario.opcion', { n: i + 1 })
+                : t('admin.encuestas.formulario.opcionOpcional', { n: i + 1 })}
             </label>
             <br />
             <input
@@ -155,29 +169,26 @@ export function FormularioEncuesta() {
             />
           </p>
         ))}
-        <small>
-          Ninguna opción es un juicio: «me cuesta» sí, «lo llevo fatal» no. Quien responde está
-          eligiendo cómo describirse a sí mismo.
-        </small>
+        <small>{t('admin.encuestas.formulario.ayudaOpciones')}</small>
       </fieldset>
 
       <p>
-        <label htmlFor="idioma">Idioma</label>
+        <label htmlFor="idioma">{t('comun.idioma')}</label>
         <br />
         <select
           id="idioma"
           value={idioma}
           onChange={(e) => setIdioma(e.target.value === 'en' ? 'en' : 'es')}
         >
-          <option value="es">Español</option>
-          <option value="en">English</option>
+          <option value="es">{t('comun.idiomaEspanol')}</option>
+          <option value="en">{t('comun.idiomaIngles')}</option>
         </select>
         <br />
-        <small>Solo la ve quien tiene ese idioma: el pool de encuestas está separado.</small>
+        <small>{t('admin.encuestas.formulario.ayudaIdioma')}</small>
       </p>
 
       <p>
-        <label htmlFor="umbral">Umbral de revelación</label>
+        <label htmlFor="umbral">{t('admin.encuestas.formulario.umbral')}</label>
         <br />
         <input
           id="umbral"
@@ -188,16 +199,13 @@ export function FormularioEncuesta() {
           onChange={(e) => setUmbral(Number(e.target.value))}
         />
         <br />
-        <small>
-          Por debajo de este número de votos no se publica ningún porcentaje. No es estético: con
-          tres votos y un grupo pequeño, un porcentaje identifica a quien votó.
-        </small>
+        <small>{t('admin.encuestas.formulario.ayudaUmbral')}</small>
       </p>
 
       {/* `type="submit"` explícito: `Boton` pone `type="button"` por defecto a
           propósito, así que sin esto el formulario no se envía nunca. */}
       <Boton variante="primario" type="submit" cargando={pendiente} disabled={!listo}>
-        Publicar encuesta
+        {t('admin.encuestas.formulario.publicar')}
       </Boton>
 
       {resultado?.tipo === 'error' && <p role="alert">{resultado.mensaje}</p>}
@@ -205,12 +213,12 @@ export function FormularioEncuesta() {
       {resultado?.tipo === 'ok' && (
         <div role="status">
           {resultado.datos.publicada ? (
-            <p>Encuesta publicada. Ya puede aparecer en el feed.</p>
+            <p>{t('admin.encuestas.formulario.okPublicada')}</p>
           ) : (
             <p>
-              La encuesta se ha guardado pero <strong>no se ha publicado en el feed</strong>. Lo que
-              has escrito tiene señales de crisis, y una encuesta se le sirve a toda la red. Sigue
-              existiendo y queda a la espera de revisión: no se ha borrado nada.
+              {t('admin.encuestas.formulario.okGuardada1')}{' '}
+              <strong>{t('admin.encuestas.formulario.okGuardada2')}</strong>
+              {t('admin.encuestas.formulario.okGuardada3')}
             </p>
           )}
 

@@ -1,5 +1,13 @@
+'use client'
+
 // ============================================================================
-// La tarjeta de un post. Server Component salvo el botón de voto.
+// La tarjeta de un post.
+//
+// `'use client'` por el idioma: la tarjeta la pinta también `ScrollInfinito`,
+// que es de cliente, así que el texto y la fecha tienen que salir del contexto
+// de locale (`useTraductor` / `useLocale`) y no de `resolverLocale()`, que solo
+// existe en el servidor. Sigue sin estado propio: el único JS con lógica es
+// `BotonVoto`.
 //
 // ── EL PIE DE RECURSOS (la decisión más delicada de todo el bloque) ─────────
 // Cuando `enRiesgo` es true, la tarjeta añade UN pie discreto con el acceso a
@@ -22,6 +30,8 @@ import Link from 'next/link'
 
 import { Avatar, Chip, Insignia, Tarjeta } from '@/components/ui'
 import type { PostFeed } from '@/app/api/feed/tipos'
+import type { Locale } from '@/i18n'
+import { useLocale, useTraductor } from '@/i18n/Proveedor'
 
 import { BotonVoto } from './BotonVoto'
 import estilos from './Feed.module.css'
@@ -30,24 +40,21 @@ export interface TarjetaPostProps {
   post: PostFeed
 }
 
-const ETIQUETA_TIPO: Readonly<Record<PostFeed['kind'], string>> = {
-  desahogo: 'Desahogo',
-  pregunta: 'Pregunta',
-  gratitud: 'Gratitud',
-}
-
 /**
  * Fecha en el idioma del documento, legible y con el ISO completo en `dateTime`
  * para quien lo necesite. `<time>` y no un `<span>`: la fecha es un dato, y así
  * el lector de pantalla puede anunciarla como tal.
  */
-function fechaLegible(iso: string): string {
+function fechaLegible(iso: string, locale: Locale): string {
   const fecha = new Date(iso)
   if (Number.isNaN(fecha.getTime())) return ''
-  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(fecha)
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(fecha)
 }
 
 export function TarjetaPost({ post }: TarjetaPostProps) {
+  const t = useTraductor()
+  const locale = useLocale()
+
   return (
     <Tarjeta como="article" interactiva className={estilos.tarjeta}>
       <header className={estilos.cabecera}>
@@ -55,17 +62,17 @@ export function TarjetaPost({ post }: TarjetaPostProps) {
         <div className={estilos.identidad}>
           <span className={estilos.alias}>{post.autor.alias}</span>
           <span className={estilos.meta}>
-            <time dateTime={post.creadoEn}>{fechaLegible(post.creadoEn)}</time>
+            <time dateTime={post.creadoEn}>{fechaLegible(post.creadoEn, locale)}</time>
             {post.topic ? ` · ${post.topic}` : null}
           </span>
         </div>
         <div className={estilos.etiquetas}>
           <Insignia nivel={post.autor.nivel} />
-          <Chip>{ETIQUETA_TIPO[post.kind]}</Chip>
+          <Chip>{t(`publicar.tipos.${post.kind}`)}</Chip>
           {/* «Impulsado» se muestra por transparencia, igual que un anuncio se
               marca como anuncio. Nunca aparece en un post en riesgo: para esos
               `impulsado` es false por construcción (isBoostEligible). */}
-          {post.impulsado ? <Chip tono="logro">Impulsado</Chip> : null}
+          {post.impulsado ? <Chip tono="logro">{t('feed.impulsado')}</Chip> : null}
         </div>
       </header>
 
@@ -77,21 +84,19 @@ export function TarjetaPost({ post }: TarjetaPostProps) {
       {/* `prefetch` para que abrir un hilo sea instantáneo. El enlace cubre la
           tarjeta entera (CSS), pero sigue siendo un ancla real. */}
       <Link href={`/post/${post.id}`} prefetch className={estilos.enlaceHilo}>
-        Abrir el hilo de {post.autor.alias}
+        {t('feed.abrirHilo', { alias: post.autor.alias })}
       </Link>
 
       <footer className={estilos.pie}>
         <BotonVoto postId={post.id} upvotesIniciales={post.upvotes} heVotadoInicial={post.heVotado} />
-        <span className={estilos.contador}>
-          {post.respuestas === 1 ? '1 persona ha escuchado' : `${post.respuestas} personas han escuchado`}
-        </span>
+        <span className={estilos.contador}>{t('feed.escuchas', { n: post.respuestas })}</span>
       </footer>
 
       {post.enRiesgo ? (
         <aside className={estilos.recursos}>
-          Si esto te resuena,{' '}
+          {t('feed.recursosPrefijo')}{' '}
           <Link href="/ayuda" className={estilos.enlaceRecursos}>
-            aquí tienes a quién acudir
+            {t('feed.recursosEnlace')}
           </Link>
           .
         </aside>

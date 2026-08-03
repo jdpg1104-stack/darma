@@ -104,8 +104,8 @@ export function subarbolDeMensajes(
 // ── Traductor ───────────────────────────────────────────────────────────────
 
 const PLANOS: Readonly<Record<Locale, Map<string, string>>> = Object.freeze({
-  es: aplanar(mensajesEs as Catalogo),
-  en: aplanar(mensajesEn as Catalogo),
+  es: aplanar(MENSAJES.es),
+  en: aplanar(MENSAJES.en),
 })
 
 export type Traductor = (clave: string, params?: ParametrosMensaje) => string

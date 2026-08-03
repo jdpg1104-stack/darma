@@ -20,8 +20,9 @@
 // página concreta obligaría a reintroducirlo.
 // ============================================================================
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
+import { useTraductor } from '@/i18n/Proveedor'
 import { Boton, EstadoVacio } from '../ui/index.ts'
 import { formatearDelta, formatearFechaCorta } from './fechas.ts'
 import type { EventoKarma, PaginaCursor } from './tipos.ts'
@@ -39,6 +40,14 @@ interface RespuestaHistorial {
 }
 
 export function HistorialKarma({ inicial }: HistorialKarmaProps) {
+  const t = useTraductor()
+  // Los doce meses cortos, en el idioma activo. `formatearFechaCorta` los
+  // recibe en vez de leerlos por su cuenta: así sigue siendo pura y da el mismo
+  // resultado en el servidor y tras hidratar (ver la cabecera de fechas.ts).
+  const meses = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => t(`comun.mesCorto.${i + 1}`)),
+    [t],
+  )
   const [items, setItems] = useState<EventoKarma[]>(inicial.items)
   const [cursor, setCursor] = useState<string | null>(inicial.siguienteCursor)
   const [cargando, setCargando] = useState(false)
@@ -60,14 +69,14 @@ export function HistorialKarma({ inicial }: HistorialKarmaProps) {
         // Mensaje propio, no el del servidor: el cuerpo de error ya está
         // redactado, pero encadenar textos ajenos en la UI es cómo acaba
         // apareciendo un nombre de tabla en pantalla.
-        setError('No hemos podido cargar más. Inténtalo en un momento.')
+        setError(t('karma.errorCargarMas'))
         return
       }
 
       setItems((previos) => [...previos, ...cuerpo.data!.items])
       setCursor(cuerpo.data.siguienteCursor)
     } catch {
-      setError('No hemos podido cargar más. Inténtalo en un momento.')
+      setError(t('karma.errorCargarMas'))
     } finally {
       setCargando(false)
     }
@@ -77,11 +86,11 @@ export function HistorialKarma({ inicial }: HistorialKarmaProps) {
     return (
       <section className={estilos.seccion} aria-labelledby="titulo-historial">
         <h2 className={estilos.tituloSeccion} id="titulo-historial">
-          Tu karma, movimiento a movimiento
+          {t('karma.historialTitulo')}
         </h2>
         <EstadoVacio
-          titulo="Todavía no hay movimientos"
-          descripcion="Cuando acompañes a alguien y tu comentario se valide, aparecerá aquí."
+          titulo={t('karma.historialVacioTitulo')}
+          descripcion={t('karma.historialVacioDescripcion')}
           tono="neutro"
         />
       </section>
@@ -91,7 +100,7 @@ export function HistorialKarma({ inicial }: HistorialKarmaProps) {
   return (
     <section className={estilos.seccion} aria-labelledby="titulo-historial">
       <h2 className={estilos.tituloSeccion} id="titulo-historial">
-        Tu karma, movimiento a movimiento
+        {t('karma.historialTitulo')}
       </h2>
 
       {/* aria-live para que quien usa lector de pantalla se entere de que la
@@ -106,9 +115,12 @@ export function HistorialKarma({ inicial }: HistorialKarmaProps) {
             key={`${evento.ocurridoEn}-${indice}`}
             className={estilos.evento}
           >
-            <span className={estilos.eventoDescripcion}>{evento.descripcion}</span>
+            {/* Por `kind`, no por `evento.descripcion`: esa cadena la resuelve
+                `KARMA_WEIGHTS` de lib/karma.ts (la SSOT de la economía) y está
+                en un solo idioma. */}
+            <span className={estilos.eventoDescripcion}>{t(`karma.tipos.${evento.kind}`)}</span>
             <time className={estilos.eventoFecha} dateTime={evento.ocurridoEn}>
-              {formatearFechaCorta(evento.ocurridoEn)}
+              {formatearFechaCorta(evento.ocurridoEn, meses)}
             </time>
             <span
               className={`${estilos.delta} ${
@@ -126,7 +138,7 @@ export function HistorialKarma({ inicial }: HistorialKarmaProps) {
                   ocultando justo el movimiento que la persona busca. */}
               {evento.deltaGastable !== 0 ? (
                 <span className={estilos.deltaGastable}>
-                  {formatearDelta(evento.deltaGastable)} gastable
+                  {formatearDelta(evento.deltaGastable)} {t('karma.gastableSufijo')}
                 </span>
               ) : null}
             </span>
@@ -139,7 +151,7 @@ export function HistorialKarma({ inicial }: HistorialKarmaProps) {
       {cursor ? (
         <div className={estilos.acciones}>
           <Boton variante="secundario" onClick={cargarMas} cargando={cargando}>
-            Cargar más
+            {t('karma.cargarMas')}
           </Boton>
         </div>
       ) : null}

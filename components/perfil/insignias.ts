@@ -163,6 +163,20 @@ export const CATALOGO_INSIGNIAS: readonly DefinicionInsignia[] = [
   },
 ] as const
 
+/**
+ * Umbral numérico de cada insignia, indexado por clave.
+ *
+ * Existe para la CAPA DE PRESENTACIÓN: el requisito traducido es un mensaje
+ * ICU con `{n}` («Reúne {n} de karma de reputación.»), y quien lo pinta
+ * —`RejillaInsignias`— solo tiene la `Insignia` de la API, que no lleva el
+ * umbral. Se deriva de `CATALOGO_INSIGNIAS`, así que sigue habiendo un único
+ * sitio donde vive el número y no se reintroduce el tercer sitio que prohíbe
+ * CONTRATOS §8.
+ */
+export const UMBRAL_INSIGNIA: Readonly<Record<ClaveInsignia, number>> = Object.freeze(
+  Object.fromEntries(CATALOGO_INSIGNIAS.map((d) => [d.clave, d.umbral])),
+) as Readonly<Record<ClaveInsignia, number>>
+
 export interface OpcionesInsignias {
   /** Devuelve solo las conseguidas. Es lo que se usa en el perfil ajeno: ahí no
    *  se enseña a otra persona la lista de lo que le falta. */

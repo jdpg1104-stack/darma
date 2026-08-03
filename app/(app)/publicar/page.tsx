@@ -13,34 +13,42 @@
 // ruta de API llamándose a sí misma paga un salto HTTP completo (más el reenvío
 // de cookies) para ejecutar exactamente la misma consulta.
 //
-// ── EL SERVIDOR CALCULA EL COPY, EL CLIENTE LO PINTA ───────────────────────
-// `reciprocityMessage()` se resuelve aquí y viaja como prop. Así
-// `lib/reciprocity.ts` no entra en el bundle del navegador y —más importante—
-// el copy tiene un solo origen. Ninguna regla del 3:1 se reimplementa en el
-// cliente; el cliente ni siquiera ve el saldo.
+// ── EL SERVIDOR DECIDE, EL CLIENTE PINTA ───────────────────────────────────
+// La regla del 3:1 se evalúa aquí con `canPublish()` y al cliente solo le llega
+// el MOTIVO (`'faltan'`, `'en_pausa'`…). Así `lib/reciprocity.ts` no entra en el
+// bundle del navegador y ninguna regla se reimplementa en el cliente: el
+// cliente no ve el saldo, ni sabe que el umbral son tres.
 //
-// Nada de lo que viaja al cliente contiene el número de escuchas pendientes como
-// dato suelto: viaja la FRASE. Es intencionado — un número en una prop invita a
-// que alguien construya con él otro mensaje, y ese otro mensaje acabará usando
-// la palabra «crédito», que está prohibida de cara al usuario (lib/reciprocity.ts).
+// Antes viajaba la FRASE ya resuelta de `reciprocityMessage()`, para que nadie
+// compusiera otro mensaje con el número suelto y acabara escribiendo la palabra
+// «crédito», prohibida de cara al usuario. Eso dejaba la pantalla en español
+// pasara lo que pasara. Ahora viaja el motivo y, con `'faltan'`, cuántas
+// personas quedan: el número es imprescindible para el plural ICU de
+// `publicar.faltan`, que en inglés no se puede componer pegando cadenas. La
+// garantía de antes no se pierde, se mueve: el único texto posible para ese
+// número es el del catálogo.
 // ============================================================================
 
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSesion } from '@/lib/auth/session'
-import { canPublish, reciprocityMessage } from '@/lib/reciprocity'
-import { Composer } from '@/components/composer/Composer'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
+import { canPublish } from '@/lib/reciprocity'
+import { Composer, type MotivoReciprocidad } from '@/components/composer/Composer'
 import estilos from './pagina.module.css'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Publicar · Darma',
-  description: 'Cuenta lo que te pasa. Te leemos.',
-  // Que un buscador no indexe la pantalla donde se escribe. No hay contenido
-  // que ofrecer y sí una URL que asociar a una persona.
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('publicar.metaTitulo'),
+    description: t('publicar.metaDescripcion'),
+    // Que un buscador no indexe la pantalla donde se escribe. No hay contenido
+    // que ofrecer y sí una URL que asociar a una persona.
+    robots: { index: false, follow: false },
+  }
 }
 
 interface FilaPrivada {
@@ -71,18 +79,31 @@ export default async function PaginaPublicar() {
     bannedUntil: privado?.banned_until ?? null,
   }
 
+  // Mismo reparto de casos que `reciprocityMessage()`, en el mismo orden: el
+  // baneo manda sobre todo lo demás y el primer post es gratis.
+  const resultado = canPublish(estado)
+  const motivo: MotivoReciprocidad =
+    resultado.reason === 'banned'
+      ? 'en_pausa'
+      : resultado.isFirstPost
+        ? 'primera_vez'
+        : resultado.allowed
+          ? 'listo'
+          : 'faltan'
+
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <main className={estilos.pagina}>
       <header className={estilos.cabecera}>
-        <h1 className={estilos.titulo}>Cuéntanos qué te pasa</h1>
-        <p className={estilos.entradilla}>
-          Nadie sabe quién eres. Ni nosotros. Escribe con la calma que necesites.
-        </p>
+        <h1 className={estilos.titulo}>{t('publicar.titulo')}</h1>
+        <p className={estilos.entradilla}>{t('publicar.entradilla')}</p>
       </header>
 
       <Composer
-        mensajeReciprocidad={reciprocityMessage(estado)}
-        puedePublicar={canPublish(estado).allowed}
+        motivoReciprocidad={motivo}
+        faltanPorAcompanar={resultado.creditsNeeded}
+        puedePublicar={resultado.allowed}
       />
     </main>
   )

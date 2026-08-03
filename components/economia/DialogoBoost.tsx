@@ -21,9 +21,9 @@
 import { clsx } from 'clsx'
 
 import { Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { EstadoBoost, MedioPagoBoost } from '@/lib/billing/boosts'
 import { BOOST_HORAS, opcionesDePago } from '@/lib/billing/boosts'
-import { EXPLICACION_CUPO_GRATIS } from '@/lib/billing/textos'
 
 import { BotonImpulsar } from './BotonImpulsar'
 import { FraseLineaRoja } from './FraseLineaRoja'
@@ -34,21 +34,23 @@ export interface DialogoBoostProps {
   estado: EstadoBoost
 }
 
-const TEXTO_AGOTADO: Readonly<Record<MedioPagoBoost, string>> = {
-  gratis: 'Ya lo has usado hoy',
-  karma: 'Te falta karma',
-  cristales: 'Te faltan cristales',
+/** Clave de catálogo por medio agotado. El motivo por el que una opción no
+ *  está disponible es distinto en cada caso y se dice, no se atenúa y ya. */
+const CLAVE_AGOTADO: Readonly<Record<MedioPagoBoost, string>> = {
+  gratis: 'karma.economia.boost.agotado.gratis',
+  karma: 'karma.economia.boost.agotado.karma',
+  cristales: 'karma.economia.boost.agotado.cristales',
 }
 
-export function DialogoBoost({ postId, estado }: DialogoBoostProps) {
+export async function DialogoBoost({ postId, estado }: DialogoBoostProps) {
+  const t = obtenerTraductor(await resolverLocale())
   const opciones = opcionesDePago(estado)
 
   return (
     <Tarjeta className={estilos.tienda}>
-      <h2>Impulsar este post</h2>
+      <h2>{t('karma.economia.boost.titulo')}</h2>
       <p className={estilos.explicacion}>
-        Durante {BOOST_HORAS} horas rinde como si tuviera diez veces los apoyos que tiene. No salta la
-        moderación, no adelanta a nadie en crisis y no cambia según con qué lo pagues.
+        {t('karma.economia.boost.explicacion', { horas: BOOST_HORAS })}
       </p>
 
       <ul className={estilos.opciones}>
@@ -67,13 +69,13 @@ export function DialogoBoost({ postId, estado }: DialogoBoostProps) {
             {opcion.disponible ? (
               <BotonImpulsar postId={postId} medio={opcion.medio} etiqueta={opcion.etiqueta} />
             ) : (
-              <span className={estilos.explicacion}>{TEXTO_AGOTADO[opcion.medio]}</span>
+              <span className={estilos.explicacion}>{t(CLAVE_AGOTADO[opcion.medio])}</span>
             )}
           </li>
         ))}
       </ul>
 
-      <p className={estilos.explicacion}>{EXPLICACION_CUPO_GRATIS}</p>
+      <p className={estilos.explicacion}>{t('karma.economia.cupoGratis')}</p>
       <FraseLineaRoja />
     </Tarjeta>
   )

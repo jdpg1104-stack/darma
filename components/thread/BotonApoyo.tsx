@@ -24,6 +24,7 @@
 
 import { useState, useTransition } from 'react'
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 
 export interface BotonApoyoProps {
   postId: string
@@ -32,6 +33,7 @@ export interface BotonApoyoProps {
 }
 
 export function BotonApoyo({ postId, apoyosIniciales, yaApoyado = false }: BotonApoyoProps) {
+  const t = useTraductor()
   const [apoyos, setApoyos] = useState(apoyosIniciales)
   const [apoyado, setApoyado] = useState(yaApoyado)
   const [enCurso, iniciar] = useTransition()
@@ -64,9 +66,9 @@ export function BotonApoyo({ postId, apoyosIniciales, yaApoyado = false }: Boton
       onClick={alternar}
       cargando={enCurso}
       aria-pressed={apoyado}
-      aria-label={apoyado ? 'Quitar tu apoyo' : 'Apoyar este mensaje'}
+      aria-label={apoyado ? t('feed.quitarApoyo') : t('feed.apoyar')}
     >
-      {`Apoyo · ${apoyos}`}
+      {t('hilo.apoyo', { n: apoyos })}
     </Boton>
   )
 }

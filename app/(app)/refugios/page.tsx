@@ -13,6 +13,7 @@
 import { redirect } from 'next/navigation'
 
 import { ListaAlmasAfines, ListaRefugios } from '@/components/refuge'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { getSesion } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import type { AlmaAfin, ResumenRefugio } from '@/lib/crypto/tipos'
@@ -35,6 +36,8 @@ interface FilaBandeja {
 export default async function PaginaRefugios() {
   const sesion = await getSesion()
   if (!sesion) redirect('/entrar')
+
+  const t = obtenerTraductor(await resolverLocale())
 
   const supabase = await createClient()
 
@@ -68,15 +71,12 @@ export default async function PaginaRefugios() {
 
   return (
     <main className={estilos.pagina}>
-      <h1>Refugios</h1>
-      <p className={estilos.explicacion}>
-        Lo que se escribe aquí se cifra en tu dispositivo. Nosotros guardamos el mensaje
-        cerrado y no tenemos la llave.
-      </p>
+      <h1>{t('refugios.titulo')}</h1>
+      <p className={estilos.explicacion}>{t('refugios.explicacion')}</p>
 
       <ListaRefugios refugios={refugios} />
 
-      <h2>Almas afines</h2>
+      <h2>{t('refugios.almasAfines')}</h2>
       <ListaAlmasAfines almas={almas} />
     </main>
   )

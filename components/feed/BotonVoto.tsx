@@ -20,6 +20,8 @@
 
 import { useState, useTransition } from 'react'
 
+import { useTraductor } from '@/i18n/Proveedor'
+
 import estilos from './Feed.module.css'
 
 export interface BotonVotoProps {
@@ -29,6 +31,7 @@ export interface BotonVotoProps {
 }
 
 export function BotonVoto({ postId, upvotesIniciales, heVotadoInicial }: BotonVotoProps) {
+  const t = useTraductor()
   const [votado, setVotado] = useState(heVotadoInicial)
   const [upvotes, setUpvotes] = useState(upvotesIniciales)
   const [enCurso, empezar] = useTransition()
@@ -65,7 +68,7 @@ export function BotonVoto({ postId, upvotesIniciales, heVotadoInicial }: BotonVo
       // `aria-pressed` y no un cambio de color: el estado del botón tiene que
       // estar en el árbol de accesibilidad, no solo en la paleta.
       aria-pressed={votado}
-      aria-label={votado ? 'Quitar mi apoyo' : 'Apoyar este mensaje'}
+      aria-label={votado ? t('feed.quitarApoyo') : t('feed.apoyar')}
       disabled={enCurso}
       onClick={alternar}
     >

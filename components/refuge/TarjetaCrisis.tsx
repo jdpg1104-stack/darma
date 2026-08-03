@@ -1,3 +1,5 @@
+'use client'
+
 // ============================================================================
 // B10 · La tarjeta de recursos, dentro del refugio
 //
@@ -11,12 +13,20 @@
 // escribir lo peor que le pasa no puede recibir como respuesta que su mensaje
 // no se ha mandado.
 //
-// El texto viene de `crisisMessage()` de `lib/crisis.ts` (dueño F3), que ya
-// está escrito con las tres reglas de tono: no alarmar, no prometer lo que
-// Darma no es, y no sonar a vigilancia («hemos detectado que…»).
+// ── EL AVISO SALE DEL CATÁLOGO, NO DE `crisisMessage()` ────────────────────
+// `crisis.aviso.{low,high,critical}` de `messages/*.json` es palabra por palabra
+// el texto que devuelve `crisisMessage()` (`lib/crisis.ts`, dueño F3), con las
+// mismas tres reglas de tono: no alarmar, no prometer lo que Darma no es y no
+// sonar a vigilancia. La diferencia es que el catálogo existe en los dos
+// idiomas. Quien abra esto en inglés está buscando ayuda: es la última pantalla
+// de la app en la que puede permitirse leer español.
+//
+// Los NOMBRES y los TELÉFONOS de `helpResourcesFor()` no se traducen — son los
+// oficiales de cada país (`crisis.tarjeta.textoNoSeTraduce`).
 // ============================================================================
 
-import { crisisMessage, helpResourcesFor, type RiskLevel } from '@/lib/crisis'
+import { helpResourcesFor, type RiskLevel } from '@/lib/crisis'
+import { useTraductor } from '@/i18n/Proveedor'
 import estilos from './refugio.module.css'
 
 export interface TarjetaCrisisProps {
@@ -26,13 +36,15 @@ export interface TarjetaCrisisProps {
 }
 
 export function TarjetaCrisis({ nivel, pais = null }: TarjetaCrisisProps) {
+  const t = useTraductor()
+
   if (nivel !== 'high' && nivel !== 'critical') return null
 
   const recursos = helpResourcesFor(pais)
 
   return (
-    <aside className={estilos.aviso} role="note" aria-label="Recursos de ayuda">
-      <p>{crisisMessage(nivel)}</p>
+    <aside className={estilos.aviso} role="note" aria-label={t('refugios.crisis.etiqueta')}>
+      <p>{t(`crisis.aviso.${nivel}`)}</p>
       <ul className={estilos.advertencias}>
         {recursos.map((r) => (
           <li key={r.name}>
@@ -54,10 +66,7 @@ export function TarjetaCrisis({ nivel, pais = null }: TarjetaCrisisProps) {
           </li>
         ))}
       </ul>
-      <p className={estilos.explicacion}>
-        Tu mensaje se ha enviado. No hemos leído lo que has escrito —no podemos, va
-        cifrado— y nadie de tus almas afines recibe ningún aviso por esto.
-      </p>
+      <p className={estilos.explicacion}>{t('refugios.crisis.pie')}</p>
     </aside>
   )
 }

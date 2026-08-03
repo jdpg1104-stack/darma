@@ -12,6 +12,7 @@
 // escucha.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { Boton, Tarjeta } from '../ui/index.ts'
 import type { FilaRanking, PeriodoRanking } from '@/lib/ranking/tipos'
 import { InsigniaMovimiento } from './InsigniaMovimiento.tsx'
@@ -23,13 +24,15 @@ export interface MiPosicionProps {
   periodo: PeriodoRanking
 }
 
-export function MiPosicion({ fila, periodo }: MiPosicionProps) {
+export async function MiPosicion({ fila, periodo }: MiPosicionProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   if (!fila) {
     return (
       <Tarjeta como="section">
-        <p>Todavía no apareces en esta tabla. Aparecerás en cuanto acompañes a alguien.</p>
+        <p>{t('ranking.miPosicionVacio')}</p>
         <Boton variante="secundario">
-          <Link href="/feed">Ver quién necesita compañía</Link>
+          <Link href="/feed">{t('ranking.miPosicionEnlace')}</Link>
         </Boton>
       </Tarjeta>
     )
@@ -38,9 +41,9 @@ export function MiPosicion({ fila, periodo }: MiPosicionProps) {
   return (
     <Tarjeta como="section" acento="logro">
       <p className={estilos.movimiento}>
-        <strong>Tu puesto: {fila.posicion}</strong>
+        <strong>{t('ranking.tuPuesto', { n: fila.posicion })}</strong>
         {' · '}
-        {fila.escuchas} {fila.escuchas === 1 ? 'persona acompañada' : 'personas acompañadas'}
+        {fila.escuchas} {t('ranking.personas', { n: fila.escuchas })}
         {' '}
         <InsigniaMovimiento
           movimiento={fila.movimiento}

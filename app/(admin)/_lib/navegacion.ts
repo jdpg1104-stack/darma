@@ -18,7 +18,13 @@ import { cumpleRol } from './acceso.ts'
 export interface TabAdmin {
   id: string
   ruta: string
-  etiqueta: string
+  /**
+   * CLAVE del catálogo (`messages/*.json`), no el texto. La navegación la pinta
+   * un Server Component que ya tiene el traductor; si aquí viviera la cadena en
+   * español, la pestaña seguiría en español con la app en inglés y este archivo
+   * —que es una tabla de permisos— se convertiría en un archivo de copy.
+   */
+  etiquetaKey: string
   rolMinimo: RolAdmin
 }
 
@@ -36,20 +42,20 @@ export interface TabAdmin {
  * antes que lo demás.
  */
 export const TABS_ADMIN: readonly TabAdmin[] = [
-  { id: 'panel',        ruta: '/panel',              etiqueta: 'Resumen',      rolMinimo: 'soporte' },
-  { id: 'reciprocidad', ruta: '/panel/reciprocidad', etiqueta: 'Reciprocidad', rolMinimo: 'soporte' },
-  { id: 'activacion',   ruta: '/panel/activacion',   etiqueta: 'Activación',   rolMinimo: 'soporte' },
-  { id: 'crisis',       ruta: '/panel/crisis',       etiqueta: 'Crisis',       rolMinimo: 'moderador' },
+  { id: 'panel',        ruta: '/panel',              etiquetaKey: 'admin.nav.panel',        rolMinimo: 'soporte' },
+  { id: 'reciprocidad', ruta: '/panel/reciprocidad', etiquetaKey: 'admin.nav.reciprocidad', rolMinimo: 'soporte' },
+  { id: 'activacion',   ruta: '/panel/activacion',   etiquetaKey: 'admin.nav.activacion',   rolMinimo: 'soporte' },
+  { id: 'crisis',       ruta: '/panel/crisis',       etiquetaKey: 'admin.nav.crisis',       rolMinimo: 'moderador' },
   // Propiedad de B11. Este bloque solo enlaza la ruta; no toca su código.
-  { id: 'moderacion',   ruta: '/moderacion',         etiqueta: 'Moderación',   rolMinimo: 'moderador' },
+  { id: 'moderacion',   ruta: '/moderacion',         etiquetaKey: 'admin.nav.moderacion',   rolMinimo: 'moderador' },
   // Redacción de encuestas del feed. Sin esta entrada la página no es que
   // estuviera oculta: `puedeVerRuta()` falla cerrado ante rutas desconocidas,
   // así que estaba INACCESIBLE incluso para un superadmin. Es el comportamiento
   // correcto del guard —una página que se olvida de registrarse queda cerrada,
   // no abierta— y por eso registrarla es el paso obligatorio, no un adorno.
-  { id: 'encuestas',    ruta: '/encuestas',          etiqueta: 'Encuestas',    rolMinimo: 'moderador' },
-  { id: 'economia',     ruta: '/panel/economia',     etiqueta: 'Economía',     rolMinimo: 'operaciones' },
-  { id: 'roles',        ruta: '/panel/roles',        etiqueta: 'Roles',        rolMinimo: 'superadmin' },
+  { id: 'encuestas',    ruta: '/encuestas',          etiquetaKey: 'admin.nav.encuestas',    rolMinimo: 'moderador' },
+  { id: 'economia',     ruta: '/panel/economia',     etiquetaKey: 'admin.nav.economia',     rolMinimo: 'operaciones' },
+  { id: 'roles',        ruta: '/panel/roles',        etiquetaKey: 'admin.nav.roles',        rolMinimo: 'superadmin' },
 ] as const
 
 /** Pestañas visibles para un rol. PURA. */

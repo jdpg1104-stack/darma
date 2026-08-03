@@ -11,6 +11,7 @@
 import { useRef, useState } from 'react'
 
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import type { ReferenciaRegalo, TipoRegalo } from '@/lib/billing/regalos'
 
 import estilos from './economia.module.css'
@@ -24,6 +25,7 @@ export interface BotonRegalarProps {
 }
 
 export function BotonRegalar({ recipientId, giftKind, etiqueta, refType, refId }: BotonRegalarProps) {
+  const t = useTraductor()
   const [enCurso, setEnCurso] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [enviado, setEnviado] = useState(false)
@@ -48,12 +50,12 @@ export function BotonRegalar({ recipientId, giftKind, etiqueta, refType, refId }
 
       if (!respuesta.ok) {
         const cuerpo = (await respuesta.json().catch(() => null)) as { message?: string } | null
-        setError(cuerpo?.message ?? 'No hemos podido enviarlo ahora mismo.')
+        setError(cuerpo?.message ?? t('karma.economia.regalo.error'))
         return
       }
       setEnviado(true)
     } catch {
-      setError('No hemos podido enviarlo ahora mismo.')
+      setError(t('karma.economia.regalo.error'))
     } finally {
       setEnCurso(false)
     }
@@ -67,9 +69,9 @@ export function BotonRegalar({ recipientId, giftKind, etiqueta, refType, refId }
         disabled={enviado}
         tamano="sm"
         bloque
-        aria-label={`Enviar ${etiqueta}`}
+        aria-label={t('karma.economia.regalo.enviarEtiqueta', { etiqueta })}
       >
-        {enviado ? 'Enviado' : 'Enviar'}
+        {t(enviado ? 'karma.economia.regalo.enviado' : 'karma.economia.regalo.enviar')}
       </Boton>
       {error ? (
         <p className={estilos.error} role="status">

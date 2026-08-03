@@ -1,188 +1,958 @@
 {
+  "admin": {
+    "activacion": {
+      "cohorte": "Cohorte de las personas registradas en los últimos {dias} días. Los cortes con menos de 20 personas se muestran como «<20»: un agregado con n pequeño es un dato personal disfrazado de conteo.",
+      "notaMedicion": "Nota de medición: el escalón «primera lectura» se aproxima con la primera interacción con un post (un voto). No hay tabla de lecturas en el esquema, así que este escalón subestima. Pedido abierto a B02 en PEDIDOS.md.",
+      "tablaEmbudo": "Embudo de la ventana",
+      "titulo": "Activación"
+    },
+    "contenido": "Contenido",
+    "crisis": {
+      "alDia": "Al día",
+      "enCola": "En cola ahora mismo",
+      "eventosRiesgo": "Eventos de riesgo alto o crítico",
+      "incidente": "Incidente",
+      "masAntiguo": "El más antiguo sin atender",
+      "p95": "p95 de atención",
+      "porEncimaDelLimite": " · por encima del límite de {minutos} minutos",
+      "resumen": "{revisados} de {eventos} eventos de riesgo alto o crítico revisados por una persona en los últimos {dias} días. El objetivo es 100 % y no es negociable.",
+      "revisadosPorPersona": "Revisados por una persona",
+      "titulo": "Cobertura de revisión de crisis"
+    },
+    "economia": {
+      "arppu": "ARPPU",
+      "avisoEstimadoFuerte": "Ingreso parcialmente estimado.",
+      "avisoEstimadoResto": "Las compras sin recibo se valoran con el mapa de precios provisional de este bloque. Pendiente de que B12 exponga el catálogo real desde",
+      "compradoresUnicos": "Compradores únicos (cota superior)",
+      "cristalesVendidos": "Cristales vendidos",
+      "descripcionEstimado": "Ingreso PARCIALMENTE ESTIMADO: crystal_ledger no guarda el precio, así que las compras sin recibo se valoran con el mapa de precios provisional de este bloque. Pendiente de que B12 exponga el catálogo real.",
+      "descripcionReal": "Ingreso derivado de los recibos reales de la tienda.",
+      "ingresoVentana": "Ingreso de la ventana",
+      "karmaDrenado": "Karma drenado",
+      "karmaEmitido": "Karma emitido",
+      "notaCompradores1": "«Compradores únicos» suma los de cada día, así que sobrecuenta a quien compró en dos días distintos: es una cota superior consciente. El cálculo exacto exigiría un",
+      "notaCompradores2": "en vivo sobre",
+      "notaCompradores3": ", que es justo lo que este panel no puede hacer.",
+      "pctTope": "Personas que topan el límite diario",
+      "stockGastable": "Stock gastable",
+      "stockGastableAgregado": "Stock gastable agregado",
+      "titulo": "Economía"
+    },
+    "embudo": {
+      "e1": "1 · Registro",
+      "e2": "2 · Onboarding completo",
+      "e3": "3 · Primera lectura",
+      "e3Largo": "3 · Primera lectura de un post",
+      "e4": "4 · Primer comentario validado",
+      "e5": "5 · Primera publicación",
+      "e6": "6 · Vuelta en D7"
+    },
+    "encuestas": {
+      "colCreada": "Creada",
+      "colEstado": "Estado",
+      "colIdioma": "Idioma",
+      "colOrigen": "Origen",
+      "colPregunta": "Pregunta",
+      "colRespuestas": "Respuestas",
+      "estado": {
+        "active": "En el feed",
+        "hidden": "Fuera del feed",
+        "removed": "Retirada"
+      },
+      "formulario": {
+        "ayudaIdioma": "Solo la ve quien tiene ese idioma: el pool de encuestas está separado.",
+        "ayudaOpciones": "Ninguna opción es un juicio: «me cuesta» sí, «lo llevo fatal» no. Quien responde está eligiendo cómo describirse a sí mismo.",
+        "ayudaPregunta": "Ni pide un diagnóstico ni un dato clínico, y admite una respuesta honesta que no sea la peor ni la mejor.",
+        "ayudaUmbral": "Por debajo de este número de votos no se publica ningún porcentaje. No es estético: con tres votos y un grupo pequeño, un porcentaje identifica a quien votó.",
+        "errorConexion": "No se ha podido conectar. Inténtalo otra vez.",
+        "errorCrear": "No se ha podido crear la encuesta.",
+        "okGuardada1": "La encuesta se ha guardado pero",
+        "okGuardada2": "no se ha publicado en el feed",
+        "okGuardada3": ". Lo que has escrito tiene señales de crisis, y una encuesta se le sirve a toda la red. Sigue existiendo y queda a la espera de revisión: no se ha borrado nada.",
+        "okPublicada": "Encuesta publicada. Ya puede aparecer en el feed.",
+        "opcion": "Opción {n}",
+        "opcionOpcional": "Opción {n} (opcional)",
+        "opcionesLeyenda": "Opciones (entre {min} y {max})",
+        "pregunta": "Pregunta",
+        "preguntaEjemplo": "¿Cómo ha ido tu semana?",
+        "publicar": "Publicar encuesta",
+        "umbral": "Umbral de revelación"
+      },
+      "intro1": "Una encuesta se le sirve a toda la red desde el feed. Se publica con el rol de moderación y cada creación queda en el registro de auditoría con quién y cuándo, no con qué se escribió.",
+      "intro2": "Si la pregunta o alguna de las opciones traen señales de crisis, la encuesta se guarda pero NO entra en el feed, se registra el evento y se muestran los recursos de ayuda en la misma respuesta. No se borra ni se oculta nada en silencio.",
+      "nueva": "Nueva encuesta",
+      "origenBanco": "Banco curado",
+      "origenPersona": "Persona",
+      "tablaTitulo": "Encuestas creadas (banco y personas)",
+      "titulo": "Encuestas",
+      "ultimas": "Últimas encuestas"
+    },
+    "meta": {
+      "titulo": "Centro de mando · Darma"
+    },
+    "metricas": "Métricas",
+    "nav": {
+      "activacion": "Activación",
+      "crisis": "Crisis",
+      "economia": "Economía",
+      "encuestas": "Encuestas",
+      "moderacion": "Moderación",
+      "panel": "Resumen",
+      "reciprocidad": "Reciprocidad",
+      "roles": "Roles"
+    },
+    "panel": {
+      "activacionDescripcion": "Personas registradas en la ventana y hasta dónde llegaron. El escalón que hay que vigilar es el cuarto: quien no consigue un comentario validado nunca podrá publicar, y se va.",
+      "activacionTitulo": "Embudo de activación",
+      "cabecera": "Ventana de {dias} días · calculado el {fecha} · rol {rol}",
+      "crisisIncidente": "Cualquier valor distinto de 100 % es un incidente, no una métrica.",
+      "crisisOk": "Todos los casos de riesgo alto o crítico de la ventana los ha revisado una persona.",
+      "reciprocidadDescripcion": "Escuchas validadas por publicación en {dias} días. Cada publicación consume {umbral}: por debajo de ese número la comunidad solo publica a costa de las primeras publicaciones gratuitas de quien acaba de llegar.",
+      "reciprocidadSparkline": "Ratio de reciprocidad de los últimos {dias} días. Umbral {umbral}.",
+      "reciprocidadTitulo": "Salud del bucle de reciprocidad",
+      "ttprDescripcion": "Mediana de lo que tarda alguien en recibir la primera respuesta. Objetivo: p50 por debajo de 15 min y p90 por debajo de 2 h.",
+      "ttprP50Riesgo": "p50 en posts de riesgo alto o crítico",
+      "ttprP90": "p90",
+      "ttprSinRespuesta24h": "Sin ninguna respuesta en 24 h",
+      "ttprSparkline": "Mediana diaria del tiempo hasta la primera respuesta, últimos {dias} días.",
+      "ttprTitulo": "Tiempo hasta la primera respuesta",
+      "vacioDescripcion": "El rollup diario aún no ha corrido para esta ventana. Se puede lanzar a mano desde /api/admin/rollup si tienes rol de operaciones.",
+      "vacioTitulo": "Todavía no hay ningún día calculado"
+    },
+    "reciprocidad": {
+      "explicacion": "Escuchas validadas por publicación. El umbral es {umbral} porque cada publicación consume {umbral} escuchas: no es un número de vanidad, es la aritmética del producto.",
+      "ratioVentana": "Ratio de la ventana:",
+      "sparkline": "Ratio de reciprocidad, últimos {dias} días.",
+      "titulo": "Reciprocidad"
+    },
+    "roles": {
+      "activo": "Activo",
+      "colConcedido": "Concedido",
+      "colEstado": "Estado",
+      "colPersona": "Persona",
+      "colPor": "Por",
+      "colRol": "Rol",
+      "concederRevocar1": "Para conceder o revocar,",
+      "concederRevocar2": "y",
+      "concederRevocar3": "sobre",
+      "concederRevocar4": "Nadie puede cambiar su propio rol, y el sistema no se deja quedar sin ningún superadministrador activo: las dos reglas se aplican dentro de la base de datos, no en esta pantalla.",
+      "fuenteVerdad1": "La única fuente de verdad es la tabla",
+      "fuenteVerdad2": "en Postgres. No hay ninguna lista de correos ni de uuids en el código ni en el entorno, y no debe haberla: una lista en código convierte cada cambio de permisos en un despliegue sin registro.",
+      "revocadoEl": "Revocado el {fecha}",
+      "tablaTitulo": "Roles concedidos (los revocados también se conservan)",
+      "titulo": "Roles del centro de mando"
+    },
+    "semaforo": {
+      "ambar": "Atención",
+      "rojo": "Incidente",
+      "verde": "Bien"
+    },
+    "sinDiasEnVentana": "Todavía no hay ningún día calculado en esta ventana.",
+    "sinPermiso": "Esta sección no es para tu cuenta.",
+    "sinSerie": "Sin serie suficiente todavía.",
+    "tabla": {
+      "cobertura": "Cobertura",
+      "cobertura24h": "Posts con escucha en 24 h",
+      "comentarioValidado": "Comentario validado",
+      "compradores": "Compradores",
+      "cristales": "Cristales",
+      "dia": "Día",
+      "escalon": "Escalón",
+      "escuchasValidadas": "Escuchas validadas",
+      "eventos": "Eventos",
+      "lectura": "Lectura",
+      "onboarding": "Onboarding",
+      "personas": "Personas",
+      "publicacion": "Publicación",
+      "publicaciones": "Publicaciones",
+      "ratio": "Ratio",
+      "registro": "Registro",
+      "revisados": "Revisados",
+      "serieDiaria": "Serie diaria de los últimos {dias} días",
+      "sinAtender": "Sin atender",
+      "sobreRegistro": "Sobre el registro",
+      "tasaValidacion": "Tasa de validación",
+      "vueltaD7": "Vuelta D7"
+    },
+    "titulo": "Centro de mando",
+    "usuarios": "Personas"
+  },
+  "auth": {
+    "alias": "Cómo quieres que te llamen",
+    "aliasAyuda": "Entre 3 y 24 caracteres. Puedes cambiarlo cuando quieras.",
+    "bienvenida": "Bienvenida a Darma, {alias}.",
+    "continuar": "Continuar",
+    "entrada": {
+      "botonAnonimo": "Entrar sin dar mis datos",
+      "botonEnlace": "Enviarme el enlace",
+      "chip": "Anónimo de verdad",
+      "enlaceCaducado": "Ese enlace ya no vale (los enlaces caducan). Pide uno nuevo o entra sin nada.",
+      "enlaceEnviadoFin": ". Caduca pronto: ábrelo desde este mismo dispositivo.",
+      "enlaceEnviadoInicio": "Si esa dirección tiene cuenta, le hemos enviado un enlace a",
+      "enviando": "Un momento…",
+      "errorConexion": "No hemos podido conectarte. Comprueba tu conexión y vuelve a intentarlo.",
+      "errorEnvio": "No hemos podido enviarlo. Comprueba tu conexión y vuelve a intentarlo.",
+      "etiquetaCorreo": "¿Ya tenías cuenta y cambiaste de móvil? Te enviamos un enlace.",
+      "marcadorCorreo": "tu@correo.com",
+      "notaCorreo": "Tu correo sirve solo para reconocerte si vuelves. No se guarda junto a tu perfil ni aparece en ninguna pantalla.",
+      "subtitulo": "No pedimos nombre, ni correo, ni teléfono. Eliges un seudónimo y ya estás dentro.",
+      "titulo": "Entra sin decir quién eres"
+    },
+    "entrar": "Entrar",
+    "entrarDescripcion": "Aquí nadie sabe quién eres. Ni nosotros.",
+    "entrarEnDarma": "Entrar en Darma",
+    "landing": {
+      "ayudaUrgente": "Ayuda urgente",
+      "bucle": {
+        "desbloqueas": {
+          "paso": "Desbloqueas tu voz",
+          "texto": "Tres escuchas equivalen a una publicación. La regla vive en la base de datos, no en un botón que se pueda saltar."
+        },
+        "escuchas": {
+          "paso": "Escuchas a 3 personas",
+          "texto": "Comentarios reales, validados por calidad. Un «ánimo!» repetido no cuenta."
+        },
+        "teEscuchan": {
+          "paso": "Alguien te escucha a ti",
+          "texto": "Quien te responde ya ha pasado por lo mismo que tú acabas de hacer. Por eso responde como responde."
+        }
+      },
+      "bucleIntro": "En casi toda red social, hablar es gratis y escuchar es opcional. Aquí es al revés. Es la única regla que hace falta entender.",
+      "bucleTitulo": "El bucle: escuchar es lo que da derecho a hablar",
+      "chip": "Anónimo por diseño",
+      "cierreTexto": "No pedimos tu nombre, ni tu cara, ni tu voz. Eliges un seudónimo y ya estás dentro.",
+      "cierreTitulo": "¿Empezamos escuchando?",
+      "comoFunciona": "Cómo funciona",
+      "enlacesPie": "Enlaces legales y de ayuda",
+      "intro": "Darma es una red social anónima de crecimiento emocional basada en reciprocidad. Sin foto, sin nombre real, sin voz. Solo personas que han decidido escuchar antes de hablar.",
+      "metaDescripcion": "Red social anónima de crecimiento emocional basada en reciprocidad. Escucha a tres personas y desbloquea tu voz.",
+      "metaTitulo": "Darma · Red social anónima de crecimiento emocional",
+      "niveles": {
+        "animo": {
+          "detalle": "Lees a alguien y le haces saber que no está solo. Sin escribir nada, sin exponerte. Es la puerta de entrada y no pide nada a cambio.",
+          "nombre": "Ánimo",
+          "resumen": "Un gesto de un segundo."
+        },
+        "apoyo": {
+          "detalle": "Acompañas un proceso, no un mensaje suelto. Círculos, seguimiento y presencia sostenida. Es el nivel que desbloquea quien ya ha demostrado que escucha.",
+          "nombre": "Apoyo",
+          "resumen": "Te quedas."
+        },
+        "escucha": {
+          "detalle": "Escribes a alguien que se ha desahogado. No consejos rápidos: escucha. Cada escucha validada suma un crédito, y tres créditos abren tu turno de hablar.",
+          "nombre": "Escucha",
+          "resumen": "Respondes de verdad."
+        }
+      },
+      "nivelesIntro": "No hace falta contar nada para participar. Se sube de nivel haciendo, no pagando.",
+      "nivelesTitulo": "Tres niveles, y empiezas por el más fácil",
+      "pie": "Darma es apoyo entre iguales, no atención sanitaria. Si estás en peligro, busca ayuda profesional de inmediato.",
+      "primeraGratis": "Tu primera publicación es gratuita. A partir de ahí, el ciclo se sostiene solo.",
+      "tituloLinea1": "Aquí nadie sabe quién eres.",
+      "tituloLinea2": "Y aun así, alguien te escucha."
+    },
+    "onboarding": {
+      "aliasCogido": "Ese alias ya está cogido. Pulsa «otro» y te proponemos uno libre.",
+      "atras": "Atrás",
+      "comprobando": "Comprobando…",
+      "creando": "Creando…",
+      "errorComprobar": "No hemos podido comprobarlo. Revisa tu conexión.",
+      "errorCrear": "No hemos podido crear tu identidad. Revisa tu conexión.",
+      "etiquetaAlias": "Tu alias",
+      "leyendaNivel": "Cómo quieres empezar",
+      "metaTitulo": "Tu identidad",
+      "niveles": {
+        "animo": {
+          "descripcion": "Solo quiero ver contenido que me siente bien. Sin escribir nada todavía.",
+          "titulo": "Ánimo"
+        },
+        "apoyo": {
+          "descripcion": "Vengo a contar lo que me pasa. Aquí se publica después de haber escuchado.",
+          "titulo": "Apoyo"
+        },
+        "escucha": {
+          "descripcion": "Quiero leer a otras personas y acompañarlas en los comentarios.",
+          "titulo": "Escucha"
+        }
+      },
+      "otroAlias": "Otro",
+      "paso": "Paso {n} de {total}",
+      "paso1Texto": "Este seudónimo y este avatar son lo único que verán los demás. No hay fotos en Darma, ni las habrá.",
+      "paso1Titulo": "Elige cómo te llamamos",
+      "paso2Texto": "Solo es el punto de partida. Puedes cambiarlo cuando quieras y nada te queda cerrado por elegir una cosa u otra.",
+      "paso2Titulo": "¿Por dónde empezamos?",
+      "paso3Texto": "Ni tu nombre, ni tu correo, ni tu ciudad. Solo esto.",
+      "paso3Titulo": "Esto es todo lo que verán",
+      "progreso": "Progreso del onboarding",
+      "resumen": "Semilla · empiezas por {nivel}"
+    },
+    "salir": "Salir",
+    "sesionCaducada": "Tu sesión ha caducado. Vuelve a entrar para seguir."
+  },
   "comun": {
-    "cargando": "Cargando…",
-    "cancelar": "Cancelar",
-    "guardar": "Guardar",
-    "reintentar": "Reintentar",
-    "cerrar": "Cerrar",
-    "volver": "Volver",
-    "siguiente": "Siguiente",
-    "anterior": "Anterior",
     "aceptar": "Aceptar",
+    "anterior": "Anterior",
+    "avatarGenerado": "Avatar generado",
+    "cancelar": "Cancelar",
+    "cargando": "Cargando…",
+    "cerrar": "Cerrar",
+    "guardar": "Guardar",
     "hola": "Hola",
     "idioma": "Idioma",
     "idiomaEspanol": "Español",
     "idiomaIngles": "Inglés",
+    "mesCorto": {
+      "1": "ene",
+      "10": "oct",
+      "11": "nov",
+      "12": "dic",
+      "2": "feb",
+      "3": "mar",
+      "4": "abr",
+      "5": "may",
+      "6": "jun",
+      "7": "jul",
+      "8": "ago",
+      "9": "sep"
+    },
     "pais": "País",
     "paisAyuda": "Sirve solo para enseñarte los teléfonos de ayuda de donde estás. No se guarda con tu cuenta.",
-    "saltarAlContenido": "Saltar al contenido"
-  },
-  "auth": {
-    "entrar": "Entrar",
-    "entrarDescripcion": "Aquí nadie sabe quién eres. Ni nosotros.",
-    "alias": "Cómo quieres que te llamen",
-    "aliasAyuda": "Entre 3 y 24 caracteres. Puedes cambiarlo cuando quieras.",
-    "continuar": "Continuar",
-    "salir": "Salir",
-    "sesionCaducada": "Tu sesión ha caducado. Vuelve a entrar para seguir.",
-    "bienvenida": "Bienvenida a Darma, {alias}."
-  },
-  "feed": {
-    "titulo": "Para ti",
-    "paraTi": "Para ti",
-    "recientes": "Recientes",
-    "vacio": "Todavía no hay nada por aquí",
-    "vacioDescripcion": "Cuando alguien escriba, lo verás aquí. Y si quieres empezar tú, también está bien.",
-    "cargarMas": "Ver más",
-    "finDeLista": "Has llegado al final."
-  },
-  "publicar": {
-    "titulo": "Cuéntanos qué te pasa",
-    "marcador": "Sin filtros. Nadie sabe quién eres.",
-    "publicar": "Publicar",
-    "primeraVez": "Tu primera vez va sin condiciones. Cuéntanos qué te pasa.",
-    "listo": "Has escuchado a tres personas. Ahora es tu turno: te leemos.",
-    "faltan": "Te {n, plural, one {queda una persona} other {quedan # personas}} por acompañar y podrás publicar. Aquí nadie habla sin haber escuchado.",
-    "enPausa": "Tu cuenta está en pausa temporalmente. Mientras tanto puedes seguir leyendo y cuidándote.",
-    "rechazoServidor": "No hemos podido publicarlo todavía: te falta acompañar a alguien más. Tu texto sigue aquí, no se ha perdido."
-  },
-  "hilo": {
-    "titulo": "Hilo",
-    "escuchar": "Escuchar a esta persona",
-    "responderMarcador": "Escríbele. Sin consejos de manual: cuéntale lo que a ti te habría servido.",
-    "responder": "Responder",
-    "meAyudo": "Me ayudó",
-    "meAyudoHecho": "Le has dicho que te ayudó",
-    "validado": "Escucha validada",
-    "sinRespuestas": "Todavía nadie ha respondido. Puedes ser tú.",
-    "respuestas": "{n, plural, one {Una respuesta} other {# respuestas}}"
-  },
-  "perfil": {
-    "titulo": "Tu perfil",
-    "alias": "Seudónimo",
-    "biografia": "Sobre ti",
-    "editar": "Editar",
-    "disponibilidad": {
-      "titulo": "Cómo estás hoy",
-      "disponible": "Disponible",
-      "necesito_hablar": "Necesito hablar",
-      "ausente": "Ausente"
+    "pwa": {
+      "instalar": "Instalar Darma",
+      "push": {
+        "ahoraNo": "Ahora no",
+        "explicacion": "Te avisaríamos cuando alguien te escuche, cuando tu mensaje ayude a alguien y si un Alma Afín necesita hablar. Nunca para que vuelvas, nunca con rachas y nunca con lo que alguien escribió: el aviso no enseña el texto, porque una pantalla bloqueada la lee cualquiera. De noche todo espera hasta la mañana, salvo un Alma Afín en crisis.",
+        "si": "Sí, avísame",
+        "titulo": "¿Quieres que te avisemos?"
+      },
+      "sinConexion": "Sin conexión. Puedes leer lo que ya se había cargado.",
+      "verAyuda": "Ver ayuda"
     },
-    "nivel": {
-      "semilla": "Semilla",
-      "brote": "Brote",
-      "guia": "Guía",
-      "mentor": "Mentor"
-    },
-    "esMentor": "Acompaña como mentor"
-  },
-  "karma": {
-    "titulo": "Tu karma",
-    "reputacion": "Reputación",
-    "gastable": "Disponible para gastar",
-    "nivelActual": "Nivel actual: {nivel}",
-    "siguienteNivel": "Te {n, plural, one {falta # punto} other {faltan # puntos}} para {nivel}.",
-    "topeDiario": "Hoy ya has llegado al máximo diario. Mañana sigue contando.",
-    "ganadoHoy": "Ganado hoy: {n} de {tope}",
-    "comoSeGana": "El karma se gana escuchando. No se compra."
-  },
-  "refugios": {
-    "titulo": "Refugios",
-    "crear": "Crear un refugio",
-    "unirse": "Unirme",
-    "salir": "Salir del refugio",
-    "vacio": "Aún no estás en ningún refugio.",
-    "cifrado": "Lo que se escribe aquí va cifrado de extremo a extremo.",
-    "miembros": "{n, plural, one {Una persona} other {# personas}}"
-  },
-  "ranking": {
-    "titulo": "Quien más acompaña",
-    "posicion": "Puesto {n}",
-    "vacio": "Todavía no hay suficientes datos esta semana.",
-    "periodo": {
-      "semana": "Esta semana",
-      "mes": "Este mes",
-      "siempre": "Desde el principio"
-    },
-    "aviso": "Esto reconoce a quien escucha, no a quien más publica."
+    "reintentar": "Reintentar",
+    "saltarAlContenido": "Saltar al contenido principal",
+    "siguiente": "Siguiente",
+    "volver": "Volver"
   },
   "contenido": {
-    "titulo": "Ánimo",
-    "siguiente": "Siguiente",
+    "activarSonido": "Activar sonido",
+    "cargandoMas": "Cargando más…",
     "completado": "Completado",
-    "sinContenido": "No hay contenido nuevo ahora mismo. Vuelve luego.",
+    "errorCargar": "No hemos podido cargar más vídeos. Comprueba tu conexión.",
+    "finDelDia": "Por hoy no hay más. Vuelve mañana.",
+    "meta": {
+      "descripcion": "Vídeos cortos de bienestar, curados. Sin comentarios, sin nadie mirando.",
+      "titulo": "Ánimo · Darma"
+    },
+    "progreso": "Progreso del vídeo",
+    "reproducirPausar": "Reproducir o pausar: {titulo}",
+    "siguiente": "Siguiente",
     "silenciar": "Silenciar",
-    "activarSonido": "Activar sonido"
+    "sinContenido": "No hay contenido nuevo ahora mismo. Vuelve luego.",
+    "titulo": "Ánimo",
+    "topeDiario": "Hoy ya has llegado al máximo de karma. El vídeo cuenta igual.",
+    "vacioDescripcion": "Estamos curando contenido nuevo. Vuelve en un rato.",
+    "vacioTitulo": "Todavía no hay vídeos para ti"
   },
   "crisis": {
-    "boton": "Necesito ayuda ahora",
     "aviso": {
       "critical": "Lo que has escrito nos preocupa y no queremos pasarlo por alto. Si estás en peligro ahora mismo, llama. Aquí en Darma nos vamos a quedar contigo, pero no somos profesionales y hay ayuda que sí puede llegar a donde nosotros no llegamos.",
       "high": "Gracias por contarlo. Te dejamos aquí gente preparada para escucharte a cualquier hora, por si en algún momento la quieres. Darma no sustituye a un profesional, y no pasa nada por buscar uno.",
       "low": "Si en algún momento lo necesitas, esto está aquí. Sin prisa."
     },
-    "tarjeta": {
-      "titulo": "Ayuda a la que puedes llamar",
-      "subtitulo": "Personas preparadas para escucharte. No hace falta estar en lo peor para llamar.",
-      "llamar": "Llamar",
-      "enviarSms": "Enviar un mensaje",
-      "abrirChat": "Abrir el chat",
-      "abrirWeb": "Abrir la web",
-      "horario24": "24 h, todos los días",
-      "gratuito": "Llamada gratuita",
-      "noGratuito": "Coste de llamada según tu operador",
-      "atiendeEn": "Atiende en {idiomas}",
-      "cambiarPais": "No es mi país",
-      "textoNoSeTraduce": "Los nombres y los números se muestran tal cual: son los oficiales de cada país."
+    "ayuda": {
+      "entrada": "Estas líneas están atendidas por personas preparadas para escucharte. Son confidenciales, y en la tarjeta de cada una verás si la llamada es gratuita. No hace falta que sepas explicar lo que te pasa para llamar.",
+      "internacional": "No hemos podido saber desde qué país escribes, así que estos son recursos internacionales.",
+      "internacionalUrgente": "Si estás en peligro ahora mismo, llama al número de emergencias de tu país.",
+      "metaDescripcion": "Teléfonos y recursos de ayuda si estás pasando por un momento difícil.",
+      "metaTitulo": "Ayuda ahora · Darma",
+      "noTerapiaCuerpo": "Aquí te escuchan personas que han pasado por cosas parecidas, y eso vale mucho. Pero no somos profesionales de la salud mental y no podemos atender una urgencia. Si estás en riesgo, llama a uno de los números de arriba: al otro lado hay alguien formado para ayudarte, ahora.",
+      "noTerapiaTitulo": "Darma no sustituye a la terapia",
+      "sinVerificar": "Estamos terminando de confirmar uno a uno estos números con cada organización. Si alguno no responde, prueba con el siguiente de la lista o con el número de emergencias de tu país.",
+      "titulo": "Si lo estás pasando mal, habla con alguien ahora"
+    },
+    "boton": "Necesito ayuda ahora",
+    "horario": {
+      "segunPais": "Según el país",
+      "veinticuatroSiete": "Disponible 24 horas, todos los días"
+    },
+    "idiomasAtencion": {
+      "ca": "catalán",
+      "de": "alemán",
+      "en": "inglés",
+      "es": "español",
+      "eu": "euskera",
+      "fr": "francés",
+      "gl": "gallego"
     },
     "recursos": {
-      "lineaSuicidio": "Atención especializada en conducta suicida.",
-      "escuchaEmocional": "Escucha emocional, sin juicio y sin prisa.",
-      "saludMental": "Orientación en salud mental.",
-      "emergencias": "Número general de emergencias. Llama si hay peligro inmediato.",
-      "sms": "Escribe un mensaje si no puedes o no quieres hablar.",
       "chat": "Conversación por escrito, desde el navegador.",
       "directorioInternacional": "Directorio de líneas de ayuda país por país.",
-      "emergenciasLocales": "Si hay peligro inmediato, llama al número de emergencias de tu país."
+      "emergencias": "Número general de emergencias. Llama si hay peligro inmediato.",
+      "emergenciasLocales": "Si hay peligro inmediato, llama al número de emergencias de tu país.",
+      "escuchaEmocional": "Escucha emocional, sin juicio y sin prisa.",
+      "lineaSuicidio": "Atención especializada en conducta suicida.",
+      "saludMental": "Orientación en salud mental.",
+      "sms": "Escribe un mensaje si no puedes o no quieres hablar."
+    },
+    "tarjeta": {
+      "abrirChat": "Abrir el chat",
+      "abrirWeb": "Abrir la web",
+      "atiendeEn": "Atiende en {idiomas}",
+      "cambiarPais": "No es mi país",
+      "enviarSms": "Enviar un mensaje",
+      "gratuito": "Llamada gratuita",
+      "horario24": "24 h, todos los días",
+      "llamar": "Llamar",
+      "noGratuito": "Coste de llamada según tu operador",
+      "subtitulo": "Personas preparadas para escucharte. No hace falta estar en lo peor para llamar.",
+      "textoNoSeTraduce": "Los nombres y los números se muestran tal cual: son los oficiales de cada país.",
+      "titulo": "Ayuda a la que puedes llamar"
     }
   },
-  "moderacion": {
-    "titulo": "Moderación",
-    "cola": "Cola de revisión",
-    "revisar": "Revisar",
-    "marcarRevisado": "Marcar como revisado",
-    "sinCasos": "No hay nada pendiente.",
-    "riesgo": {
-      "none": "Sin señal",
-      "low": "Señal leve",
-      "high": "Riesgo alto",
-      "critical": "Riesgo crítico"
-    },
-    "casos": "{n, plural, one {Un caso} other {# casos}}"
+  "errores": {
+    "contenido_bloqueado": "No hemos podido publicar esto tal y como está. Tu texto sigue aquí.",
+    "demasiadas_peticiones": "Vas muy rápido. Prueba otra vez en {retryAfter, plural, one {# segundo} other {# segundos}}.",
+    "entrada_invalida": "Hay algo en lo que has escrito que no podemos aceptar. Revísalo y vuelve a intentarlo.",
+    "error_interno": "Algo se ha roto por nuestro lado. No es culpa tuya. Inténtalo otra vez en un momento.",
+    "no_autenticado": "Necesitas haber entrado para hacer esto.",
+    "no_encontrado": "Esto ya no está aquí.",
+    "reciprocidad": "Todavía te falta acompañar a alguien para poder publicar.",
+    "saldo_insuficiente": "No te llega el saldo para esto.",
+    "sin_permiso": "Esto no está disponible para tu cuenta."
   },
-  "admin": {
-    "titulo": "Centro de mando",
-    "metricas": "Métricas",
-    "usuarios": "Personas",
-    "contenido": "Contenido",
-    "sinPermiso": "Esta sección no es para tu cuenta."
+  "feed": {
+    "abrirHilo": "Abrir el hilo de {alias}",
+    "apoyar": "Apoyar este mensaje",
+    "cargarMas": "Ver más",
+    "carriles": "Carriles del feed",
+    "duracionCorta": "menos de 1 min",
+    "duracionMinutos": "{n} min",
+    "encuesta": "Encuesta",
+    "encuestaTexto": "¿Alguien más se siente así? Responder es anónimo, incluso para quien preguntó.",
+    "error": {
+      "descripcion": "Ha sido cosa nuestra, no tuya. Vuelve a intentarlo en un momento.",
+      "referencia": "Referencia: {digest}",
+      "titulo": "No hemos podido cargar tu feed"
+    },
+    "escuchas": "{n, plural, one {# persona ha escuchado} other {# personas han escuchado}}",
+    "finDeLista": "Has llegado al final.",
+    "impulsado": "Impulsado",
+    "metaTitulo": "Tu feed · Darma",
+    "paraTi": "Para ti",
+    "quitarApoyo": "Quitar mi apoyo",
+    "recientes": "Recientes",
+    "recursosEnlace": "aquí tienes a quién acudir",
+    "recursosPrefijo": "Si esto te resuena,",
+    "scrollError": "No se ha podido cargar más. Reintentar",
+    "titulo": "Para ti",
+    "vacio": "Todavía no hay nada por aquí",
+    "vacioAccion": "Escribir algo",
+    "vacioDescripcion": "Cuando alguien escriba, lo verás aquí. Y si quieres empezar tú, también está bien.",
+    "vacioNuevo": "Todavía no hay nada nuevo"
+  },
+  "hilo": {
+    "abriendo": "Abriendo la conversación…",
+    "apoyo": "Apoyo · {n}",
+    "apoyos": "{n} de apoyo",
+    "comprobando": "Comprobando tu mensaje…",
+    "cuandoTeEscriban": "Cuando alguien te escriba, aparecerá aquí.",
+    "enRevision": "En revisión",
+    "error": {
+      "descripcion": "No es culpa tuya y no se ha perdido nada. Prueba otra vez en un momento.",
+      "titulo": "No hemos podido abrir esta conversación"
+    },
+    "errorPublicar": "No hemos podido publicarlo. Tu texto sigue aquí, no se ha perdido.",
+    "escuchar": "Escuchar a esta persona",
+    "escuchasPost": "{n, plural, =0 {Todavía no le ha escuchado nadie} one {# persona le ha escuchado} other {# personas le han escuchado}}",
+    "etiquetaRespuesta": "Escríbele algo",
+    "faltanCaracteres": "Te {n, plural, one {falta # carácter} other {faltan # caracteres}}",
+    "karmaGanado": "+{n} de karma",
+    "leAyudo": "Le ayudó",
+    "meAyudo": "Me ayudó",
+    "meAyudoHecho": "Le has dicho que te ayudó",
+    "metaDescripcion": "Alguien ha contado lo que le pasa. Aquí se le escucha.",
+    "metaTitulo": "Una conversación · Darma",
+    "noContada": "No ha contado como escucha",
+    "primeraPersona": "Si te apetece, puedes ser la primera persona en escucharle.",
+    "publicado": "Publicado",
+    "responder": "Responder",
+    "responderMarcador": "Escríbele. Sin consejos de manual: cuéntale lo que a ti te habría servido.",
+    "respuestas": "{n, plural, one {Una respuesta} other {# respuestas}}",
+    "respuestasNuevas": "{n, plural, one {Hay una respuesta nueva} other {Hay # respuestas nuevas}}",
+    "sinRespuestas": "Todavía nadie ha respondido. Puedes ser tú.",
+    "titulo": "Hilo",
+    "topeDiarioEscucha": "Hoy ya has llegado al máximo diario de karma. Tu escucha cuenta igual.",
+    "utilError": "No hemos podido guardarlo. Inténtalo otra vez en un momento.",
+    "validado": "Escucha validada",
+    "verMas": "Ver más respuestas"
+  },
+  "karma": {
+    "cargarMas": "Cargar más",
+    "comoSeGana": "El karma se gana escuchando. No se compra.",
+    "economia": {
+      "boost": {
+        "agotado": {
+          "cristales": "Te faltan cristales",
+          "gratis": "Ya lo has usado hoy",
+          "karma": "Te falta karma"
+        },
+        "error": "No hemos podido impulsarlo ahora mismo.",
+        "explicacion": "Durante {horas} horas rinde como si tuviera diez veces los apoyos que tiene. No salta la moderación, no adelanta a nadie en crisis y no cambia según con qué lo pagues.",
+        "impulsar": "Impulsar",
+        "impulsarEtiqueta": "Impulsar: {etiqueta}",
+        "titulo": "Impulsar este post"
+      },
+      "cupoGratis": "Tienes un impulso gratis al día. Lo paga el karma que ya ganaste escuchando a otras personas: que te lean nunca depende de que pagues.",
+      "explicacionCristales": "Los cristales pagan decoración y un poco de alcance, durante un rato. No suben tu karma, no te ponen antes en la cola de nadie y no cambian el orden en el que se atiende a quien está en crisis.",
+      "explicacionRegalo": "Un regalo es un gesto visible en el hilo. Parte se queda en Darma para sostenerlo y el resto llega a quien lo recibe, en cristales. No le da karma: el karma se gana escuchando.",
+      "historial": {
+        "compra": "Compra de {n} cristales",
+        "impulso": "Impulso a un post",
+        "movimiento": "Movimiento",
+        "reembolso": "Reembolso",
+        "regalo": "Regalo",
+        "regaloEnviado": "{etiqueta} (enviado)",
+        "regaloRecibido": "{etiqueta} (recibido)",
+        "titulo": "Tus movimientos",
+        "vacioDescripcion": "Aquí aparecerá lo que compres y lo que gastes.",
+        "vacioTitulo": "Todavía no hay movimientos"
+      },
+      "lineaRoja": "Los cristales no dan karma ni prioridad. Escuchar sí.",
+      "regalo": {
+        "enviado": "Enviado",
+        "enviar": "Enviar",
+        "enviarEtiqueta": "Enviar {etiqueta}",
+        "error": "No hemos podido enviarlo ahora mismo.",
+        "reparto": "llegan {neto} · {comision} sostienen Darma",
+        "sinCristales": "Te faltan cristales",
+        "titulo": "Enviar un regalo"
+      },
+      "saldo": {
+        "cristales": "{n, plural, one {cristal} other {cristales}}",
+        "karma": "de karma"
+      },
+      "soloEnLaApp": "Los cristales solo se compran desde la aplicación móvil. Todo lo demás funciona igual aquí.",
+      "tienda": {
+        "aprox": "aprox. {precio}",
+        "comprar": "Comprar",
+        "comprarEtiqueta": "Comprar {etiqueta}",
+        "error": "No hemos podido confirmar la compra. Si te han cobrado, entra en Ajustes y toca «Restaurar compras».",
+        "errorReintento": "No hemos podido confirmar la compra. Vuelve a intentarlo en un momento.",
+        "soloApp": "Solo en la app",
+        "titulo": "Cristales"
+      }
+    },
+    "errorCargarMas": "No hemos podido cargar más. Inténtalo en un momento.",
+    "faltaParaNivel": "Te faltan {n} de karma para {nivel}.",
+    "ganadoHoy": "Ganado hoy: {n} de {tope}",
+    "gastable": "Disponible para gastar",
+    "gastableSufijo": "gastable",
+    "historialTitulo": "Tu karma, movimiento a movimiento",
+    "historialVacioDescripcion": "Cuando acompañes a alguien y tu comentario se valide, aparecerá aquí.",
+    "historialVacioTitulo": "Todavía no hay movimientos",
+    "hoyLlevas": "Hoy llevas {n} de {tope} de karma.",
+    "nivelActual": "Nivel actual: {nivel}",
+    "progresoAccesible": "Nivel {nivel}. {porcentaje} % del camino hacia {siguiente}.",
+    "progresoAccesibleUltimo": "Nivel {nivel}. Es el último nivel.",
+    "puedesSumar": "Puedes sumar {n} más.",
+    "reputacion": "Reputación",
+    "siguienteNivel": "Te {n, plural, one {falta # punto} other {faltan # puntos}} para {nivel}.",
+    "tipos": {
+      "circle_hosted": "Hostear un círculo grupal (Guía/Mentor)",
+      "comment_validated": "Comentario de apoyo validado por IA",
+      "content_completed": "Ver contenido de bienestar completo",
+      "karma_spend": "Gasto de karma gastable (boost, fruto, regalo)",
+      "marked_helpful": "El autor marcó tu comentario como «me ayudó»",
+      "report_upheld": "Reporte confirmado en tu contra",
+      "spam_penalty": "Comentario spam o de relleno"
+    },
+    "titulo": "Tu karma",
+    "topeAlcanzado": "Has llegado al máximo del día. Lo que hagas ahora cuenta igual para quien lo recibe.",
+    "topeDiario": "Hoy ya has llegado al máximo diario. Mañana sigue contando.",
+    "ultimoNivel": "Has llegado al último nivel. Gracias por sostener esto.",
+    "unidad": "de karma",
+    "veces": "{n, plural, one {vez} other {veces}}"
   },
   "legal": {
-    "titulo": "Legal",
-    "terminos": "Términos de uso",
-    "privacidad": "Privacidad",
     "actualizado": "Actualizado el {fecha}",
-    "noSomosEmergencias": "Darma no es un servicio de emergencias ni sustituye a un profesional de la salud mental."
+    "documento": {
+      "actualizadoEn": "Última actualización {fecha}",
+      "descripcionMeta": "Documento legal de Darma, versión {version}.",
+      "huella": "Huella del texto (SHA-256):",
+      "huellaExplicacion": "Cuando aceptas este documento se guarda esta huella junto a la versión. Sirve para que «aceptaste los términos» signifique algo comprobable: si el texto cambiara, la huella cambiaría y volveríamos a preguntarte.",
+      "versionEtiqueta": "Versión"
+    },
+    "indice": {
+      "intro": "Estos documentos se pueden leer sin tener cuenta y sin iniciar sesión, que es como debe ser: nadie debería tener que registrarse para saber qué se hace con lo que escribe.",
+      "metaDescripcion": "Condiciones, privacidad, cookies, edad mínima y retención de datos de Darma.",
+      "metaTitulo": "Documentos legales",
+      "reclamos": {
+        "cookies": "Las imprescindibles y ninguna más. Por eso no hay banner.",
+        "menores": "Por qué la edad mínima son {edad} años y por qué no pedimos el DNI a nadie.",
+        "no_es_terapia": "Dónde ayuda esto y dónde hace falta otra cosa.",
+        "privacidad": "Qué guardamos, qué no, y qué pasa exactamente cuando borras tu cuenta. Léelo antes de pulsar ese botón.",
+        "retencion": "Cuánto tiempo vive cada dato, tabla por tabla, con su base legal.",
+        "terminos": "Qué es Darma, cómo se gana el derecho a publicar y qué no se puede hacer aquí."
+      },
+      "titulo": "Lo que hay que saber"
+    },
+    "noSomosEmergencias": "Darma no es un servicio de emergencias ni sustituye a un profesional de la salud mental.",
+    "pie": {
+      "antes": "Si ahora mismo estás en peligro, no esperes a terminar de leer esto:",
+      "despues": ". El 112 funciona en toda la Unión Europea y el 024 es gratuito en España, las veinticuatro horas.",
+      "enlace": "aquí tienes los teléfonos de ayuda"
+    },
+    "privacidad": "Privacidad",
+    "terminos": "Términos de uso",
+    "titulo": "Legal",
+    "volverAlIndice": "Documentos legales de Darma"
   },
-  "errores": {
-    "no_autenticado": "Necesitas haber entrado para hacer esto.",
-    "sin_permiso": "Esto no está disponible para tu cuenta.",
-    "reciprocidad": "Todavía te falta acompañar a alguien para poder publicar.",
-    "no_encontrado": "Esto ya no está aquí.",
-    "entrada_invalida": "Hay algo en lo que has escrito que no podemos aceptar. Revísalo y vuelve a intentarlo.",
-    "demasiadas_peticiones": "Vas muy rápido. Prueba otra vez en {retryAfter, plural, one {# segundo} other {# segundos}}.",
-    "contenido_bloqueado": "No hemos podido publicar esto tal y como está. Tu texto sigue aquí.",
-    "saldo_insuficiente": "No te llega el saldo para esto.",
-    "error_interno": "Algo se ha roto por nuestro lado. No es culpa tuya. Inténtalo otra vez en un momento."
+  "moderacion": {
+    "acciones": {
+      "atendido": "Atendido.",
+      "confirmarSinSancionar": "Confirmar sin sancionar",
+      "confirmarYSancionar": "Confirmar y sancionar",
+      "descartar": "Descartar",
+      "errorGuardar": "No se ha podido guardar. Inténtalo otra vez.",
+      "marcarAtendido": "Marcar atendido",
+      "queSeHizo": "Qué se hizo",
+      "queSeHizoEjemplo": "Contactado, recursos enviados, derivado…",
+      "resuelto": "Resuelto."
+    },
+    "avisoTelefonosFuerte": "Los teléfonos de crisis siguen sin verificar por una persona.",
+    "avisoTelefonosResto": "Se muestran igualmente (una tarjeta de crisis vacía es un callejón sin salida), pero hasta que alguien los confirme contra su fuente oficial no se pueden dar por buenos. Lista pendiente en",
+    "casos": "{n, plural, one {Un caso} other {# casos}}",
+    "chip": {
+      "alto": "Alto",
+      "critico": "Crítico",
+      "severidad": "Severidad {n}"
+    },
+    "cola": "Cola de revisión",
+    "colaCrisis": "Crisis sin atender ({n})",
+    "colaModeracion": "Cola de moderación ({n})",
+    "marcarRevisado": "Marcar como revisado",
+    "meta": {
+      "titulo": "Moderación · Darma"
+    },
+    "persona": "Persona",
+    "revisar": "Revisar",
+    "riesgo": {
+      "critical": "Riesgo crítico",
+      "high": "Riesgo alto",
+      "low": "Señal leve",
+      "none": "Sin señal"
+    },
+    "sinCasos": "No hay nada pendiente.",
+    "titulo": "Moderación",
+    "vacioCrisisDescripcion": "No hay eventos de riesgo alto o crítico pendientes de atender.",
+    "vacioCrisisTitulo": "Nadie espera ahora mismo",
+    "vacioFlags": "Sin señales pendientes"
+  },
+  "perfil": {
+    "alias": "Seudónimo",
+    "biografia": "Sobre ti",
+    "disponibilidad": {
+      "ausente": "Ausente",
+      "disponible": "Disponible",
+      "necesito_hablar": "Necesito hablar",
+      "titulo": "Cómo estás hoy"
+    },
+    "disponibleParaEscuchar": "Disponible para escuchar",
+    "edicion": {
+      "botonAvatar": "Probar otro",
+      "errores": {
+        "alias": "El alias necesita entre 3 y 24 letras, números, guiones bajos o espacios.",
+        "aliasEnUso": "Ese alias ya está en uso.",
+        "avatar": "Esa semilla de avatar no vale. Prueba con otro avatar.",
+        "bio": "La biografía no puede pasar de 280 caracteres.",
+        "generico": "Hay algo que no podemos procesar.",
+        "interno": "Algo ha fallado por nuestra parte. Ya lo estamos mirando.",
+        "noGuardado": "No hemos podido guardar los cambios. Inténtalo en un momento.",
+        "pii": "Hay datos de contacto en lo que has escrito. Quítalos y vuelve a intentarlo.",
+        "sinCambios": "No has cambiado nada."
+      },
+      "etiquetaAlias": "Alias",
+      "etiquetaAvatar": "Tu avatar",
+      "guardado": "Guardado.",
+      "metaTitulo": "Editar tu perfil · Darma",
+      "pista": "Tu nivel y tu karma no se editan: se derivan de lo que haces. Es lo que hace que signifiquen algo.",
+      "pistaAlias": "Entre 3 y 24 caracteres. Letras, números, guiones bajos y espacios. Es único: si ya lo tiene alguien, te lo diremos.",
+      "pistaAvatar": "Se genera a partir de un número aleatorio. No sale de una foto y no dice nada de ti.",
+      "pistaBio": "Hasta 280 caracteres. Sin correos, teléfonos, enlaces ni usuarios de otras redes: aquí nadie comparte datos de contacto, y es lo que hace que este sea un sitio seguro para contar lo que te pasa.",
+      "titulo": "Editar tu perfil"
+    },
+    "editar": "Editar",
+    "editarPerfil": "Editar perfil",
+    "esMentor": "Acompaña como mentor",
+    "insigniaTeFalta": "Te falta: {requisito}",
+    "insigniasCatalogo": {
+      "brote": {
+        "descripcion": "Alcanzaste el nivel Brote.",
+        "nombre": "Brote",
+        "requisito": "Reúne {n} de karma de reputación."
+      },
+      "cien_escuchas": {
+        "descripcion": "Has acompañado a cien personas.",
+        "nombre": "Cien escuchas",
+        "requisito": "Acumula {n} comentarios de apoyo validados."
+      },
+      "corazon_util": {
+        "descripcion": "Diez personas marcaron que tu comentario les ayudó.",
+        "nombre": "Sirvió de algo",
+        "requisito": "Recibe {n} «me ayudó» de quienes escribieron el desahogo."
+      },
+      "diez_escuchas": {
+        "descripcion": "Has acompañado a diez personas.",
+        "nombre": "Diez escuchas",
+        "requisito": "Acumula {n} comentarios de apoyo validados."
+      },
+      "guia": {
+        "descripcion": "Alcanzaste el nivel Guía.",
+        "nombre": "Guía",
+        "requisito": "Reúne {n} de karma de reputación."
+      },
+      "mentor": {
+        "descripcion": "Alcanzaste el nivel Mentor.",
+        "nombre": "Mentor",
+        "requisito": "Reúne {n} de karma de reputación."
+      },
+      "primera_escucha": {
+        "descripcion": "Acompañaste a alguien por primera vez.",
+        "nombre": "Primera escucha",
+        "requisito": "Escribe un comentario de apoyo que pase la validación de calidad."
+      },
+      "primera_voz": {
+        "descripcion": "Contaste algo por primera vez.",
+        "nombre": "Primera voz",
+        "requisito": "Publica tu primer desahogo, pregunta o gratitud."
+      },
+      "racha_30": {
+        "descripcion": "Treinta días seguidos acompañando.",
+        "nombre": "Treinta días",
+        "requisito": "Gana karma positivo treinta días naturales consecutivos."
+      },
+      "racha_7": {
+        "descripcion": "Siete días seguidos acompañando.",
+        "nombre": "Siete días",
+        "requisito": "Gana karma positivo siete días naturales consecutivos."
+      }
+    },
+    "insigniasTitulo": "Insignias",
+    "insigniasTituloPropio": "Tus insignias",
+    "insigniasVacio": "Aún no hay ninguna. Aparecerán aquí solas.",
+    "insigniasVacioAjeno": "Todavía no hay insignias que enseñar aquí.",
+    "metaTitulo": "Tu perfil · Darma",
+    "metaTituloAjeno": "Perfil · Darma",
+    "nivel": {
+      "brote": "Brote",
+      "guia": "Guía",
+      "mentor": "Mentor",
+      "semilla": "Semilla"
+    },
+    "privadoAviso": "Solo tú ves esto",
+    "privadoCristales": "Cristales",
+    "privadoEscuchasPorCanjear": "Escuchas por canjear",
+    "privadoKarmaGastable": "Karma gastable",
+    "privadoPersonasAcompanadas": "Personas acompañadas",
+    "privadoVecesEscrito": "Veces que has escrito",
+    "progresoTitulo": "Nivel",
+    "rachaDias": "{n, plural, one {día seguido acompañando} other {días seguidos acompañando}}",
+    "rachaHastaAyer": ", contando hasta ayer",
+    "titulo": "Tu perfil",
+    "volverAlPerfil": "Volver a tu perfil"
+  },
+  "publicar": {
+    "ayudaTipo": {
+      "desahogo": "Necesito soltarlo y que alguien lo lea.",
+      "gratitud": "Algo ha ido bien y quiero contarlo.",
+      "pregunta": "Quiero saber cómo lo ha hecho otra gente."
+    },
+    "contador": "{n} / {max}",
+    "contadorFaltan": "{n} / {max} · faltan {faltan}",
+    "deQueVa": "¿De qué va?",
+    "enPausa": "Tu cuenta está en pausa temporalmente. Mientras tanto puedes seguir leyendo y cuidándote.",
+    "entradilla": "Nadie sabe quién eres. Ni nosotros. Escribe con la calma que necesites.",
+    "errorEnvio": "No hemos podido enviarlo. Tu texto sigue aquí; inténtalo otra vez.",
+    "etiquetaCuerpo": "Cuéntanoslo",
+    "faltan": "Te {n, plural, one {queda una persona} other {quedan # personas}} por acompañar y podrás publicar. Aquí nadie habla sin haber escuchado.",
+    "hecho": "Ya está publicado. Alguien lo va a leer.",
+    "irAEscuchar": "Ir a escuchar",
+    "listo": "Has escuchado a tres personas. Ahora es tu turno: te leemos.",
+    "marcador": "Sin filtros. Nadie sabe quién eres.",
+    "metaDescripcion": "Cuenta lo que te pasa. Te leemos.",
+    "metaTitulo": "Publicar · Darma",
+    "pii": {
+      "cierre": "En Darma nadie comparte datos de contacto: es lo que hace que este sea un sitio seguro para contar lo que te pasa. ¿Lo quitas antes de publicar?",
+      "email": "Hemos visto algo que parece un correo electrónico.",
+      "handle": "Hemos visto algo que parece un usuario de otra red social.",
+      "phone": "Hemos visto algo que parece un número de teléfono.",
+      "url": "Hemos visto un enlace."
+    },
+    "preparando": "Preparando el espacio para escribir…",
+    "primeraVez": "Tu primera vez va sin condiciones. Cuéntanos qué te pasa.",
+    "publicar": "Publicar",
+    "queVienesAHacer": "¿Qué vienes a hacer?",
+    "rechazoServidor": "No hemos podido publicarlo todavía: te falta acompañar a alguien más. Tu texto sigue aquí, no se ha perdido.",
+    "revisaEsto": "Revisa esto",
+    "temas": {
+      "ansiedad": "Ansiedad",
+      "dinero": "Dinero",
+      "duelo": "Duelo",
+      "familia": "Familia",
+      "identidad": "Identidad",
+      "otro": "Otro",
+      "pareja": "Pareja",
+      "salud": "Salud",
+      "soledad": "Soledad",
+      "trabajo": "Trabajo"
+    },
+    "tipos": {
+      "desahogo": "Desahogo",
+      "gratitud": "Gratitud",
+      "pregunta": "Pregunta"
+    },
+    "titulo": "Cuéntanos qué te pasa",
+    "volverAlFeed": "Volver al feed"
+  },
+  "ranking": {
+    "aviso": "Esto reconoce a quien escucha, no a quien más publica.",
+    "errorCargarMas": "No hemos podido cargar más. Inténtalo otra vez en un momento.",
+    "intro": "Aquí no cuenta lo que publicas: cuenta a cuántas personas has acompañado con un comentario que de verdad ayudó.",
+    "metaDescripcion": "La tabla de quienes más han escuchado a otras personas en Darma.",
+    "metaTitulo": "Quienes más acompañan · Darma",
+    "miPosicionEnlace": "Ver quién necesita compañía",
+    "miPosicionVacio": "Todavía no apareces en esta tabla. Aparecerás en cuanto acompañes a alguien.",
+    "movimientoBaja": "{n, plural, one {Baja # puesto} other {Baja # puestos}}",
+    "movimientoIgual": "Igual",
+    "movimientoIgualSr": "Se mantiene en el mismo puesto",
+    "movimientoNuevo": "Nuevo",
+    "movimientoSube": "{n, plural, one {Sube # puesto} other {Sube # puestos}}",
+    "periodo": {
+      "mes": "Este mes",
+      "semana": "Esta semana",
+      "siempre": "Desde el principio"
+    },
+    "periodoEtiqueta": "Periodo del ranking",
+    "personas": "{n, plural, one {persona acompañada} other {personas acompañadas}}",
+    "podioEtiqueta": "Quienes más han acompañado en este periodo",
+    "posicion": "Puesto {n}",
+    "puesto": "Puesto",
+    "titulo": "Quien más acompaña",
+    "tuPuesto": "Tu puesto: {n}",
+    "vacio": "Todavía no hay suficientes datos esta semana.",
+    "vacioDescripcion": "En cuanto la comunidad empiece a acompañarse, aparecerá aquí.",
+    "vacioTitulo": "Todavía no hay tabla para este periodo",
+    "verMas": "Ver más"
+  },
+  "refugios": {
+    "almas": {
+      "disponibilidad": {
+        "ausente": "Ausente",
+        "disponible": "Disponible",
+        "necesito_hablar": "Necesita hablar"
+      },
+      "quitar": "Quitar",
+      "vacioDescripcion": "Las almas afines son las personas que te han acompañado y a las que puedes volver. Se guardan desde su perfil, y ellas no reciben ningún aviso por ello.",
+      "vacioTitulo": "Todavía no has guardado a nadie"
+    },
+    "almasAfines": "Almas afines",
+    "bloquear": {
+      "accion": "Bloquear",
+      "ahoraNo": "Ahora no",
+      "bloqueada": "Bloqueada",
+      "bloquearExplicacion": "corta la relación en los dos sentidos. Los refugios que compartís dejan de existir para los dos, con el historial dentro. No se puede deshacer recuperando la conversación.",
+      "bloquearNombre": "Bloquear",
+      "descripcion": "Son dos cosas distintas y conviene saber cuál necesitas.",
+      "error": "No hemos podido hacerlo. Inténtalo otra vez.",
+      "silenciada": "Silenciada",
+      "silenciar": "Silenciar",
+      "silenciarExplicacion": "te la oculta solo a ti. Esta persona no recibe ningún aviso y no nota nada.",
+      "silenciarNombre": "Silenciar",
+      "titulo": "Bloquear o silenciar a {alias}"
+    },
+    "burbuja": {
+      "ilegible": "Este mensaje no se puede abrir. Puede que se escribiera con una clave anterior.",
+      "mia": "Mensaje tuyo",
+      "recibida": "Mensaje recibido",
+      "sinLlave": "Mensaje cerrado: este dispositivo no tiene la llave de esta conversación."
+    },
+    "cifrado": "Lo que se escribe aquí va cifrado de extremo a extremo.",
+    "clave": {
+      "cambiada": "El dispositivo de esta persona ha cambiado.",
+      "cambiadaAlias": "El dispositivo de {alias} ha cambiado.",
+      "cambiadaExplicacion": "Los mensajes anteriores no se pueden leer con la clave nueva. Si no esperabais un cambio de móvil, comprobad el número de seguridad antes de seguir contando nada importante.",
+      "dispositivoNuevo": "Este es un dispositivo nuevo, así que las conversaciones anteriores están cerradas.",
+      "dispositivoNuevoExplicacion": "Tus mensajes están cifrados con una clave que solo vivía en tu móvil anterior. Nosotros no la teníamos y no podemos recuperarla: es lo que hace que nadie más pueda leer lo que escribiste. Los mensajes nuevos sí se van a leer en cuanto alguien de la sala te reenvíe la llave.",
+      "sinLlave": "Todavía no tenemos la llave de esta conversación en este dispositivo.",
+      "sinLlaveExplicacion": "Alguien de la sala tiene que enviártela. Mientras tanto verás que hay mensajes, pero no lo que dicen."
+    },
+    "crear": "Crear un refugio",
+    "crisis": {
+      "etiqueta": "Recursos de ayuda",
+      "pie": "Tu mensaje se ha enviado. No hemos leído lo que has escrito —no podemos, va cifrado— y nadie de tus almas afines recibe ningún aviso por esto."
+    },
+    "explicacion": "Lo que se escribe aquí se cifra en tu dispositivo. Nosotros guardamos el mensaje cerrado y no tenemos la llave.",
+    "hilo": {
+      "abriendo": "Abriendo la conversación…",
+      "error": "No hemos podido abrir esta conversación.",
+      "sinLlave": "Este dispositivo no tiene la llave de esta conversación.",
+      "tituloPorDefecto": "Refugio",
+      "verAnteriores": "Ver mensajes anteriores"
+    },
+    "lista": {
+      "circulo": "Círculo",
+      "duo": "Refugio de dos",
+      "etiquetaSinLeer": "{titulo}, con mensajes sin leer",
+      "personas": "{n, plural, one {# persona} other {# personas}}",
+      "silenciado": "silenciado",
+      "sinMensajes": "sin mensajes todavía",
+      "vacioDescripcion": "Un refugio es una conversación privada, cifrada de punta a punta, con alguien que ya te ha escuchado. Se abre desde el perfil de esa persona.",
+      "vacioTitulo": "Todavía no tienes ningún refugio"
+    },
+    "miembros": "{n, plural, one {Una persona} other {# personas}}",
+    "numero": {
+      "etiqueta": "Número de seguridad: {digitos}",
+      "explicacion": "Leedlo en voz alta los dos, por teléfono o en persona. Si os sale el mismo, nadie se ha metido en medio. Darma no puede comprobarlo por vosotros: por eso os lo enseñamos.",
+      "noDisponible": "Todavía no podemos mostrar el número de seguridad de esta conversación.",
+      "titulo": "Número de seguridad de esta conversación:",
+      "tituloCon": "Número de seguridad de esta conversación con {alias}:"
+    },
+    "privado": {
+      "abriendo": "Abriendo…",
+      "abrir": "Hablar en privado",
+      "error": "No hemos podido abrir el refugio. Inténtalo otra vez.",
+      "sinClave": "{alias} todavía no ha abierto sus refugios, así que aún no podemos cifrar la conversación para esa persona. Vuelve a intentarlo más adelante."
+    },
+    "redactor": {
+      "enviar": "Enviar",
+      "error": "No hemos podido enviarlo. Inténtalo otra vez.",
+      "etiqueta": "Escribe tu mensaje",
+      "marcador": "Cuenta lo que quieras contar…",
+      "marcadorSinLlave": "No podemos cifrar sin la llave de esta sala"
+    },
+    "respaldo": {
+      "activar": "Activar la copia",
+      "advertencias": {
+        "historial": "Quien tenga esta frase puede leer todo tu historial.",
+        "irrecuperable": "Darma no puede recuperarla si la pierdes.",
+        "sinCopia": "Sin copia de seguridad, cambiar de móvil borra tus conversaciones."
+      },
+      "apuntarAntes": "Apúntalas",
+      "apuntarDespues": ", en orden, y guárdalas donde guardarías algo importante. En las notas del móvil no: si pierdes el móvil, pierdes las dos cosas a la vez.",
+      "apuntarEnfasis": "en papel",
+      "confirmacion": "Las he apuntado y sé que Darma no puede recuperarlas.",
+      "dejarDesactivado": "Dejarlo desactivado",
+      "descripcion": "Está desactivada. Antes de activarla, lee esto.",
+      "errorGuardar": "No hemos podido guardar la copia.",
+      "generar": "Entendido, generar mi frase",
+      "hecho": "Listo. La copia está guardada y solo tu frase la abre.",
+      "hechoExplicacion": "Si algún día cambias de móvil, escribe esas doce palabras y tus conversaciones volverán. Si las pierdes, no.",
+      "sinRecuperacion": "No hay recuperación por correo, ni por soporte, ni comprobando quién eres. Cualquiera de esas cosas obligaría a que Darma tuviera tu clave, y entonces podríamos leer lo que escribes. No la tenemos y no queremos tenerla.",
+      "titulo": "Copia de seguridad de tus conversaciones"
+    },
+    "salir": "Salir del refugio",
+    "titulo": "Refugios",
+    "unirse": "Unirme",
+    "vacio": "Aún no estás en ningún refugio."
   }
 }

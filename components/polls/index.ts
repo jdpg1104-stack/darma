@@ -6,10 +6,15 @@
 // se parte en dos archivos o cambia de carpeta, aquí no se nota. Si B02
 // importara `@/components/polls/TarjetaEncuesta.tsx` directamente, sí.
 //
-// ⚠️ `TarjetaEncuesta` es el ÚNICO componente con `'use client'`. `BarraResultado`
-// y `EstadoOculto` son Server Components y no envían un byte de JS; se exportan
-// para que quien pinte resultados fuera del feed (una página de encuesta, el
-// panel de B19) no tenga que llevarse el cliente entero.
+// ⚠️ Los tres llevan `'use client'` desde que el copy se movió al catálogo:
+// `BarraResultado` y `EstadoOculto` leen su texto con `useTraductor()`.
+//
+// En bytes no cambia nada respecto a antes: el único sitio que los pinta es
+// `TarjetaEncuesta`, que ya era cliente, y un módulo importado desde cliente
+// entra en el bundle lleve o no la directiva. Lo que cambia es que ahora la
+// frontera está escrita, así que quien los use desde un Server Component
+// —una página de encuesta, el panel de B19— obtiene una frontera de cliente
+// bien formada en vez de un error de hooks en tiempo de ejecución.
 // ============================================================================
 
 export { TarjetaEncuesta } from './TarjetaEncuesta.tsx'

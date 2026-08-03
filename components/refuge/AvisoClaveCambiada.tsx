@@ -1,3 +1,5 @@
+'use client'
+
 // ============================================================================
 // B10 · Avisos de estado de la clave
 //
@@ -19,9 +21,12 @@
 //   esas palabras, sin eufemismos y sin culpar a la persona, y se explica que
 //   los mensajes NUEVOS sí se van a leer en cuanto alguien reenvíe la llave.
 //
-// Server Components: cero JS.
+// `'use client'` desde la traducción: el texto sale de `useTraductor()`, y estos
+// avisos solo se pintan dentro de `Hilo`, que ya es cliente. No se añade una
+// frontera nueva al árbol; se hace explícita la que ya había.
 // ============================================================================
 
+import { useTraductor } from '@/i18n/Proveedor'
 import estilos from './refugio.module.css'
 
 export interface AvisoClaveCambiadaProps {
@@ -29,16 +34,14 @@ export interface AvisoClaveCambiadaProps {
 }
 
 export function AvisoClaveCambiada({ alias }: AvisoClaveCambiadaProps) {
+  const t = useTraductor()
+
   return (
     <div className={estilos.aviso} role="note">
       <p className={estilos.avisoTitulo}>
-        {alias ? `El dispositivo de ${alias} ha cambiado.` : 'El dispositivo de esta persona ha cambiado.'}
+        {alias ? t('refugios.clave.cambiadaAlias', { alias }) : t('refugios.clave.cambiada')}
       </p>
-      <p className={estilos.explicacion}>
-        Los mensajes anteriores no se pueden leer con la clave nueva. Si no esperabais
-        un cambio de móvil, comprobad el número de seguridad antes de seguir contando
-        nada importante.
-      </p>
+      <p className={estilos.explicacion}>{t('refugios.clave.cambiadaExplicacion')}</p>
     </div>
   )
 }
@@ -52,17 +55,19 @@ export interface AvisoSinClaveProps {
 }
 
 export function AvisoSinClave({ dispositivoNuevo, accion }: AvisoSinClaveProps) {
+  const t = useTraductor()
+
   return (
     <div className={`${estilos.aviso} ${estilos.avisoSuave}`} role="note">
       <p className={estilos.avisoTitulo}>
-        {dispositivoNuevo
-          ? 'Este es un dispositivo nuevo, así que las conversaciones anteriores están cerradas.'
-          : 'Todavía no tenemos la llave de esta conversación en este dispositivo.'}
+        {t(dispositivoNuevo ? 'refugios.clave.dispositivoNuevo' : 'refugios.clave.sinLlave')}
       </p>
       <p className={estilos.explicacion}>
-        {dispositivoNuevo
-          ? 'Tus mensajes están cifrados con una clave que solo vivía en tu móvil anterior. Nosotros no la teníamos y no podemos recuperarla: es lo que hace que nadie más pueda leer lo que escribiste. Los mensajes nuevos sí se van a leer en cuanto alguien de la sala te reenvíe la llave.'
-          : 'Alguien de la sala tiene que enviártela. Mientras tanto verás que hay mensajes, pero no lo que dicen.'}
+        {t(
+          dispositivoNuevo
+            ? 'refugios.clave.dispositivoNuevoExplicacion'
+            : 'refugios.clave.sinLlaveExplicacion',
+        )}
       </p>
       {accion}
     </div>

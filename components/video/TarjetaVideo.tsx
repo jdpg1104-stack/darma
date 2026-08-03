@@ -20,6 +20,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import { useTraductor } from '@/i18n/Proveedor'
 import { urlEmbedDeItem } from '@/lib/video/embed'
 import { INTERVALO_LATIDO_MS, objetivoCompletado } from '@/lib/video/acreditacion'
 import { ESTADO, enviarComando, parsearMensaje, suscribirse } from '@/lib/video/reproductor'
@@ -55,6 +56,7 @@ async function pedir<T>(ruta: string, cuerpo?: unknown): Promise<T | null> {
 }
 
 export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps) {
+  const t = useTraductor()
   const [nodo, setNodo] = useState<HTMLElement | null>(null)
   const marco = useRef<HTMLIFrameElement | null>(null)
   const sesionId = useRef<string | null>(null)
@@ -201,7 +203,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
           type="button"
           className={estilos.silencio}
           onClick={alTocar}
-          aria-label="Activar el sonido"
+          aria-label={t('contenido.activarSonido')}
         >
           🔇
         </button>
@@ -211,7 +213,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
         type="button"
         className={estilos.toque}
         onClick={alTocar}
-        aria-label={`Reproducir o pausar: ${item.titulo}`}
+        aria-label={t('contenido.reproducirPausar', { titulo: item.titulo })}
       />
 
       <div className={estilos.capa}>
@@ -222,12 +224,12 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
         </p>
 
         {completado ? (
-          <span className={estilos.completado}>✓ Completado</span>
+          <span className={estilos.completado}>✓ {t('contenido.completado')}</span>
         ) : (
           <span
             className={estilos.progreso}
             role="progressbar"
-            aria-label="Progreso del vídeo"
+            aria-label={t('contenido.progreso')}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progreso * 100)}

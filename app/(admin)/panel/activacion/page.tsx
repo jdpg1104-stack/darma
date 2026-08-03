@@ -14,6 +14,7 @@
 // señala a alguien concreto. Aquí se muestra «<20» y no se discute.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
@@ -34,39 +35,32 @@ export const runtime = 'nodejs'
 export default async function PaginaActivacion() {
   await requireAdmin('soporte', { accion: `${ACCIONES.panel}.activacion` })
 
+  const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
   const filas = await leerRollup(admin, ventanaDias(DIAS_VENTANA_DETALLE))
   const embudo = getEmbudoActivacion(filas)
 
   const escalones = [
-    { etiqueta: '1 · Registro', n: embudo.registrados },
-    { etiqueta: '2 · Onboarding completo', n: embudo.onboardingCompleto },
-    { etiqueta: '3 · Primera lectura de un post', n: embudo.primeraLectura },
-    { etiqueta: '4 · Primer comentario validado', n: embudo.primerComentarioValidado },
-    { etiqueta: '5 · Primera publicación', n: embudo.primeraPublicacion },
-    { etiqueta: '6 · Vuelta en D7', n: embudo.vueltaD7 },
+    { etiqueta: t('admin.embudo.e1'), n: embudo.registrados },
+    { etiqueta: t('admin.embudo.e2'), n: embudo.onboardingCompleto },
+    { etiqueta: t('admin.embudo.e3Largo'), n: embudo.primeraLectura },
+    { etiqueta: t('admin.embudo.e4'), n: embudo.primerComentarioValidado },
+    { etiqueta: t('admin.embudo.e5'), n: embudo.primeraPublicacion },
+    { etiqueta: t('admin.embudo.e6'), n: embudo.vueltaD7 },
   ]
 
   return (
     <section>
-      <h1>Activación</h1>
-      <p>
-        Cohorte de las personas registradas en los últimos {DIAS_VENTANA_DETALLE} días. Los
-        cortes con menos de 20 personas se muestran como «&lt;20»: un agregado con n pequeño
-        es un dato personal disfrazado de conteo.
-      </p>
-      <p>
-        Nota de medición: el escalón «primera lectura» se aproxima con la primera interacción
-        con un post (un voto). No hay tabla de lecturas en el esquema, así que este escalón
-        subestima. Pedido abierto a B02 en PEDIDOS.md.
-      </p>
+      <h1>{t('admin.activacion.titulo')}</h1>
+      <p>{t('admin.activacion.cohorte', { dias: DIAS_VENTANA_DETALLE })}</p>
+      <p>{t('admin.activacion.notaMedicion')}</p>
 
       <TablaSerie
-        titulo="Embudo de la ventana"
+        titulo={t('admin.activacion.tablaEmbudo')}
         columnas={[
-          { clave: 'escalon', etiqueta: 'Escalón' },
-          { clave: 'personas', etiqueta: 'Personas' },
-          { clave: 'conversion', etiqueta: 'Sobre el registro' },
+          { clave: 'escalon', etiqueta: t('admin.tabla.escalon') },
+          { clave: 'personas', etiqueta: t('admin.tabla.personas') },
+          { clave: 'conversion', etiqueta: t('admin.tabla.sobreRegistro') },
         ]}
         filas={escalones.map((e) => ({
           escalon: e.etiqueta,
@@ -78,15 +72,15 @@ export default async function PaginaActivacion() {
       />
 
       <TablaSerie
-        titulo={`Serie diaria de los últimos ${DIAS_VENTANA_DETALLE} días`}
+        titulo={t('admin.tabla.serieDiaria', { dias: DIAS_VENTANA_DETALLE })}
         columnas={[
-          { clave: 'dia', etiqueta: 'Día' },
-          { clave: 'registrados', etiqueta: 'Registro' },
-          { clave: 'onboarding', etiqueta: 'Onboarding' },
-          { clave: 'lectura', etiqueta: 'Lectura' },
-          { clave: 'validado', etiqueta: 'Comentario validado' },
-          { clave: 'publicacion', etiqueta: 'Publicación' },
-          { clave: 'd7', etiqueta: 'Vuelta D7' },
+          { clave: 'dia', etiqueta: t('admin.tabla.dia') },
+          { clave: 'registrados', etiqueta: t('admin.tabla.registro') },
+          { clave: 'onboarding', etiqueta: t('admin.tabla.onboarding') },
+          { clave: 'lectura', etiqueta: t('admin.tabla.lectura') },
+          { clave: 'validado', etiqueta: t('admin.tabla.comentarioValidado') },
+          { clave: 'publicacion', etiqueta: t('admin.tabla.publicacion') },
+          { clave: 'd7', etiqueta: t('admin.tabla.vueltaD7') },
         ]}
         filas={filas.map((f) => ({
           dia: f.dia,

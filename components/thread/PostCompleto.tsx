@@ -14,6 +14,7 @@
 // ============================================================================
 
 import { Avatar, Insignia, Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale, type Locale } from '@/i18n'
 import type { PerfilPublico } from '@/lib/auth/perfil'
 import estilos from './hilo.module.css'
 
@@ -30,15 +31,25 @@ export interface PostCompletoProps {
 }
 
 /** Fecha legible y estable entre servidor y cliente (sin hora local). */
-function fecha(iso: string): string {
-  return new Intl.DateTimeFormat('es-ES', {
+function fecha(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     timeZone: 'UTC',
   }).format(new Date(iso))
 }
 
-export function PostCompleto({ autor, body, creadoEn, escuchas, apoyos, acciones }: PostCompletoProps) {
+export async function PostCompleto({
+  autor,
+  body,
+  creadoEn,
+  escuchas,
+  apoyos,
+  acciones,
+}: PostCompletoProps) {
+  const locale = await resolverLocale()
+  const t = obtenerTraductor(locale)
+
   return (
     <Tarjeta como="article" className={estilos.post}>
       <div className={estilos.meta}>
@@ -47,19 +58,15 @@ export function PostCompleto({ autor, body, creadoEn, escuchas, apoyos, acciones
           <span className={estilos.alias}>{autor.alias}</span>
           <Insignia nivel={autor.nivel} />
         </span>
-        <time dateTime={creadoEn}>{fecha(creadoEn)}</time>
+        <time dateTime={creadoEn}>{fecha(creadoEn, locale)}</time>
       </div>
 
       <p className={estilos.cuerpo}>{body}</p>
 
       <div className={estilos.pie}>
         <span className={estilos.contador}>
-          {escuchas === 0
-            ? 'Todavía no le ha escuchado nadie'
-            : escuchas === 1
-              ? '1 persona le ha escuchado'
-              : `${escuchas} personas le han escuchado`}
-          {apoyos > 0 ? ` · ${apoyos} de apoyo` : ''}
+          {t('hilo.escuchasPost', { n: escuchas })}
+          {apoyos > 0 ? ` · ${t('hilo.apoyos', { n: apoyos })}` : ''}
         </span>
         {acciones}
       </div>

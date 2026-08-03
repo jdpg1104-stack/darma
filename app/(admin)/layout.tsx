@@ -29,6 +29,7 @@
 
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { requireAdmin } from '../api/admin/_guard.ts'
 import { ACCIONES } from './_lib/acceso.ts'
 import { NavegacionAdmin } from './_componentes/NavegacionAdmin.tsx'
@@ -36,10 +37,13 @@ import { NavegacionAdmin } from './_componentes/NavegacionAdmin.tsx'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export const metadata = {
-  title: 'Centro de mando · Darma',
-  // Un panel de operación indexado sería un mapa del sistema para cualquiera.
-  robots: { index: false, follow: false },
+export async function generateMetadata() {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('admin.meta.titulo'),
+    // Un panel de operación indexado sería un mapa del sistema para cualquiera.
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function LayoutAdmin({ children }: { children: ReactNode }) {

@@ -13,6 +13,8 @@
 // Colores por `var()` de `app/globals.css` (CONTRATOS §10). Ni un hex aquí.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
+
 export interface SparklineProps {
   valores: readonly number[]
   /** Línea horizontal de referencia (p. ej. el umbral 3,0 del KPI). */
@@ -23,12 +25,19 @@ export interface SparklineProps {
   alto?: number
 }
 
-export function Sparkline({ valores, umbral, titulo, ancho = 240, alto = 48 }: SparklineProps) {
+export async function Sparkline({
+  valores,
+  umbral,
+  titulo,
+  ancho = 240,
+  alto = 48,
+}: SparklineProps) {
   const limpios = valores.filter((v) => Number.isFinite(v))
   if (limpios.length < 2) {
     // Con menos de dos puntos no hay tendencia que dibujar, y una línea plana
     // inventada es peor que nada: parece un dato.
-    return <p>Sin serie suficiente todavía.</p>
+    const t = obtenerTraductor(await resolverLocale())
+    return <p>{t('admin.sinSerie')}</p>
   }
 
   const candidatos = umbral !== undefined ? [...limpios, umbral] : limpios

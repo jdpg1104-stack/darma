@@ -16,6 +16,7 @@
 // Server Component.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { ResumenKarma } from './tipos.ts'
 import estilos from './perfil.module.css'
 
@@ -23,15 +24,17 @@ export interface RachaDiasProps {
   racha: ResumenKarma['racha']
 }
 
-export function RachaDias({ racha }: RachaDiasProps) {
+export async function RachaDias({ racha }: RachaDiasProps) {
   if (racha.dias <= 0) return null
+
+  const t = obtenerTraductor(await resolverLocale())
 
   return (
     <p className={estilos.racha}>
       <span className={estilos.rachaNumero}>{racha.dias}</span>
       <span>
-        {racha.dias === 1 ? 'día seguido acompañando' : 'días seguidos acompañando'}
-        {racha.activaHoy ? '' : ', contando hasta ayer'}
+        {t('perfil.rachaDias', { n: racha.dias })}
+        {racha.activaHoy ? '' : t('perfil.rachaHastaAyer')}
       </span>
     </p>
   )

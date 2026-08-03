@@ -16,11 +16,15 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createAnonymousIdentity } from '@/lib/anonymity'
 import { getSesion } from '@/lib/auth/session'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { AsistenteOnboarding, type Candidato } from '@/components/auth/AsistenteOnboarding'
 
-export const metadata: Metadata = {
-  title: 'Tu identidad',
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('auth.onboarding.metaTitulo'),
+    robots: { index: false, follow: false },
+  }
 }
 
 // La sesión se lee de la cookie: nada de esta página se puede prerrenderizar.

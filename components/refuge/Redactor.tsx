@@ -24,6 +24,7 @@
 import { useState, type FormEvent } from 'react'
 
 import { Boton, BotonCrisis } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import { assessCrisisRisk, type RiskLevel } from '@/lib/crisis'
 import { TarjetaCrisis } from './TarjetaCrisis'
 import estilos from './refugio.module.css'
@@ -37,6 +38,7 @@ export interface RedactorProps {
 }
 
 export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps) {
+  const t = useTraductor()
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [riesgo, setRiesgo] = useState<RiskLevel>('none')
@@ -58,7 +60,7 @@ export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps
       await alEnviar(contenido, evaluacion.risk_level)
       setTexto('')
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No hemos podido enviarlo. Inténtalo otra vez.')
+      setError(causa instanceof Error ? causa.message : t('refugios.redactor.error'))
     } finally {
       setEnviando(false)
     }
@@ -78,14 +80,16 @@ export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps
 
       <div className={estilos.redactorFila}>
         <label className="sr-only" htmlFor="redactor-refugio">
-          Escribe tu mensaje
+          {t('refugios.redactor.etiqueta')}
         </label>
         <textarea
           id="redactor-refugio"
           className={estilos.campo}
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder={puedeEscribir ? 'Cuenta lo que quieras contar…' : 'No podemos cifrar sin la llave de esta sala'}
+          placeholder={t(
+            puedeEscribir ? 'refugios.redactor.marcador' : 'refugios.redactor.marcadorSinLlave',
+          )}
           rows={1}
           disabled={!puedeEscribir}
           // El texto de un refugio no se corrige ni se autocompleta con
@@ -94,7 +98,7 @@ export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps
           spellCheck={false}
         />
         <Boton type="submit" cargando={enviando} disabled={!puedeEscribir || texto.trim().length === 0}>
-          Enviar
+          {t('refugios.redactor.enviar')}
         </Boton>
       </div>
 

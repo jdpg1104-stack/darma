@@ -27,6 +27,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
 import { createClient } from '@/lib/supabase/server'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { getContextoSesion } from '@/lib/auth/session'
 import { Cargando } from '@/components/ui'
 import { ListaComentarios, PostCompleto, BotonApoyo } from '@/components/thread'
@@ -42,10 +43,11 @@ interface Props {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
   return {
-    title: 'Una conversación · Darma',
+    title: t('hilo.metaTitulo'),
     // Genérica a propósito. Ver la cabecera.
-    description: 'Alguien ha contado lo que le pasa. Aquí se le escucha.',
+    description: t('hilo.metaDescripcion'),
     robots: { index: false, follow: false },
   }
 }
@@ -120,10 +122,11 @@ async function Hilo({ postId }: { postId: string }) {
 
 export default async function PaginaPost({ params }: Props) {
   const { id } = await params
+  const t = obtenerTraductor(await resolverLocale())
 
   return (
     <main>
-      <Suspense fallback={<Cargando variante="esqueleto" filas={4} etiqueta="Abriendo la conversación…" />}>
+      <Suspense fallback={<Cargando variante="esqueleto" filas={4} etiqueta={t('hilo.abriendo')} />}>
         <Hilo postId={id} />
       </Suspense>
     </main>

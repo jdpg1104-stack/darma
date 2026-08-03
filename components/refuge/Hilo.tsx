@@ -26,6 +26,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import { ENC_VERSION, cifrar, descifrarLote } from '@/lib/crypto'
 import type { MensajeCifrado, MensajeDescifrado } from '@/lib/crypto/tipos'
 import { createClient } from '@/lib/supabase/client'
@@ -76,6 +77,7 @@ const INICIAL: EstadoHilo = {
 }
 
 export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
+  const t = useTraductor()
   const [estado, setEstado] = useState<EstadoHilo>(INICIAL)
   const [error, setError] = useState<string | null>(null)
 
@@ -145,7 +147,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
         }
       } catch (causa) {
         if (!vivo) return
-        setError(causa instanceof Error ? causa.message : 'No hemos podido abrir esta conversación.')
+        setError(causa instanceof Error ? causa.message : t('refugios.hilo.error'))
         setEstado((p) => ({ ...p, cargando: false }))
       }
     }
@@ -154,7 +156,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
     return () => {
       vivo = false
     }
-  }, [refugeId, userId])
+  }, [refugeId, userId, t])
 
   // ── Realtime: UN canal, cerrado al desmontar ──────────────────────────────
   useEffect(() => {
@@ -201,7 +203,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
   const enviar = useCallback(
     async (texto: string, riesgo: RiskLevel) => {
       const clave = claveRef.current
-      if (!clave) throw new Error('Este dispositivo no tiene la llave de esta conversación.')
+      if (!clave) throw new Error(t('refugios.hilo.sinLlave'))
 
       const { ciphertextB64, nonceB64 } = await cifrar(clave, texto)
       const { mensaje } = await enviarMensaje(refugeId, {
@@ -225,7 +227,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
         )
       }
     },
-    [refugeId, incorporar, pais],
+    [refugeId, incorporar, pais, t],
   )
 
   const cargarMas = useCallback(async () => {
@@ -239,7 +241,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
   if (estado.cargando) {
     return (
       <div className={estilos.pagina}>
-        <p>Abriendo la conversación…</p>
+        <p>{t('refugios.hilo.abriendo')}</p>
       </div>
     )
   }
@@ -247,7 +249,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
   return (
     <div className={estilos.hilo}>
       <header className={estilos.hiloCabecera}>
-        <h1 className={estilos.filaTitulo}>{titulo ?? 'Refugio'}</h1>
+        <h1 className={estilos.filaTitulo}>{titulo ?? t('refugios.hilo.tituloPorDefecto')}</h1>
       </header>
 
       <div className={estilos.hiloMensajes}>
@@ -267,7 +269,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
 
         {estado.siguienteCursor ? (
           <Boton variante="fantasma" onClick={() => void cargarMas()}>
-            Ver mensajes anteriores
+            {t('refugios.hilo.verAnteriores')}
           </Boton>
         ) : null}
 

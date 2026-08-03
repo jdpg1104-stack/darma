@@ -9,12 +9,17 @@
 // El badge de «sin leer» sale de `last_read_message_id`, no de contar mensajes.
 // Y va acompañado de texto en el `aria-label`, porque un punto de color a solas
 // es información que no reciben ni un lector de pantalla ni el 8 % de los
-// hombres con daltonismo.
+// hombres con daltonismo. Ese texto también se traduce: un aria-label en
+// español dentro de una app en inglés es un punto de color con pasos extra.
+//
+// Sigue siendo Server Component; el traductor se resuelve con `resolverLocale()`
+// y no añade JavaScript al cliente.
 // ============================================================================
 
 import Link from 'next/link'
 
 import { EstadoVacio } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { ResumenRefugio } from '@/lib/crypto/tipos'
 import estilos from './refugio.module.css'
 
@@ -22,9 +27,10 @@ export interface ListaRefugiosProps {
   refugios: readonly ResumenRefugio[]
 }
 
-const FECHA = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+export async function ListaRefugios({ refugios }: ListaRefugiosProps) {
+  const locale = await resolverLocale()
+  const t = obtenerTraductor(locale)
 
-export function ListaRefugios({ refugios }: ListaRefugiosProps) {
   if (refugios.length === 0) {
     return (
       <EstadoVacio
@@ -32,38 +38,48 @@ export function ListaRefugios({ refugios }: ListaRefugiosProps) {
         // malo. Una ilustración simpática junto a «todavía no tienes refugios»
         // se lee como burla.
         tono="cuidado"
-        titulo="Todavía no tienes ningún refugio"
-        descripcion="Un refugio es una conversación privada, cifrada de punta a punta, con alguien que ya te ha escuchado. Se abre desde el perfil de esa persona."
+        titulo={t('refugios.lista.vacioTitulo')}
+        descripcion={t('refugios.lista.vacioDescripcion')}
       />
     )
   }
 
+  const fecha = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
   return (
     <ul className={estilos.lista}>
-      {refugios.map((r) => (
-        <li key={r.id}>
-          <Link
-            href={`/refugios/${r.id}`}
-            className={estilos.fila}
-            aria-label={
-              `${r.title ?? (r.kind === 'duo' ? 'Refugio de dos' : 'Círculo')}` +
-              (r.haySinLeer ? ', con mensajes sin leer' : '')
-            }
-          >
-            {r.haySinLeer ? <span className={estilos.sinLeer} aria-hidden="true" /> : null}
-            <span className={estilos.filaCuerpo}>
-              <span className={estilos.filaTitulo}>
-                {r.title ?? (r.kind === 'duo' ? 'Refugio de dos' : 'Círculo')}
+      {refugios.map((r) => {
+        const nombre = r.title ?? t(r.kind === 'duo' ? 'refugios.lista.duo' : 'refugios.lista.circulo')
+
+        return (
+          <li key={r.id}>
+            <Link
+              href={`/refugios/${r.id}`}
+              className={estilos.fila}
+              aria-label={
+                r.haySinLeer ? t('refugios.lista.etiquetaSinLeer', { titulo: nombre }) : nombre
+              }
+            >
+              {r.haySinLeer ? <span className={estilos.sinLeer} aria-hidden="true" /> : null}
+              <span className={estilos.filaCuerpo}>
+                <span className={estilos.filaTitulo}>{nombre}</span>
+                <span className={estilos.filaMeta}>
+                  {t('refugios.lista.personas', { n: r.memberCount })}
+                  {r.lastMessageAt
+                    ? ` · ${fecha.format(new Date(r.lastMessageAt))}`
+                    : ` · ${t('refugios.lista.sinMensajes')}`}
+                  {r.muted ? ` · ${t('refugios.lista.silenciado')}` : ''}
+                </span>
               </span>
-              <span className={estilos.filaMeta}>
-                {r.memberCount} {r.memberCount === 1 ? 'persona' : 'personas'}
-                {r.lastMessageAt ? ` · ${FECHA.format(new Date(r.lastMessageAt))}` : ' · sin mensajes todavía'}
-                {r.muted ? ' · silenciado' : ''}
-              </span>
-            </span>
-          </Link>
-        </li>
-      ))}
+            </Link>
+          </li>
+        )
+      })}
     </ul>
   )
 }

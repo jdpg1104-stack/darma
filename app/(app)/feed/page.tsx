@@ -34,14 +34,16 @@ import { ListaFeed } from '@/components/feed/ListaFeed'
 import { ScrollInfinito } from '@/components/feed/ScrollInfinito'
 import { SelectorCarril } from '@/components/feed/SelectorCarril'
 import { Cargando } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { getSesion } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export const metadata = {
-  title: 'Tu feed · Darma',
+export async function generateMetadata() {
+  const t = obtenerTraductor(await resolverLocale())
+  return { title: t('feed.metaTitulo') }
 }
 
 interface PropsPagina {

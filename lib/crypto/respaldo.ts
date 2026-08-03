@@ -36,7 +36,9 @@
 // Quien tenga la frase puede leer TODO el historial. Es la contrapartida exacta
 // de que Darma no pueda: la frase ES la cuenta. Por eso la pantalla de
 // activación (`components/refuge/DialogoFraseRecuperacion.tsx`) dice las tres
-// cosas literalmente, sin eufemismos, ANTES de enseñar las palabras.
+// cosas literalmente, sin eufemismos, ANTES de enseñar las palabras — y las
+// dice igual de fuerte en inglés (`ADVERTENCIAS_RESPALDO`, al final de este
+// archivo, y `messages/parches/refugios.*.json`).
 //
 // ── POR QUÉ ACTIVARLA MÁS TARDE ROTA LA CLAVE ──────────────────────────────
 // WebCrypto no puede volver extraíble una clave que se creó no extraíble — y
@@ -166,14 +168,25 @@ export async function abrirRespaldo(
 }
 
 /**
- * Las tres advertencias, literales, que la pantalla de activación DEBE mostrar
- * antes de enseñar la frase.
+ * Las tres advertencias que la pantalla de activación DEBE mostrar antes de
+ * enseñar la frase, por CLAVE de catálogo.
  *
- * Viven aquí y no dentro del componente para que una prueba las pueda vigilar:
- * si alguien las suaviza para mejorar la conversión, el test se cae.
+ * Antes eran las cadenas en español escritas aquí. Ahora son claves porque la
+ * app se sirve en dos idiomas, y una advertencia que solo existe en español no
+ * es una advertencia para quien lee en inglés: es una pantalla de texto raro
+ * justo antes de la decisión más cara de la app.
+ *
+ * Siguen viviendo aquí, y no dentro del componente, por el mismo motivo de
+ * siempre: una prueba las vigila (`lib/crypto/frase.test.ts`). Lo que vigila
+ * ahora es que las tres claves existan EN LOS DOS IDIOMAS y que ninguna de las
+ * dos versiones se haya suavizado — decir «puede que se pierdan» donde pone
+ * «borra tus conversaciones» convierte una advertencia en un matiz.
+ *
+ * El orden importa y es el de la ficha: primero el precio de tener la frase,
+ * después que Darma no la puede recuperar, y por último lo que pasa sin copia.
  */
 export const ADVERTENCIAS_RESPALDO: readonly string[] = [
-  'Quien tenga esta frase puede leer todo tu historial.',
-  'Darma no puede recuperarla si la pierdes.',
-  'Sin copia de seguridad, cambiar de móvil borra tus conversaciones.',
+  'refugios.respaldo.advertencias.historial',
+  'refugios.respaldo.advertencias.irrecuperable',
+  'refugios.respaldo.advertencias.sinCopia',
 ] as const

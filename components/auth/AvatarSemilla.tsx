@@ -1,5 +1,14 @@
+'use client'
+
 // ============================================================================
 // Avatar generado a partir de la semilla. SVG puro, sin dependencias.
+//
+// ⚠️ Lleva `'use client'` DESDE LA MIGRACIÓN A i18n, y no por su lógica: sigue
+// siendo una función pura de la semilla. El `aria-label` ahora sale del
+// catálogo con `useTraductor()`, que es un hook, así que el archivo tiene que
+// ser de cliente. Hoy su único consumidor es `AsistenteOnboarding`, que ya lo
+// es. Si mañana hace falta desde un Server Component, la vía es el hermano
+// `Avatar` de components/ui, no volver a fijar el texto aquí.
 //
 // ── POR QUÉ UN AVATAR GENERADO Y NUNCA UNA FOTO ────────────────────────────
 // Una cara es un identificador biométrico. En una red donde la gente cuenta lo
@@ -17,6 +26,8 @@
 // Sin `useState` ni efectos: es una función pura de la semilla, así que sirve
 // igual en un Server Component y dentro de la hoja cliente del onboarding.
 // ============================================================================
+
+import { useTraductor } from '@/i18n/Proveedor'
 
 /** Paletas de dos colores. Ninguna se acerca a --danger: el avatar acompaña a
  *  alguien en un mal día y no debe leerse como una alarma. */
@@ -45,6 +56,7 @@ export interface PropiedadesAvatar {
 }
 
 export function AvatarSemilla({ semilla, tamano = 96 }: PropiedadesAvatar) {
+  const t = useTraductor()
   const limpia = (semilla || '').toLowerCase().replace(/[^0-9a-f]/g, '').padEnd(16, '0')
 
   const [colorA, colorB] = PALETAS[trozo(limpia, 0, 2) % PALETAS.length]!
@@ -75,7 +87,7 @@ export function AvatarSemilla({ semilla, tamano = 96 }: PropiedadesAvatar) {
       role="img"
       // El texto alternativo NO nombra a nadie: describe la forma, no a la
       // persona. Un `alt` con el alias lo repetiría en cada tarjeta del feed.
-      aria-label="Avatar generado"
+      aria-label={t('comun.avatarGenerado')}
       style={{ borderRadius: '50%', display: 'block' }}
     >
       <defs>

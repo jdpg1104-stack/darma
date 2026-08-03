@@ -16,6 +16,13 @@
 // `<time>` lleva el instante completo para quien lo necesite de verdad.
 // ============================================================================
 
+/**
+ * Meses por defecto, en español. Siguen aquí para que la función se pueda usar
+ * (y probar) sin catálogo, pero la UI NO los usa: `HistorialKarma` le pasa los
+ * doce nombres ya traducidos desde `comun.mesCorto.*`. Una fecha en español
+ * dentro de un historial en inglés es exactamente la clase de resto que este
+ * guard no ve —son tres letras sin acento— y que la persona sí ve.
+ */
 const MESES: readonly string[] = [
   'ene', 'feb', 'mar', 'abr', 'may', 'jun',
   'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
@@ -25,13 +32,18 @@ const MESES: readonly string[] = [
  * `2026-08-03T12:34:56Z` → `3 ago 2026`. Devuelve la cadena original si no
  * reconoce el formato: en una pantalla de transparencia del karma vale más una
  * fecha fea que una fila sin fecha.
+ *
+ * @param meses los doce nombres cortos, de enero a diciembre. Se inyectan en
+ *              vez de leerse del catálogo aquí dentro para que la función siga
+ *              siendo pura y determinista: es lo que evita el desajuste de
+ *              hidratación que explica la cabecera del archivo.
  */
-export function formatearFechaCorta(iso: string): string {
+export function formatearFechaCorta(iso: string, meses: readonly string[] = MESES): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
   if (!m) return iso
 
   const [, anio, mes, dia] = m
-  const nombreMes = MESES[Number(mes) - 1]
+  const nombreMes = meses[Number(mes) - 1]
   if (!nombreMes) return iso
 
   // `Number(dia)` quita el cero a la izquierda: «3 ago», no «03 ago».

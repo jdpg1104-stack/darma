@@ -10,13 +10,17 @@
 // ============================================================================
 
 import type { Metadata } from 'next'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { PanelEntrada } from '@/components/auth/PanelEntrada'
 
-export const metadata: Metadata = {
-  title: 'Entrar',
-  // Esta pantalla no aporta nada a un buscador y sí revela la estructura de la
-  // app. Fuera del índice.
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('auth.entrar'),
+    // Esta pantalla no aporta nada a un buscador y sí revela la estructura de
+    // la app. Fuera del índice.
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function PaginaEntrar({

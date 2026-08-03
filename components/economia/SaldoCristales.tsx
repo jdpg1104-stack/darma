@@ -13,6 +13,8 @@
 // `profiles.crystals`.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
+
 import estilos from './economia.module.css'
 
 export interface SaldoCristalesProps {
@@ -21,16 +23,20 @@ export interface SaldoCristalesProps {
   karmaSpendable?: number
 }
 
-export function SaldoCristales({ cristales, karmaSpendable }: SaldoCristalesProps) {
+export async function SaldoCristales({ cristales, karmaSpendable }: SaldoCristalesProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <p className={estilos.saldo}>
       <span className={estilos.saldoCifra}>{cristales}</span>
-      <span>{cristales === 1 ? 'cristal' : 'cristales'}</span>
+      {/* El plural va en ICU: la cifra se pinta aparte porque tiene su propio
+          estilo, y la palabra la decide el catálogo de cada idioma. */}
+      <span>{t('karma.economia.saldo.cristales', { n: cristales })}</span>
       {typeof karmaSpendable === 'number' ? (
         <>
           <span aria-hidden="true">·</span>
           <span className={estilos.saldoCifra}>{karmaSpendable}</span>
-          <span>de karma</span>
+          <span>{t('karma.economia.saldo.karma')}</span>
         </>
       ) : null}
     </p>

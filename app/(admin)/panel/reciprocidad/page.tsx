@@ -10,6 +10,7 @@
 // (CONTRATOS §5).
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
@@ -31,38 +32,35 @@ export const runtime = 'nodejs'
 export default async function PaginaReciprocidad() {
   await requireAdmin('soporte', { accion: `${ACCIONES.panel}.reciprocidad` })
 
+  const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
   const filas = await leerRollup(admin, ventanaDias(DIAS_VENTANA_DETALLE))
   const salud = getSaludReciprocidad(filas)
 
   return (
     <section>
-      <h1>Reciprocidad</h1>
+      <h1>{t('admin.reciprocidad.titulo')}</h1>
+      <p>{t('admin.reciprocidad.explicacion', { umbral: UMBRAL_RECIPROCIDAD })}</p>
       <p>
-        Escuchas validadas por publicación. El umbral es {UMBRAL_RECIPROCIDAD} porque cada
-        publicación consume {UMBRAL_RECIPROCIDAD} escuchas: no es un número de vanidad, es
-        la aritmética del producto.
-      </p>
-      <p>
-        Ratio de la ventana: <strong>{decimal(salud.ratioReciprocidad)}</strong>
+        {t('admin.reciprocidad.ratioVentana')} <strong>{decimal(salud.ratioReciprocidad)}</strong>
       </p>
 
       <Sparkline
         valores={salud.serie.map((p) => p.ratio)}
         umbral={UMBRAL_RECIPROCIDAD}
-        titulo={`Ratio de reciprocidad, últimos ${salud.serie.length} días.`}
+        titulo={t('admin.reciprocidad.sparkline', { dias: salud.serie.length })}
         alto={80}
       />
 
       <TablaSerie
-        titulo={`Serie diaria de los últimos ${DIAS_VENTANA_DETALLE} días`}
+        titulo={t('admin.tabla.serieDiaria', { dias: DIAS_VENTANA_DETALLE })}
         columnas={[
-          { clave: 'dia', etiqueta: 'Día' },
-          { clave: 'ratio', etiqueta: 'Ratio' },
-          { clave: 'escuchas', etiqueta: 'Escuchas validadas' },
-          { clave: 'posts', etiqueta: 'Publicaciones' },
-          { clave: 'validacion', etiqueta: 'Tasa de validación' },
-          { clave: 'cobertura', etiqueta: 'Posts con escucha en 24 h' },
+          { clave: 'dia', etiqueta: t('admin.tabla.dia') },
+          { clave: 'ratio', etiqueta: t('admin.tabla.ratio') },
+          { clave: 'escuchas', etiqueta: t('admin.tabla.escuchasValidadas') },
+          { clave: 'posts', etiqueta: t('admin.tabla.publicaciones') },
+          { clave: 'validacion', etiqueta: t('admin.tabla.tasaValidacion') },
+          { clave: 'cobertura', etiqueta: t('admin.tabla.cobertura24h') },
         ]}
         filas={filas.map((f) => {
           const escuchas = Number(f.metricas.escuchas_validadas ?? 0)

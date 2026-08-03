@@ -16,6 +16,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Boton } from '@/components/ui'
+// Traductor de CLIENTE: el proveedor lo monta `app/layout.tsx`.
+import { useTraductor } from '@/i18n/Proveedor'
 
 type Estado = 'inicial' | 'hecho' | 'error'
 
@@ -36,22 +38,23 @@ async function enviar(ruta: string, cuerpo: unknown): Promise<boolean> {
 }
 
 export function AccionesCrisis({ eventoId }: { eventoId: string }) {
+  const t = useTraductor()
   const [estado, setEstado] = useState<Estado>('inicial')
   const [outcome, setOutcome] = useState('')
   const [pendiente, iniciar] = useTransition()
   const router = useRouter()
 
-  if (estado === 'hecho') return <p role="status">Atendido.</p>
+  if (estado === 'hecho') return <p role="status">{t('moderacion.acciones.atendido')}</p>
 
   return (
     <div>
-      <label htmlFor={`outcome-${eventoId}`}>Qué se hizo</label>
+      <label htmlFor={`outcome-${eventoId}`}>{t('moderacion.acciones.queSeHizo')}</label>
       <input
         id={`outcome-${eventoId}`}
         value={outcome}
         maxLength={500}
         onChange={(e) => setOutcome(e.target.value)}
-        placeholder="Contactado, recursos enviados, derivado…"
+        placeholder={t('moderacion.acciones.queSeHizoEjemplo')}
       />
       <Boton
         variante="primario"
@@ -70,19 +73,20 @@ export function AccionesCrisis({ eventoId }: { eventoId: string }) {
           })
         }
       >
-        Marcar atendido
+        {t('moderacion.acciones.marcarAtendido')}
       </Boton>
-      {estado === 'error' && <p role="alert">No se ha podido guardar. Inténtalo otra vez.</p>}
+      {estado === 'error' && <p role="alert">{t('moderacion.acciones.errorGuardar')}</p>}
     </div>
   )
 }
 
 export function AccionesFlag({ flagId, sujetoId }: { flagId: string; sujetoId: string | null }) {
+  const t = useTraductor()
   const [estado, setEstado] = useState<Estado>('inicial')
   const [pendiente, iniciar] = useTransition()
   const router = useRouter()
 
-  if (estado === 'hecho') return <p role="status">Resuelto.</p>
+  if (estado === 'hecho') return <p role="status">{t('moderacion.acciones.resuelto')}</p>
 
   const resolver = (accion: 'resolved' | 'dismissed', sancionar: boolean) =>
     iniciar(async () => {
@@ -99,10 +103,10 @@ export function AccionesFlag({ flagId, sujetoId }: { flagId: string; sujetoId: s
   return (
     <div>
       <Boton variante="secundario" cargando={pendiente} onClick={() => resolver('dismissed', false)}>
-        Descartar
+        {t('moderacion.acciones.descartar')}
       </Boton>{' '}
       <Boton variante="secundario" cargando={pendiente} onClick={() => resolver('resolved', false)}>
-        Confirmar sin sancionar
+        {t('moderacion.acciones.confirmarSinSancionar')}
       </Boton>{' '}
       <Boton
         variante="peligro"
@@ -110,9 +114,9 @@ export function AccionesFlag({ flagId, sujetoId }: { flagId: string; sujetoId: s
         disabled={sujetoId === null}
         onClick={() => resolver('resolved', true)}
       >
-        Confirmar y sancionar
+        {t('moderacion.acciones.confirmarYSancionar')}
       </Boton>
-      {estado === 'error' && <p role="alert">No se ha podido guardar. Inténtalo otra vez.</p>}
+      {estado === 'error' && <p role="alert">{t('moderacion.acciones.errorGuardar')}</p>}
     </div>
   )
 }

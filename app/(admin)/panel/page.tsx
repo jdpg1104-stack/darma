@@ -21,6 +21,7 @@
 // ============================================================================
 
 import { EstadoVacio, Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../api/admin/_guard.ts'
 import { ACCIONES } from '../_lib/acceso.ts'
@@ -42,6 +43,7 @@ export const runtime = 'nodejs'
 
 export default async function PaginaPanel() {
   const contexto = await requireAdmin('soporte', { accion: ACCIONES.panel })
+  const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
   const resumen = await getResumenPanel(admin, ventanaDias(DIAS_VENTANA_KPI))
 
@@ -54,20 +56,18 @@ export default async function PaginaPanel() {
   const tarjetaCrisis = cumpleRol(contexto.rol, 'moderador') ? (
     <TarjetaMetrica
       key="crisis"
-      titulo="Cobertura de revisión de crisis"
+      titulo={t('admin.crisis.titulo')}
       valor={porcentaje(crisis.cobertura)}
       descripcion={
-        crisis.cobertura < 1
-          ? 'Cualquier valor distinto de 100 % es un incidente, no una métrica.'
-          : 'Todos los casos de riesgo alto o crítico de la ventana los ha revisado una persona.'
+        crisis.cobertura < 1 ? t('admin.panel.crisisIncidente') : t('admin.panel.crisisOk')
       }
       semaforo={crisis.semaforo}
       detalles={[
-        { etiqueta: 'Eventos de riesgo alto o crítico', valor: entero(crisis.eventos) },
-        { etiqueta: 'Revisados por una persona', valor: entero(crisis.revisados) },
-        { etiqueta: 'En cola ahora mismo', valor: entero(crisis.pendientes) },
-        { etiqueta: 'El más antiguo sin atender', valor: duracion(crisis.masAntiguoPendienteSegundos) },
-        { etiqueta: 'p95 de atención', valor: duracion(crisis.p95AtencionSegundos) },
+        { etiqueta: t('admin.crisis.eventosRiesgo'), valor: entero(crisis.eventos) },
+        { etiqueta: t('admin.crisis.revisadosPorPersona'), valor: entero(crisis.revisados) },
+        { etiqueta: t('admin.crisis.enCola'), valor: entero(crisis.pendientes) },
+        { etiqueta: t('admin.crisis.masAntiguo'), valor: duracion(crisis.masAntiguoPendienteSegundos) },
+        { etiqueta: t('admin.crisis.p95'), valor: duracion(crisis.p95AtencionSegundos) },
       ]}
     />
   ) : null
@@ -75,22 +75,28 @@ export default async function PaginaPanel() {
   const tarjetaReciprocidad = (
     <TarjetaMetrica
       key="reciprocidad"
-      titulo="Salud del bucle de reciprocidad"
+      titulo={t('admin.panel.reciprocidadTitulo')}
       valor={decimal(reciprocidad.ratioReciprocidad)}
-      descripcion={`Escuchas validadas por publicación en ${DIAS_VENTANA_KPI} días. Cada publicación consume ${UMBRAL_RECIPROCIDAD}: por debajo de ese número la comunidad solo publica a costa de las primeras publicaciones gratuitas de quien acaba de llegar.`}
+      descripcion={t('admin.panel.reciprocidadDescripcion', {
+        dias: DIAS_VENTANA_KPI,
+        umbral: UMBRAL_RECIPROCIDAD,
+      })}
       semaforo={reciprocidad.semaforo}
       detalles={[
-        { etiqueta: 'Escuchas validadas', valor: entero(reciprocidad.escuchasValidadas) },
-        { etiqueta: 'Publicaciones', valor: entero(reciprocidad.postsPublicados) },
+        { etiqueta: t('admin.tabla.escuchasValidadas'), valor: entero(reciprocidad.escuchasValidadas) },
+        { etiqueta: t('admin.tabla.publicaciones'), valor: entero(reciprocidad.postsPublicados) },
         // Si esta cae, es el clasificador el que se ha roto, no la gente.
-        { etiqueta: 'Tasa de validación', valor: porcentaje(reciprocidad.tasaValidacion) },
-        { etiqueta: 'Posts con escucha en 24 h', valor: porcentaje(reciprocidad.coberturaPosts24h) },
+        { etiqueta: t('admin.tabla.tasaValidacion'), valor: porcentaje(reciprocidad.tasaValidacion) },
+        { etiqueta: t('admin.tabla.cobertura24h'), valor: porcentaje(reciprocidad.coberturaPosts24h) },
       ]}
     >
       <Sparkline
         valores={reciprocidad.serie.map((p) => p.ratio)}
         umbral={UMBRAL_RECIPROCIDAD}
-        titulo={`Ratio de reciprocidad de los últimos ${reciprocidad.serie.length} días. Umbral ${UMBRAL_RECIPROCIDAD}.`}
+        titulo={t('admin.panel.reciprocidadSparkline', {
+          dias: reciprocidad.serie.length,
+          umbral: UMBRAL_RECIPROCIDAD,
+        })}
       />
     </TarjetaMetrica>
   )
@@ -98,20 +104,20 @@ export default async function PaginaPanel() {
   const tarjetaTtpr = (
     <TarjetaMetrica
       key="ttpr"
-      titulo="Tiempo hasta la primera respuesta"
+      titulo={t('admin.panel.ttprTitulo')}
       valor={duracion(ttpr.p50Segundos)}
-      descripcion="Mediana de lo que tarda alguien en recibir la primera respuesta. Objetivo: p50 por debajo de 15 min y p90 por debajo de 2 h."
+      descripcion={t('admin.panel.ttprDescripcion')}
       semaforo={ttpr.semaforo}
       detalles={[
-        { etiqueta: 'p90', valor: duracion(ttpr.p90Segundos) },
+        { etiqueta: t('admin.panel.ttprP90'), valor: duracion(ttpr.p90Segundos) },
         // El desglose que de verdad duele: quien está peor debe esperar menos.
-        { etiqueta: 'p50 en posts de riesgo alto o crítico', valor: duracion(ttpr.p50SegundosRiesgo) },
-        { etiqueta: 'Sin ninguna respuesta en 24 h', valor: entero(ttpr.postsSinRespuesta24h) },
+        { etiqueta: t('admin.panel.ttprP50Riesgo'), valor: duracion(ttpr.p50SegundosRiesgo) },
+        { etiqueta: t('admin.panel.ttprSinRespuesta24h'), valor: entero(ttpr.postsSinRespuesta24h) },
       ]}
     >
       <Sparkline
         valores={ttpr.serie.map((p) => p.p50)}
-        titulo={`Mediana diaria del tiempo hasta la primera respuesta, últimos ${ttpr.serie.length} días.`}
+        titulo={t('admin.panel.ttprSparkline', { dias: ttpr.serie.length })}
       />
     </TarjetaMetrica>
   )
@@ -119,16 +125,16 @@ export default async function PaginaPanel() {
   const tarjetaActivacion = (
     <TarjetaMetrica
       key="activacion"
-      titulo="Embudo de activación"
+      titulo={t('admin.panel.activacionTitulo')}
       valor={enmascarar(activacion.registrados)}
-      descripcion="Personas registradas en la ventana y hasta dónde llegaron. El escalón que hay que vigilar es el cuarto: quien no consigue un comentario validado nunca podrá publicar, y se va."
+      descripcion={t('admin.panel.activacionDescripcion')}
       detalles={[
-        { etiqueta: '1 · Registro', valor: enmascarar(activacion.registrados) },
-        { etiqueta: '2 · Onboarding completo', valor: enmascarar(activacion.onboardingCompleto) },
-        { etiqueta: '3 · Primera lectura', valor: enmascarar(activacion.primeraLectura) },
-        { etiqueta: '4 · Primer comentario validado', valor: enmascarar(activacion.primerComentarioValidado) },
-        { etiqueta: '5 · Primera publicación', valor: enmascarar(activacion.primeraPublicacion) },
-        { etiqueta: '6 · Vuelta en D7', valor: enmascarar(activacion.vueltaD7) },
+        { etiqueta: t('admin.embudo.e1'), valor: enmascarar(activacion.registrados) },
+        { etiqueta: t('admin.embudo.e2'), valor: enmascarar(activacion.onboardingCompleto) },
+        { etiqueta: t('admin.embudo.e3'), valor: enmascarar(activacion.primeraLectura) },
+        { etiqueta: t('admin.embudo.e4'), valor: enmascarar(activacion.primerComentarioValidado) },
+        { etiqueta: t('admin.embudo.e5'), valor: enmascarar(activacion.primeraPublicacion) },
+        { etiqueta: t('admin.embudo.e6'), valor: enmascarar(activacion.vueltaD7) },
       ]}
     />
   )
@@ -136,22 +142,22 @@ export default async function PaginaPanel() {
   const tarjetaEconomia = cumpleRol(contexto.rol, 'operaciones') ? (
     <TarjetaMetrica
       key="economia"
-      titulo="Economía"
+      titulo={t('admin.economia.titulo')}
       valor={euros(economia.ingresoCentimos)}
       descripcion={
         economia.ingresoEstimado
-          ? 'Ingreso PARCIALMENTE ESTIMADO: crystal_ledger no guarda el precio, así que las compras sin recibo se valoran con el mapa de precios provisional de este bloque. Pendiente de que B12 exponga el catálogo real.'
-          : 'Ingreso derivado de los recibos reales de la tienda.'
+          ? t('admin.economia.descripcionEstimado')
+          : t('admin.economia.descripcionReal')
       }
       detalles={[
-        { etiqueta: 'ARPPU', valor: euros(economia.arppuCentimos) },
-        { etiqueta: 'Compradores únicos (cota superior)', valor: enmascarar(economia.compradoresUnicos) },
-        { etiqueta: 'Cristales vendidos', valor: entero(economia.cristalesVendidos) },
-        { etiqueta: 'Karma emitido', valor: entero(economia.karmaEmitido) },
-        { etiqueta: 'Karma drenado', valor: entero(economia.karmaDrenado) },
-        { etiqueta: 'Stock gastable', valor: entero(economia.stockGastable) },
+        { etiqueta: t('admin.economia.arppu'), valor: euros(economia.arppuCentimos) },
+        { etiqueta: t('admin.economia.compradoresUnicos'), valor: enmascarar(economia.compradoresUnicos) },
+        { etiqueta: t('admin.economia.cristalesVendidos'), valor: entero(economia.cristalesVendidos) },
+        { etiqueta: t('admin.economia.karmaEmitido'), valor: entero(economia.karmaEmitido) },
+        { etiqueta: t('admin.economia.karmaDrenado'), valor: entero(economia.karmaDrenado) },
+        { etiqueta: t('admin.economia.stockGastable'), valor: entero(economia.stockGastable) },
         // Si esto sube mucho, o hay farmeo o el tope está mal puesto.
-        { etiqueta: 'Personas que topan el límite diario', valor: porcentaje(economia.pctUsuariosEnTope) },
+        { etiqueta: t('admin.economia.pctTope'), valor: porcentaje(economia.pctUsuariosEnTope) },
       ]}
     />
   ) : null
@@ -164,17 +170,20 @@ export default async function PaginaPanel() {
 
   return (
     <section>
-      <h1>Centro de mando</h1>
+      <h1>{t('admin.titulo')}</h1>
       <p>
-        Ventana de {DIAS_VENTANA_KPI} días · calculado el {fecha(resumen.calculadoEn)} · rol{' '}
-        {contexto.rol}
+        {t('admin.panel.cabecera', {
+          dias: DIAS_VENTANA_KPI,
+          fecha: fecha(resumen.calculadoEn),
+          rol: contexto.rol,
+        })}
       </p>
 
       {!hayDatos ? (
         <Tarjeta como="section">
           <EstadoVacio
-            titulo="Todavía no hay ningún día calculado"
-            descripcion="El rollup diario aún no ha corrido para esta ventana. Se puede lanzar a mano desde /api/admin/rollup si tienes rol de operaciones."
+            titulo={t('admin.panel.vacioTitulo')}
+            descripcion={t('admin.panel.vacioDescripcion')}
           />
         </Tarjeta>
       ) : null}

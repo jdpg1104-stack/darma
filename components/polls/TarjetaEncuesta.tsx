@@ -35,6 +35,8 @@
 import { useState, useTransition } from 'react'
 
 import { Chip, Tarjeta } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
+import type { Traductor } from '@/i18n'
 import type { EncuestaFeed } from '@/lib/polls/tipos'
 
 import { BarraResultado } from './BarraResultado'
@@ -48,6 +50,7 @@ export interface TarjetaEncuestaProps {
 }
 
 export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncuestaProps) {
+  const t = useTraductor()
   const [encuesta, setEncuesta] = useState(inicial)
   const [aviso, setAviso] = useState<string | null>(null)
   const [descartada, setDescartada] = useState(false)
@@ -78,7 +81,7 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
           // Se vuelve al objeto ENTERO anterior, no a un campo. Si mientras
           // tanto llegó otro estado, restaurar campo a campo dejaría una mezcla.
           setEncuesta(previa)
-          setAviso(mensajeDeError(cuerpo))
+          setAviso(mensajeDeError(cuerpo, t))
           return
         }
 
@@ -88,7 +91,7 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
         setEncuesta(cuerpo.data)
       } catch {
         setEncuesta(previa)
-        setAviso('No hemos podido guardar tu respuesta. Inténtalo otra vez.')
+        setAviso(t('feed.encuesta.error'))
       }
     })
   }
@@ -113,12 +116,12 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
   return (
     <Tarjeta como="section" className={estilos.tarjeta}>
       <p className={estilos.pregunta}>
-        <Chip>Encuesta</Chip> {encuesta.pregunta}
+        <Chip>{t('feed.encuesta.etiqueta')}</Chip> {encuesta.pregunta}
       </p>
 
       <p className={estilos.anonimato}>
-        Tu respuesta es anónima; ni siquiera quien preguntó puede verla.{' '}
-        {heVotado ? 'Tu voto ya está guardado y es definitivo.' : 'Solo se responde una vez: el voto es definitivo.'}
+        {t('feed.encuesta.anonimato')}{' '}
+        {t(heVotado ? 'feed.encuesta.definitivoVotado' : 'feed.encuesta.definitivo')}
       </p>
 
       {encuesta.revelado ? (
@@ -161,13 +164,11 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
       ) : null}
 
       <div className={estilos.pie}>
-        <span>
-          {encuesta.totalVotos === 1 ? '1 respuesta' : `${encuesta.totalVotos} respuestas`}
-        </span>
+        <span>{t('feed.encuesta.respuestas', { n: encuesta.totalVotos })}</span>
         <span className={estilos.acciones}>
           {heVotado ? null : (
             <button type="button" className={estilos.descartar} onClick={descartar} disabled={enCurso}>
-              No me interesa
+              {t('feed.encuesta.descartar')}
             </button>
           )}
         </span>
@@ -197,7 +198,7 @@ function esOk(valor: unknown): valor is RespuestaOkEncuesta {
  * el caso en el que la respuesta no tenga la forma esperada — un proxy que
  * devuelve HTML, por ejemplo.
  */
-function mensajeDeError(cuerpo: unknown): string {
+function mensajeDeError(cuerpo: unknown, t: Traductor): string {
   if (
     typeof cuerpo === 'object' &&
     cuerpo !== null &&
@@ -205,5 +206,5 @@ function mensajeDeError(cuerpo: unknown): string {
   ) {
     return (cuerpo as { message: string }).message
   }
-  return 'No hemos podido guardar tu respuesta. Inténtalo otra vez.'
+  return t('feed.encuesta.error')
 }

@@ -14,16 +14,27 @@
 // página, no abriendo el repositorio.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { DocumentoLegal } from '@/lib/privacy/textos'
 
-export function Documento({ documento }: { documento: DocumentoLegal }) {
+export async function Documento({ documento }: { documento: DocumentoLegal }) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <article>
+      {/* SIN TRADUCIR, Y A PROPÓSITO. `documento.titulo` y `documento.cuerpo`
+          salen de `lib/privacy/textos.ts`, que no es de este bloque y donde cada
+          cuerpo lleva un sha256 declarado y verificado por prueba: el texto que
+          se muestra tiene que ser BYTE A BYTE el que se guardó en `consents` al
+          aceptar. Una versión inglesa no es una traducción de la interfaz, es
+          otro documento legal, con su propia versión y su propia huella. Ver el
+          resumen de la migración. */}
       <h1 style={{ fontSize: 28, lineHeight: 1.25, margin: '0 0 8px' }}>{documento.titulo}</h1>
 
       <p style={{ color: 'var(--muted)', fontSize: 14, margin: '0 0 28px' }}>
-        Versión <strong style={{ color: 'var(--ink)' }}>{documento.version}</strong> · Última
-        actualización {documento.actualizadoEn}
+        {t('legal.documento.versionEtiqueta')}{' '}
+        <strong style={{ color: 'var(--ink)' }}>{documento.version}</strong> ·{' '}
+        {t('legal.documento.actualizadoEn', { fecha: documento.actualizadoEn })}
       </p>
 
       <div
@@ -49,14 +60,12 @@ export function Documento({ documento }: { documento: DocumentoLegal }) {
           lineHeight: 1.6,
         }}
       >
-        Huella del texto (SHA-256):{' '}
+        {t('legal.documento.huella')}{' '}
         <code style={{ fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
           {documento.sha256}
         </code>
         <br />
-        Cuando aceptas este documento se guarda esta huella junto a la versión. Sirve para que
-        «aceptaste los términos» signifique algo comprobable: si el texto cambiara, la huella
-        cambiaría y volveríamos a preguntarte.
+        {t('legal.documento.huellaExplicacion')}
       </p>
     </article>
   )

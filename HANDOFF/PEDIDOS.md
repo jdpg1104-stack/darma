@@ -1497,3 +1497,52 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       perfil). No he creado ninguna página bajo `app/(app)/**` porque no es mío:
       los componentes están listos para montarse donde B04 y B05 decidan ·
       2026-08-03
+- [ ] **De la migración i18n de refugios/economía → integración (B00) · hay que
+      aplanar `messages/parches/*.json` dentro de `messages/*.json`.** La
+      migración del copy a `t('...')` la hicieron varias sesiones a la vez y
+      `messages/es.json` es un único archivo compartido, así que cada grupo dejó
+      sus claves en `messages/parches/<bloque>.<locale>.json` y
+      `i18n/parches.ts` las fusiona sobre el catálogo base (no destructivo: lo
+      que ya existe en `messages/*.json` gana). Funciona en producción tal cual,
+      pero es andamio: cuando cierren todas las sesiones, un commit de
+      integración copia los parches al catálogo, borra `i18n/parches.ts` y
+      devuelve `MENSAJES` a los dos imports de siempre. El guard de paridad
+      (`i18n/claves.test.ts`) ya compara el catálogo FUSIONADO, así que la
+      operación es verificable · 2026-08-03
+- [ ] **De la migración i18n → quien mantenga `i18n/literales.test.ts` · toca
+      podar `DEUDA_LITERALES_CONOCIDA`.** El test «la deuda conocida sigue ahí»
+      falla, que es la buena noticia que él mismo anuncia: los archivos migrados
+      ya no tienen literales. Ningún dueño puede borrar su línea sin editar ese
+      archivo, y es de un solo dueño. Cuatro entradas SÍ deben quedarse
+      (`components/refuge/TarjetaCrisis.tsx`, `components/polls/TarjetaEncuesta.tsx`,
+      `components/video/TarjetaVideo.tsx`, `components/economia/SelectorRegalo.tsx`):
+      están limpias, pero el guard da falso positivo con el `) : cond ? (` de un
+      ternario en JSX y las sigue viendo sucias · 2026-08-03
+- [ ] **De la migración i18n → B12 · `lib/billing/textos.ts` y las dos rutas de
+      `/api/billing` siguen en español, y ahora hay DOS fuentes para la frase de
+      la línea roja.** `components/economia/**` la lee de
+      `karma.economia.lineaRoja` (los dos idiomas); `app/api/billing/catalog` y
+      `app/api/billing/boost` la devuelven en el cuerpo desde
+      `FRASE_LINEA_ROJA`. Dos copias de la misma promesa es exactamente lo que
+      la constante existía para evitar: que las rutas devuelvan la clave (o el
+      texto ya resuelto con el locale de la petición) y `textos.ts` se quede sin
+      consumidores · 2026-08-03
+- [ ] **De la migración i18n → B12 · las etiquetas de datos siguen en español.**
+      `CATALOGO_REGALOS[*].etiqueta`, `PaqueteCristales.etiqueta` y
+      `opcionesDePago().etiqueta` se pintan tal cual dentro de componentes ya
+      traducidos, así que en inglés salen frases mezcladas. Son datos de B12, no
+      copy de pantalla: la migración no los ha tocado · 2026-08-03
+- [ ] **De la migración i18n → F3 · `helpResourcesFor().hours` es español fijo.**
+      `crisis.tarjeta.horario24` ya existe en los dos idiomas, pero
+      `lib/crisis.ts` devuelve «24 h, todos los días» / «Según el país» como
+      texto libre dentro de la fila del recurso. La tarjeta de crisis del
+      refugio ya está traducida salvo ese campo, y es la pantalla que menos
+      puede permitirse una frase en un idioma que no se entiende · 2026-08-03
+- [ ] **De la migración i18n → B07/B08 · `/animo` sigue pidiendo el catálogo de
+      vídeos en `'es'`.** El `IDIOMA_POR_DEFECTO` provisional de
+      `app/(app)/animo/page.tsx` esperaba a B17; ahora el locale se resuelve,
+      pero la constante se ha dejado fija (renombrada a `IDIOMA_DEL_CATALOGO`) a
+      propósito: pasar el locale a `feed_animo()` cambia qué filas vuelven y
+      dejaría `/animo` vacía si el catálogo no tiene vídeos en inglés. Hace falta
+      decidir el fallback (¿inglés y si no hay, español?) antes de conectarlo ·
+      2026-08-03

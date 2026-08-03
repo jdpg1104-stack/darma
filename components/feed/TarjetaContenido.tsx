@@ -1,5 +1,11 @@
+'use client'
+
 // ============================================================================
-// Contenido curado de bienestar. Server Component: cero JS.
+// Contenido curado de bienestar.
+//
+// `'use client'` por el idioma, no por interactividad: la tarjeta la pinta
+// también `ScrollInfinito`, que es de cliente, así que la duración legible tiene
+// que salir del contexto de locale (`useTraductor`). Sin estado ni efectos.
 //
 // La miniatura va con `next/image`, y el motivo principal NO es el rendimiento:
 // es el ANONIMATO. Con un `<img src="https://i.ytimg.com/…">` el navegador de la
@@ -21,6 +27,8 @@ import Image from 'next/image'
 
 import { Chip, Tarjeta } from '@/components/ui'
 import type { ContenidoFeed } from '@/app/api/feed/tipos'
+import type { Traductor } from '@/i18n'
+import { useTraductor } from '@/i18n/Proveedor'
 
 import estilos from './Feed.module.css'
 
@@ -29,14 +37,15 @@ export interface TarjetaContenidoProps {
 }
 
 /** `null` cuando no hay duración (los vídeos del feed Atom no la traen). */
-function duracionLegible(segundos: number | null): string | null {
+function duracionLegible(segundos: number | null, t: Traductor): string | null {
   if (segundos == null || segundos <= 0) return null
   const minutos = Math.round(segundos / 60)
-  return minutos < 1 ? 'menos de 1 min' : `${minutos} min`
+  return minutos < 1 ? t('feed.duracionCorta') : t('feed.duracionMinutos', { n: minutos })
 }
 
 export function TarjetaContenido({ contenido }: TarjetaContenidoProps) {
-  const duracion = duracionLegible(contenido.duracionSegundos)
+  const t = useTraductor()
+  const duracion = duracionLegible(contenido.duracionSegundos, t)
 
   return (
     <Tarjeta como="article" interactiva className={estilos.tarjeta}>

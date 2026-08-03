@@ -24,6 +24,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Respuesta } from '@/lib/auth/respuestas'
+import { traducirCodigoError } from '@/i18n'
+import { useTraductor } from '@/i18n/Proveedor'
 import { AvatarSemilla } from './AvatarSemilla'
 
 export interface Candidato {
@@ -33,28 +35,16 @@ export interface Candidato {
 
 type NivelEntrada = 'animo' | 'escucha' | 'apoyo'
 
-const NIVELES: readonly { valor: NivelEntrada; titulo: string; descripcion: string }[] = [
-  {
-    valor: 'animo',
-    titulo: 'Ánimo',
-    descripcion: 'Solo quiero ver contenido que me siente bien. Sin escribir nada todavía.',
-  },
-  {
-    valor: 'escucha',
-    titulo: 'Escucha',
-    descripcion: 'Quiero leer a otras personas y acompañarlas en los comentarios.',
-  },
-  {
-    valor: 'apoyo',
-    titulo: 'Apoyo',
-    descripcion: 'Vengo a contar lo que me pasa. Aquí se publica después de haber escuchado.',
-  },
-]
+/** Solo el valor que viaja a la API. El título y la descripción de cada opción
+ *  salen del catálogo (`auth.onboarding.niveles.<valor>`): son texto de
+ *  pantalla y no pueden vivir en una constante del módulo. */
+const NIVELES: readonly NivelEntrada[] = ['animo', 'escucha', 'apoyo']
 
 const TOTAL_PASOS = 3
 
 export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candidato[] }) {
   const router = useRouter()
+  const t = useTraductor()
 
   const [paso, setPaso] = useState(1)
   const [indice, setIndice] = useState(0)
@@ -80,16 +70,18 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
       const cuerpo = (await respuesta.json()) as Respuesta<{ libre: boolean }>
 
       if (!cuerpo.ok) {
-        setError(cuerpo.message)
+        // Por CÓDIGO, no por `message`: el mensaje del servidor viene en un solo
+        // idioma (CONTRATOS §4 e `i18n/index.ts`).
+        setError(traducirCodigoError(cuerpo.code, t, cuerpo.retryAfter ? { retryAfter: cuerpo.retryAfter } : {}))
         return
       }
       if (!cuerpo.data.libre) {
-        setError('Ese alias ya está cogido. Pulsa «otro» y te proponemos uno libre.')
+        setError(t('auth.onboarding.aliasCogido'))
         return
       }
       setPaso(2)
     } catch {
-      setError('No hemos podido comprobarlo. Revisa tu conexión.')
+      setError(t('auth.onboarding.errorComprobar'))
     } finally {
       setOcupado(false)
     }
@@ -107,7 +99,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
       const cuerpo = (await respuesta.json()) as Respuesta<unknown>
 
       if (!cuerpo.ok) {
-        setError(cuerpo.message)
+        setError(traducirCodigoError(cuerpo.code, t, cuerpo.retryAfter ? { retryAfter: cuerpo.retryAfter } : {}))
         // Una colisión de alias devuelve al paso 1, que es donde se arregla.
         if (cuerpo.code === 'entrada_invalida') setPaso(1)
         return
@@ -116,7 +108,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
       router.refresh()
       router.push('/feed')
     } catch {
-      setError('No hemos podido crear tu identidad. Revisa tu conexión.')
+      setError(t('auth.onboarding.errorCrear'))
     } finally {
       setOcupado(false)
     }
@@ -126,14 +118,14 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
     <div className="card fade-in" style={{ display: 'grid', gap: 20 }}>
       <header style={{ display: 'grid', gap: 8 }}>
         <span className="chip" style={{ justifySelf: 'start' }}>
-          Paso {paso} de {TOTAL_PASOS}
+          {t('auth.onboarding.paso', { n: paso, total: TOTAL_PASOS })}
         </span>
         <div
           role="progressbar"
           aria-valuemin={1}
           aria-valuemax={TOTAL_PASOS}
           aria-valuenow={paso}
-          aria-label="Progreso del onboarding"
+          aria-label={t('auth.onboarding.progreso')}
           style={{ height: 4, borderRadius: 999, background: 'var(--panel2)' }}
         >
           <div
@@ -166,10 +158,11 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
       {paso === 1 && (
         <section style={{ display: 'grid', gap: 16 }}>
           <div style={{ display: 'grid', gap: 6 }}>
-            <h1 style={{ fontSize: 24, margin: 0, lineHeight: 1.25 }}>Elige cómo te llamamos</h1>
+            <h1 style={{ fontSize: 24, margin: 0, lineHeight: 1.25 }}>
+              {t('auth.onboarding.paso1Titulo')}
+            </h1>
             <p style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-              Este seudónimo y este avatar son lo único que verán los demás. No hay fotos en
-              Darma, ni las habrá.
+              {t('auth.onboarding.paso1Texto')}
             </p>
           </div>
 
@@ -177,7 +170,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
             <AvatarSemilla semilla={semilla} tamano={72} />
             <div style={{ display: 'grid', gap: 8, flex: 1 }}>
               <label htmlFor="alias" className="sr-only">
-                Tu alias
+                {t('auth.onboarding.etiquetaAlias')}
               </label>
               <input
                 id="alias"
@@ -197,7 +190,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
                 }}
               />
               <button type="button" className="btn btn--ghost" onClick={otroAlias}>
-                Otro
+                {t('auth.onboarding.otroAlias')}
               </button>
             </div>
           </div>
@@ -208,7 +201,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
             onClick={comprobarYAvanzar}
             disabled={ocupado || alias.trim().length < 3}
           >
-            {ocupado ? 'Comprobando…' : 'Continuar'}
+            {ocupado ? t('auth.onboarding.comprobando') : t('auth.continuar')}
           </button>
         </section>
       )}
@@ -216,24 +209,25 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
       {paso === 2 && (
         <section style={{ display: 'grid', gap: 16 }}>
           <div style={{ display: 'grid', gap: 6 }}>
-            <h1 style={{ fontSize: 24, margin: 0, lineHeight: 1.25 }}>¿Por dónde empezamos?</h1>
+            <h1 style={{ fontSize: 24, margin: 0, lineHeight: 1.25 }}>
+              {t('auth.onboarding.paso2Titulo')}
+            </h1>
             <p style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-              Solo es el punto de partida. Puedes cambiarlo cuando quieras y nada te queda
-              cerrado por elegir una cosa u otra.
+              {t('auth.onboarding.paso2Texto')}
             </p>
           </div>
 
           <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 10 }}>
-            <legend className="sr-only">Cómo quieres empezar</legend>
+            <legend className="sr-only">{t('auth.onboarding.leyendaNivel')}</legend>
             {NIVELES.map((opcion) => (
               <label
-                key={opcion.valor}
+                key={opcion}
                 style={{
                   display: 'grid',
                   gap: 4,
                   padding: '14px 16px',
                   borderRadius: 'var(--radius-sm)',
-                  border: `1px solid ${nivel === opcion.valor ? 'var(--accent)' : 'var(--line)'}`,
+                  border: `1px solid ${nivel === opcion ? 'var(--accent)' : 'var(--line)'}`,
                   background: 'var(--panel2)',
                   cursor: 'pointer',
                 }}
@@ -242,14 +236,14 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
                   <input
                     type="radio"
                     name="nivel"
-                    value={opcion.valor}
-                    checked={nivel === opcion.valor}
-                    onChange={() => setNivel(opcion.valor)}
+                    value={opcion}
+                    checked={nivel === opcion}
+                    onChange={() => setNivel(opcion)}
                   />
-                  {opcion.titulo}
+                  {t(`auth.onboarding.niveles.${opcion}.titulo`)}
                 </span>
                 <span style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.45 }}>
-                  {opcion.descripcion}
+                  {t(`auth.onboarding.niveles.${opcion}.descripcion`)}
                 </span>
               </label>
             ))}
@@ -257,7 +251,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn--ghost" onClick={() => setPaso(1)}>
-              Atrás
+              {t('auth.onboarding.atras')}
             </button>
             <button
               type="button"
@@ -265,7 +259,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
               onClick={() => setPaso(3)}
               style={{ flex: 1 }}
             >
-              Continuar
+              {t('auth.continuar')}
             </button>
           </div>
         </section>
@@ -274,9 +268,11 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
       {paso === 3 && (
         <section style={{ display: 'grid', gap: 16 }}>
           <div style={{ display: 'grid', gap: 6 }}>
-            <h1 style={{ fontSize: 24, margin: 0, lineHeight: 1.25 }}>Esto es todo lo que verán</h1>
+            <h1 style={{ fontSize: 24, margin: 0, lineHeight: 1.25 }}>
+              {t('auth.onboarding.paso3Titulo')}
+            </h1>
             <p style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-              Ni tu nombre, ni tu correo, ni tu ciudad. Solo esto.
+              {t('auth.onboarding.paso3Texto')}
             </p>
           </div>
 
@@ -295,14 +291,16 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
             <div style={{ display: 'grid', gap: 2 }}>
               <strong style={{ fontSize: 17 }}>{alias.trim()}</strong>
               <span style={{ color: 'var(--muted)', fontSize: 14 }}>
-                Semilla · empiezas por {NIVELES.find((n) => n.valor === nivel)?.titulo}
+                {t('auth.onboarding.resumen', {
+                  nivel: t(`auth.onboarding.niveles.${nivel}.titulo`),
+                })}
               </span>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn--ghost" onClick={() => setPaso(2)} disabled={ocupado}>
-              Atrás
+              {t('auth.onboarding.atras')}
             </button>
             <button
               type="button"
@@ -311,7 +309,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
               disabled={ocupado}
               style={{ flex: 1 }}
             >
-              {ocupado ? 'Creando…' : 'Entrar en Darma'}
+              {ocupado ? t('auth.onboarding.creando') : t('auth.entrarEnDarma')}
             </button>
           </div>
         </section>

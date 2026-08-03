@@ -13,18 +13,20 @@
 // ============================================================================
 
 import Link from 'next/link'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { RolAdmin } from '../_lib/acceso.ts'
 import { tabsVisibles } from '../_lib/navegacion.ts'
 
-export function NavegacionAdmin({ rol }: { rol: RolAdmin }) {
+export async function NavegacionAdmin({ rol }: { rol: RolAdmin }) {
+  const t = obtenerTraductor(await resolverLocale())
   const tabs = tabsVisibles(rol)
 
   return (
-    <nav aria-label="Centro de mando">
+    <nav aria-label={t('admin.titulo')}>
       <ul>
         {tabs.map((tab) => (
           <li key={tab.id}>
-            <Link href={tab.ruta}>{tab.etiqueta}</Link>
+            <Link href={tab.ruta}>{t(tab.etiquetaKey)}</Link>
           </li>
         ))}
       </ul>

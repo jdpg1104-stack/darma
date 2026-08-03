@@ -15,35 +15,44 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { AVISO_NO_TERAPIA, EDAD_MINIMA } from '@/lib/privacy/avisos'
 import { DOCUMENTOS_LEGALES, ORDEN_DOCUMENTOS, rutaDocumento } from '@/lib/privacy/textos'
 
 export const dynamic = 'force-static'
 
-export const metadata: Metadata = {
-  title: 'Documentos legales',
-  description: 'Condiciones, privacidad, cookies, edad mínima y retención de datos de Darma.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('legal.indice.metaTitulo'),
+    description: t('legal.indice.metaDescripcion'),
+  }
 }
 
-/** Una frase por documento. No es el resumen legal: es la razón para abrirlo. */
-const RECLAMOS: Readonly<Record<string, string>> = {
-  privacidad:
-    'Qué guardamos, qué no, y qué pasa exactamente cuando borras tu cuenta. Léelo antes de pulsar ese botón.',
-  terminos: 'Qué es Darma, cómo se gana el derecho a publicar y qué no se puede hacer aquí.',
-  no_es_terapia: 'Dónde ayuda esto y dónde hace falta otra cosa.',
-  menores: `Por qué la edad mínima son ${EDAD_MINIMA} años y por qué no pedimos el DNI a nadie.`,
-  retencion: 'Cuánto tiempo vive cada dato, tabla por tabla, con su base legal.',
-  cookies: 'Las imprescindibles y ninguna más. Por eso no hay banner.',
+/**
+ * Una frase por documento. No es el resumen legal: es la razón para abrirlo.
+ * Tipo de documento → CLAVE del catálogo, nunca el texto.
+ */
+const CLAVE_RECLAMO: Readonly<Record<string, string>> = {
+  privacidad: 'legal.indice.reclamos.privacidad',
+  terminos: 'legal.indice.reclamos.terminos',
+  no_es_terapia: 'legal.indice.reclamos.no_es_terapia',
+  menores: 'legal.indice.reclamos.menores',
+  retencion: 'legal.indice.reclamos.retencion',
+  cookies: 'legal.indice.reclamos.cookies',
 }
 
-export default function PaginaLegal() {
+export default async function PaginaLegal() {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <div>
-      <h1 style={{ fontSize: 28, lineHeight: 1.25, margin: '0 0 12px' }}>Lo que hay que saber</h1>
+      <h1 style={{ fontSize: 28, lineHeight: 1.25, margin: '0 0 12px' }}>
+        {t('legal.indice.titulo')}
+      </h1>
 
       <p style={{ color: 'var(--muted)', lineHeight: 1.7, margin: '0 0 8px' }}>
-        Estos documentos se pueden leer sin tener cuenta y sin iniciar sesión, que es como debe
-        ser: nadie debería tener que registrarse para saber qué se hace con lo que escribe.
+        {t('legal.indice.intro')}
       </p>
 
       <p
@@ -56,6 +65,12 @@ export default function PaginaLegal() {
           lineHeight: 1.6,
         }}
       >
+        {/* SIN TRADUCIR. `AVISO_NO_TERAPIA` vive en `lib/privacy/avisos.ts`, que
+            no es de este bloque, y su redacción está razonada palabra a palabra
+            allí («sin letra pequeña, sin jerga jurídica, y sin desalentar»).
+            Traducirlo desde aquí duplicaría el aviso en un segundo sitio, que es
+            exactamente lo que ese archivo existe para impedir. Anotado en el
+            resumen de la migración. */}
         {AVISO_NO_TERAPIA}
       </p>
 
@@ -86,7 +101,7 @@ export default function PaginaLegal() {
                     marginTop: 4,
                   }}
                 >
-                  {RECLAMOS[tipo]}
+                  {t(CLAVE_RECLAMO[tipo], { edad: EDAD_MINIMA })}
                 </span>
                 <span style={{ display: 'block', color: 'var(--muted)', fontSize: 12, marginTop: 8 }}>
                   {documento.version} · {documento.actualizadoEn}

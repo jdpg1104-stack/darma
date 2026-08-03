@@ -15,6 +15,7 @@
 
 import { useState, useTransition } from 'react'
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 
 export interface BotonUtilProps {
   comentarioId: string
@@ -24,13 +25,14 @@ export interface BotonUtilProps {
 }
 
 export function BotonUtil({ comentarioId, marcado, alMarcar }: BotonUtilProps) {
+  const t = useTraductor()
   const [error, setError] = useState<string | null>(null)
   const [enCurso, iniciar] = useTransition()
 
   if (marcado) {
     return (
       <Boton variante="secundario" tamano="sm" disabled aria-pressed>
-        Te ayudó
+        {t('hilo.meAyudoHecho')}
       </Boton>
     )
   }
@@ -45,7 +47,7 @@ export function BotonUtil({ comentarioId, marcado, alMarcar }: BotonUtilProps) {
       } catch {
         // Sin detalle: el mensaje del servidor ya está redactado para personas
         // y aquí no se puede saber si falló la red o el permiso.
-        setError('No hemos podido guardarlo. Inténtalo otra vez en un momento.')
+        setError(t('hilo.utilError'))
       }
     })
   }
@@ -53,7 +55,7 @@ export function BotonUtil({ comentarioId, marcado, alMarcar }: BotonUtilProps) {
   return (
     <>
       <Boton variante="secundario" tamano="sm" onClick={marcar} cargando={enCurso}>
-        Esto me ayudó
+        {t('hilo.meAyudo')}
       </Boton>
       {error ? <span role="status">{error}</span> : null}
     </>

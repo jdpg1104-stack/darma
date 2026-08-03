@@ -1,14 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import mensajesEs from '../messages/es.json' with { type: 'json' }
-import mensajesEn from '../messages/en.json' with { type: 'json' }
-
 import { compararCatalogos, aplanar, type Catalogo } from './validacion.ts'
 import { firmaIcu, formatearIcu, parsearIcu, ErrorIcu } from './icu.ts'
-import { CODIGOS_DE_ERROR, RAICES_DE_DOMINIO } from './index.ts'
+import { CODIGOS_DE_ERROR, MENSAJES, RAICES_DE_DOMINIO } from './index.ts'
 
-const CATALOGOS = { es: mensajesEs as Catalogo, en: mensajesEn as Catalogo }
+/**
+ * El catálogo tal y como lo ve la app. Se lee de `MENSAJES` y no de los dos JSON
+ * directamente para que el guard mire exactamente lo que la aplicación resuelve:
+ * si algún día vuelve a haber una capa intermedia —hubo una de parches durante
+ * la migración— este test la cubre sin que nadie tenga que acordarse.
+ */
+const CATALOGOS = { es: MENSAJES.es as Catalogo, en: MENSAJES.en as Catalogo }
 
 // ── Paridad real ────────────────────────────────────────────────────────────
 

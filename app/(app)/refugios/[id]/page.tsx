@@ -17,6 +17,7 @@
 import { notFound, redirect } from 'next/navigation'
 
 import { Hilo } from '@/components/refuge'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { getSesion } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 
@@ -46,12 +47,16 @@ export default async function PaginaHilo({ params }: { params: Promise<{ id: str
   if (!data) notFound()
 
   const refugio = data as { id: string; kind: 'duo' | 'circulo'; title: string | null }
+  const t = obtenerTraductor(await resolverLocale())
 
   return (
     <Hilo
       refugeId={refugio.id}
       userId={sesion.userId}
-      titulo={refugio.title ?? (refugio.kind === 'duo' ? 'Refugio de dos' : 'Círculo')}
+      titulo={
+        refugio.title ??
+        t(refugio.kind === 'duo' ? 'refugios.lista.duo' : 'refugios.lista.circulo')
+      }
     />
   )
 }

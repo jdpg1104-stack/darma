@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTraductor } from '@/i18n/Proveedor'
 import { ventanaDeIframes } from '@/lib/video/autoplay'
 import type { ItemVideo, PaginaCursor, ResultadoCompletado } from '@/lib/video/tipos'
 import { TarjetaVideo } from './TarjetaVideo'
@@ -33,6 +34,7 @@ export interface FeedVerticalProps {
 type Envoltorio<T> = { ok: true; data: T } | { ok: false; code: string; message: string }
 
 export function FeedVertical({ inicial, idioma }: FeedVerticalProps) {
+  const t = useTraductor()
   const [items, setItems] = useState<ItemVideo[]>(inicial.items)
   const [cursor, setCursor] = useState<string | null>(inicial.siguienteCursor)
   const [cargando, setCargando] = useState(false)
@@ -69,11 +71,11 @@ export function FeedVertical({ inicial, idioma }: FeedVerticalProps) {
       })
       setCursor(json.data.siguienteCursor)
     } catch {
-      setAviso('No hemos podido cargar más vídeos. Comprueba tu conexión.')
+      setAviso(t('contenido.errorCargar'))
     } finally {
       setCargando(false)
     }
-  }, [cargando, cursor, idioma])
+  }, [cargando, cursor, idioma, t])
 
   useEffect(() => {
     const nodo = centinela.current
@@ -96,7 +98,7 @@ export function FeedVertical({ inicial, idioma }: FeedVerticalProps) {
     if (resultado.motivo === 'tope_diario') {
       // Con `ok: true` a propósito: hoy ya llegó al máximo, y eso no es un
       // error suyo. El vídeo cuenta como visto igualmente.
-      setAviso('Hoy ya has llegado al máximo de karma. El vídeo cuenta igual.')
+      setAviso(t('contenido.topeDiario'))
     }
   }
 
@@ -112,7 +114,8 @@ export function FeedVertical({ inicial, idioma }: FeedVerticalProps) {
       ))}
 
       <div className={estilos.pie} ref={centinela} aria-live="polite">
-        {aviso ?? (cargando ? 'Cargando más…' : cursor ? '' : 'Por hoy no hay más. Vuelve mañana.')}
+        {aviso ??
+          (cargando ? t('contenido.cargandoMas') : cursor ? '' : t('contenido.finDelDia'))}
       </div>
     </div>
   )

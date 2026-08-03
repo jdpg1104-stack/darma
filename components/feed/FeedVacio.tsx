@@ -13,6 +13,7 @@
 import Link from 'next/link'
 
 import { EstadoVacio } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 
 import estilos from './Feed.module.css'
 
@@ -21,13 +22,14 @@ export interface FeedVacioProps {
   carril?: 'para_ti' | 'nuevo'
 }
 
-export function FeedVacio({ carril = 'para_ti' }: FeedVacioProps) {
-  const titulo = carril === 'nuevo' ? 'Todavía no hay nada nuevo' : 'Aquí aparecerá lo que la comunidad comparta'
+export async function FeedVacio({ carril = 'para_ti' }: FeedVacioProps) {
+  const t = obtenerTraductor(await resolverLocale())
+  const titulo = carril === 'nuevo' ? t('feed.vacioNuevo') : t('feed.vacio')
 
   return (
     <EstadoVacio
       titulo={titulo}
-      descripcion="Puedes empezar tú: escribir lo que te pasa también es una forma de acompañar a quien lo lea."
+      descripcion={t('feed.vacioDescripcion')}
       tono="cuidado"
       // Un `<Link>` estilado y NO `<Link><Boton>…</Boton></Link>`: un `<button>`
       // dentro de un `<a>` es HTML inválido (contenido interactivo anidado), y
@@ -35,7 +37,7 @@ export function FeedVacio({ carril = 'para_ti' }: FeedVacioProps) {
       // deja de funcionar con teclado.
       accion={
         <Link href="/publicar" className={estilos.accionVacio}>
-          Escribir algo
+          {t('feed.vacioAccion')}
         </Link>
       }
     />

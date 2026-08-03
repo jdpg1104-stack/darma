@@ -1,5 +1,11 @@
+'use client'
+
 // ============================================================================
-// «Todavía no enseñamos los resultados». Server Component puro.
+// «Todavía no enseñamos los resultados».
+//
+// `'use client'` desde la traducción, por el mismo motivo que `BarraResultado`:
+// el texto sale del traductor y el único sitio que lo pinta es
+// `TarjetaEncuesta`, que ya es cliente. No aparece un bundle nuevo.
 //
 // Este componente es la cara visible del umbral de revelación, y el texto
 // importa tanto como la regla:
@@ -15,6 +21,8 @@
 //    justo lo que hace que la siguiente persona conteste la verdad.
 // ============================================================================
 
+import { useTraductor } from '@/i18n/Proveedor'
+
 import estilos from './Encuesta.module.css'
 
 export interface EstadoOcultoProps {
@@ -24,19 +32,19 @@ export interface EstadoOcultoProps {
 }
 
 export function EstadoOculto({ totalVotos, heVotado }: EstadoOcultoProps) {
+  const t = useTraductor()
+
+  // El plural va en ICU y no en un ternario: «1 respuesta / 2 respuestas» no es
+  // la misma regla en los dos idiomas, y el catálogo es donde esa regla vive.
   const respuestas =
     totalVotos === 0
-      ? 'Todavía no ha respondido nadie.'
-      : totalVotos === 1
-        ? 'Ha respondido una persona.'
-        : `Han respondido ${totalVotos} personas.`
+      ? t('feed.encuesta.oculto.nadie')
+      : t('feed.encuesta.oculto.cuantos', { n: totalVotos })
 
   return (
     <p className={estilos.oculto}>
-      {heVotado ? 'Gracias por responder. ' : ''}
-      {respuestas} Enseñamos los porcentajes cuando hay respuestas suficientes para
-      que ninguna se pueda adivinar. Con muy pocas, un porcentaje diría quién
-      contestó qué.
+      {heVotado ? `${t('feed.encuesta.oculto.gracias')} ` : ''}
+      {respuestas} {t('feed.encuesta.oculto.porque')}
     </p>
   )
 }

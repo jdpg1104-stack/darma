@@ -14,6 +14,7 @@
 import { useRef, useState } from 'react'
 
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import type { MedioPagoBoost } from '@/lib/billing/boosts'
 
 import estilos from './economia.module.css'
@@ -25,6 +26,7 @@ export interface BotonImpulsarProps {
 }
 
 export function BotonImpulsar({ postId, medio, etiqueta }: BotonImpulsarProps) {
+  const t = useTraductor()
   const [enCurso, setEnCurso] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // `useRef` y no `useState`: la clave no debe cambiar entre renders ni
@@ -47,12 +49,12 @@ export function BotonImpulsar({ postId, medio, etiqueta }: BotonImpulsarProps) {
         const cuerpo = (await respuesta.json().catch(() => null)) as { message?: string } | null
         // El mensaje viene ya redactado del servidor (lib/auth/errores.ts); no
         // se construye aquí ni se enseña nada del proveedor.
-        setError(cuerpo?.message ?? 'No hemos podido impulsarlo ahora mismo.')
+        setError(cuerpo?.message ?? t('karma.economia.boost.error'))
         return
       }
       window.location.reload()
     } catch {
-      setError('No hemos podido impulsarlo ahora mismo.')
+      setError(t('karma.economia.boost.error'))
     } finally {
       setEnCurso(false)
     }
@@ -60,8 +62,13 @@ export function BotonImpulsar({ postId, medio, etiqueta }: BotonImpulsarProps) {
 
   return (
     <>
-      <Boton onClick={impulsar} cargando={enCurso} tamano="sm" aria-label={`Impulsar: ${etiqueta}`}>
-        Impulsar
+      <Boton
+        onClick={impulsar}
+        cargando={enCurso}
+        tamano="sm"
+        aria-label={t('karma.economia.boost.impulsarEtiqueta', { etiqueta })}
+      >
+        {t('karma.economia.boost.impulsar')}
       </Boton>
       {error ? (
         <p className={estilos.error} role="status">

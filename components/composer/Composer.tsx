@@ -25,8 +25,12 @@
 // Se deshabilita fuera del rango de longitud, y nada más. Un botón apagado con
 // un cartel de «te faltan escuchas» convierte la pantalla en un peaje y le dice
 // a alguien que ha venido a desahogarse que primero pague. Se puede escribir
-// siempre; lo que se explica es qué falta para publicar, con el copy exacto de
-// `lib/reciprocity.ts` (que además tiene prohibida la palabra «crédito»).
+// siempre; lo que se explica es qué falta para publicar, con el copy del
+// catálogo (`publicar.faltan` y compañía, que además tienen prohibida la palabra
+// «crédito»). La REGLA la sigue decidiendo el servidor con `canPublish()`; aquí
+// solo llega el motivo y, si toca, cuántas personas faltan — el número hace
+// falta para el plural ICU del mensaje, que en inglés no se puede componer
+// pegando cadenas.
 //
 // Y aunque la UI creyera que sí se puede, el intento se manda igual: la
 // autoridad es el trigger de Postgres, no este componente (ver la cabecera de
@@ -40,16 +44,14 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Boton, Cargando, Chip } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import { avisoDePii } from './avisoPii.ts'
 import { TarjetaRecursos } from './TarjetaRecursos.tsx'
 import type { RespuestaPublicar, TarjetaRecursosDatos } from './contrato.ts'
 import {
-  AYUDA_TIPO,
   CUERPO_AVISO,
   CUERPO_MAX,
   CUERPO_MIN,
-  ETIQUETA_TEMA,
-  ETIQUETA_TIPO,
   TEMAS,
   TIPOS_POST,
   type TemaDarma,
@@ -68,12 +70,30 @@ interface Borrador {
   topic: TemaDarma
 }
 
+/**
+ * Qué hay que decirle a la persona sobre el 3:1. Lo DECIDE el servidor (con
+ * `canPublish()`, que es el único sitio donde vive la regla); aquí solo se elige
+ * la clave del catálogo que le corresponde, porque la frase tiene que estar en
+ * el idioma de quien mira.
+ */
+export type MotivoReciprocidad = 'en_pausa' | 'primera_vez' | 'listo' | 'faltan'
+
 export interface ComposerProps {
-  /** Mensaje EXACTO de `reciprocityMessage()`, calculado en el servidor. No se
-   *  reimplementa la regla ni el copy aquí (ficha B03 §4). */
-  mensajeReciprocidad: string
+  /** Resultado de `canPublish()` traducido a un motivo. La regla del 3:1 NO se
+   *  reimplementa aquí (ficha B03 §4): solo se pinta lo que el servidor decidió. */
+  motivoReciprocidad: MotivoReciprocidad
+  /** Personas que faltan por acompañar. Solo se usa con `'faltan'`. */
+  faltanPorAcompanar?: number
   /** Solo para decidir si se ofrece el enlace a escuchar. NO deshabilita nada. */
   puedePublicar: boolean
+}
+
+/** La clave del catálogo para cada motivo. Las cuatro ya existen en `messages/`. */
+const CLAVE_RECIPROCIDAD: Readonly<Record<MotivoReciprocidad, string>> = {
+  en_pausa: 'publicar.enPausa',
+  primera_vez: 'publicar.primeraVez',
+  listo: 'publicar.listo',
+  faltan: 'publicar.faltan',
 }
 
 function leerBorrador(): Borrador | null {
@@ -118,18 +138,26 @@ function leerBorrador(): Borrador | null {
 const suscribirseANada = () => () => {}
 
 export function Composer(props: ComposerProps) {
+  const t = useTraductor()
   const hidratado = useSyncExternalStore(
     suscribirseANada,
     () => true,
     () => false,
   )
 
-  if (!hidratado) return <Cargando variante="texto" etiqueta="Preparando el espacio para escribir…" />
+  if (!hidratado) return <Cargando variante="texto" etiqueta={t('publicar.preparando')} />
 
   return <ComposerHidratado {...props} />
 }
 
-function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps) {
+function ComposerHidratado({
+  motivoReciprocidad,
+  faltanPorAcompanar = 0,
+  puedePublicar,
+}: ComposerProps) {
+  const t = useTraductor()
+  const mensajeReciprocidad = t(CLAVE_RECIPROCIDAD[motivoReciprocidad], { n: faltanPorAcompanar })
+
   // Inicialización perezosa: se ejecuta UNA vez, ya en el navegador, y por eso
   // no necesita ningún efecto ni provoca un segundo render.
   const inicial = useState(() => leerBorrador())[0]
@@ -178,8 +206,8 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
   // alguien teclea su número interrumpe la frase a medias y además dispara con
   // cualquier cifra larga a medio escribir.
   const alPerderFoco = useCallback(() => {
-    setAviso(avisoDePii(body))
-  }, [body])
+    setAviso(avisoDePii(body, t))
+  }, [body, t])
 
   async function publicar() {
     setError(null)
@@ -221,7 +249,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
     } catch (causa) {
       // Red caída, JSON ilegible, navegación a medias. Mismo trato: se explica
       // y se conserva el texto.
-      setError('No hemos podido enviarlo. Tu texto sigue aquí; inténtalo otra vez.')
+      setError(t('publicar.errorEnvio'))
       if (process.env.NODE_ENV !== 'production') console.warn('[darma][composer]', causa)
     } finally {
       setEnviando(false)
@@ -233,7 +261,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
     return (
       <div className={estilos.publicado}>
         <p className={estilos.confirmacion} role="status">
-          Ya está publicado. Alguien lo va a leer.
+          {t('publicar.hecho')}
         </p>
 
         {/* Los recursos van AQUÍ, en la misma pantalla, sin navegación
@@ -242,7 +270,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
         {recursos ? <TarjetaRecursos datos={recursos} /> : null}
 
         <a className={estilos.enlaceSecundario} href="/feed">
-          Volver al feed
+          {t('publicar.volverAlFeed')}
         </a>
       </div>
     )
@@ -258,7 +286,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
     >
       {/* ── Tipo ──────────────────────────────────────────────────────────── */}
       <fieldset className={estilos.grupo}>
-        <legend className={estilos.leyenda}>¿Qué vienes a hacer?</legend>
+        <legend className={estilos.leyenda}>{t('publicar.queVienesAHacer')}</legend>
         <div className={estilos.opciones}>
           {TIPOS_POST.map((valor) => (
             <label key={valor} className={estilos.opcion}>
@@ -271,8 +299,8 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
                 className={estilos.radio}
               />
               <span className={estilos.opcionTexto}>
-                <span className={estilos.opcionTitulo}>{ETIQUETA_TIPO[valor]}</span>
-                <span className={estilos.opcionAyuda}>{AYUDA_TIPO[valor]}</span>
+                <span className={estilos.opcionTitulo}>{t(`publicar.tipos.${valor}`)}</span>
+                <span className={estilos.opcionAyuda}>{t(`publicar.ayudaTipo.${valor}`)}</span>
               </span>
             </label>
           ))}
@@ -282,7 +310,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
       {/* ── Cuerpo ────────────────────────────────────────────────────────── */}
       <div className={estilos.grupo}>
         <label className={estilos.leyenda} htmlFor="composer-body">
-          Cuéntanoslo
+          {t('publicar.etiquetaCuerpo')}
         </label>
         <textarea
           id="composer-body"
@@ -294,7 +322,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
           // `maxLength` no se pone a propósito: cortar el texto de alguien a
           // mitad de palabra sin decir nada es peor que dejarle pasarse y
           // avisarle. El contador ya lo dice y el botón ya se apaga.
-          placeholder="No hace falta que quede bien. Escribe como te salga."
+          placeholder={t('publicar.marcador')}
           aria-describedby="composer-contador"
           // Sin corrección automática de nombres propios y sin autocompletado:
           // el navegador no debe guardar en su historial de formularios lo que
@@ -311,8 +339,13 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
             // lector de pantalla contando en voz alta sin parar.
             aria-live="off"
           >
-            {longitud} / {CUERPO_MAX}
-            {longitud > 0 && longitud < CUERPO_MIN ? ` · faltan ${CUERPO_MIN - longitud}` : ''}
+            {longitud > 0 && longitud < CUERPO_MIN
+              ? t('publicar.contadorFaltan', {
+                  n: longitud,
+                  max: CUERPO_MAX,
+                  faltan: CUERPO_MIN - longitud,
+                })
+              : t('publicar.contador', { n: longitud, max: CUERPO_MAX })}
           </span>
         </div>
       </div>
@@ -320,7 +353,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
       {/* ── Tema ──────────────────────────────────────────────────────────── */}
       <div className={estilos.grupo}>
         <label className={estilos.leyenda} htmlFor="composer-topic">
-          ¿De qué va?
+          {t('publicar.deQueVa')}
         </label>
         <select
           id="composer-topic"
@@ -330,7 +363,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
         >
           {TEMAS.map((valor) => (
             <option key={valor} value={valor}>
-              {ETIQUETA_TEMA[valor]}
+              {t(`publicar.temas.${valor}`)}
             </option>
           ))}
         </select>
@@ -339,7 +372,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
       {/* ── Aviso de datos de contacto (cortesía; la barrera es el servidor) ─ */}
       {aviso ? (
         <p className={estilos.aviso} role="status">
-          <Chip tono="aviso">Revisa esto</Chip> {aviso}
+          <Chip tono="aviso">{t('publicar.revisaEsto')}</Chip> {aviso}
         </p>
       ) : null}
 
@@ -350,7 +383,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
           <>
             {' '}
             <a className={estilos.enlaceSecundario} href="/feed">
-              Ir a escuchar
+              {t('publicar.irAEscuchar')}
             </a>
           </>
         ) : null}
@@ -364,7 +397,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
             <>
               {' '}
               <a className={estilos.enlaceSecundario} href="/feed">
-                Ir a escuchar
+                {t('publicar.irAEscuchar')}
               </a>
             </>
           ) : null}
@@ -380,7 +413,7 @@ function ComposerHidratado({ mensajeReciprocidad, puedePublicar }: ComposerProps
         // SOLO la longitud. Nunca la reciprocidad (ver cabecera del archivo).
         disabled={fueraDeRango || enviando}
       >
-        Publicar
+        {t('publicar.publicar')}
       </Boton>
     </form>
   )

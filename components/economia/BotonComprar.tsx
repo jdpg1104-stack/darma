@@ -26,6 +26,7 @@
 import { useState } from 'react'
 
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import type { SkuCristales } from '@/lib/billing/catalogo'
 
 import estilos from './economia.module.css'
@@ -48,6 +49,7 @@ export interface BotonComprarProps {
 }
 
 export function BotonComprar({ sku, etiqueta, disponible }: BotonComprarProps) {
+  const t = useTraductor()
   const [enCurso, setEnCurso] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -74,13 +76,13 @@ export function BotonComprar({ sku, etiqueta, disponible }: BotonComprarProps) {
       })
 
       if (!respuesta.ok) {
-        setError('No hemos podido confirmar la compra. Si te han cobrado, entra en Ajustes y toca «Restaurar compras».')
+        setError(t('karma.economia.tienda.error'))
         return
       }
       // El saldo lo repinta el servidor al revalidar; no se toca aquí.
       window.location.reload()
     } catch {
-      setError('No hemos podido confirmar la compra. Vuelve a intentarlo en un momento.')
+      setError(t('karma.economia.tienda.errorReintento'))
     } finally {
       setEnCurso(false)
     }
@@ -94,9 +96,9 @@ export function BotonComprar({ sku, etiqueta, disponible }: BotonComprarProps) {
         cargando={enCurso}
         tamano="sm"
         bloque
-        aria-label={`Comprar ${etiqueta}`}
+        aria-label={t('karma.economia.tienda.comprarEtiqueta', { etiqueta })}
       >
-        {puedeComprar ? 'Comprar' : 'Solo en la app'}
+        {t(puedeComprar ? 'karma.economia.tienda.comprar' : 'karma.economia.tienda.soloApp')}
       </Boton>
       {error ? (
         <p className={estilos.error} role="status">

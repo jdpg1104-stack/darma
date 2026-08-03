@@ -23,8 +23,10 @@
 // rejilla de insignias son Server Components y envían 0 bytes.
 // ============================================================================
 
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { requirePerfil } from '@/lib/auth/session'
 import { CabeceraPerfil } from '@/components/perfil/CabeceraPerfil'
 import { PanelPrivado } from '@/components/perfil/PanelPrivado'
@@ -37,15 +39,20 @@ import estilos from '@/components/perfil/perfil.module.css'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = {
-  title: 'Tu perfil · Darma',
-  // El perfil no se indexa: es de una persona, aunque sea anónima, y una
-  // pantalla con su nivel y su actividad no tiene por qué salir en un buscador.
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('perfil.metaTitulo'),
+    // El perfil no se indexa: es de una persona, aunque sea anónima, y una
+    // pantalla con su nivel y su actividad no tiene por qué salir en un
+    // buscador.
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function PaginaPerfilPropio() {
   const sesion = await requirePerfil()
+  const t = obtenerTraductor(await resolverLocale())
 
   const [propio, historial] = await Promise.all([
     leerPerfilPropio(sesion.userId),
@@ -62,7 +69,7 @@ export default async function PaginaPerfilPropio() {
           en un Link exigiría el `legacyBehavior` que Next 16 ya no acepta. */}
       <div className={estilos.acciones}>
         <Link className={estilos.enlaceAccion} href="/perfil/editar">
-          Editar perfil
+          {t('perfil.editarPerfil')}
         </Link>
       </div>
 
@@ -72,7 +79,7 @@ export default async function PaginaPerfilPropio() {
 
       <PanelPrivado privado={propio.privado} />
 
-      <RejillaInsignias insignias={propio.insignias} titulo="Tus insignias" />
+      <RejillaInsignias insignias={propio.insignias} titulo={t('perfil.insigniasTituloPropio')} />
 
       <HistorialKarma inicial={historial} />
     </div>

@@ -22,6 +22,7 @@
 import { useState } from 'react'
 
 import { Boton, Dialogo } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import { bloquear } from './api'
 import estilos from './refugio.module.css'
 
@@ -31,6 +32,7 @@ export interface MenuBloquearProps {
 }
 
 export function MenuBloquear({ userId, alias }: MenuBloquearProps) {
+  const t = useTraductor()
   const [abierto, setAbierto] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +46,7 @@ export function MenuBloquear({ userId, alias }: MenuBloquearProps) {
       setHecho(modo)
       setAbierto(false)
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No hemos podido hacerlo. Inténtalo otra vez.')
+      setError(causa instanceof Error ? causa.message : t('refugios.bloquear.error'))
     } finally {
       setEnviando(false)
     }
@@ -53,7 +55,7 @@ export function MenuBloquear({ userId, alias }: MenuBloquearProps) {
   if (hecho) {
     return (
       <span className={estilos.filaMeta}>
-        {hecho === 'block' ? 'Bloqueada' : 'Silenciada'}
+        {t(hecho === 'block' ? 'refugios.bloquear.bloqueada' : 'refugios.bloquear.silenciada')}
       </span>
     )
   }
@@ -61,24 +63,23 @@ export function MenuBloquear({ userId, alias }: MenuBloquearProps) {
   return (
     <>
       <Boton variante="fantasma" tamano="sm" onClick={() => setAbierto(true)}>
-        Bloquear
+        {t('refugios.bloquear.accion')}
       </Boton>
 
       <Dialogo
         abierto={abierto}
         alCerrar={() => setAbierto(false)}
-        titulo={`Bloquear o silenciar a ${alias}`}
-        descripcion="Son dos cosas distintas y conviene saber cuál necesitas."
+        titulo={t('refugios.bloquear.titulo', { alias })}
+        descripcion={t('refugios.bloquear.descripcion')}
       >
         <ul className={estilos.advertencias}>
           <li>
-            <strong>Bloquear</strong> corta la relación en los dos sentidos. Los refugios que
-            compartís dejan de existir para los dos, con el historial dentro. No se puede
-            deshacer recuperando la conversación.
+            <strong>{t('refugios.bloquear.bloquearNombre')}</strong>{' '}
+            {t('refugios.bloquear.bloquearExplicacion')}
           </li>
           <li>
-            <strong>Silenciar</strong> te la oculta solo a ti. Esta persona no recibe ningún
-            aviso y no nota nada.
+            <strong>{t('refugios.bloquear.silenciarNombre')}</strong>{' '}
+            {t('refugios.bloquear.silenciarExplicacion')}
           </li>
         </ul>
 
@@ -90,13 +91,13 @@ export function MenuBloquear({ userId, alias }: MenuBloquearProps) {
 
         <div className={estilos.acciones}>
           <Boton variante="peligro" cargando={enviando} onClick={() => void aplicar('block')}>
-            Bloquear
+            {t('refugios.bloquear.accion')}
           </Boton>
           <Boton variante="secundario" cargando={enviando} onClick={() => void aplicar('mute')}>
-            Silenciar
+            {t('refugios.bloquear.silenciar')}
           </Boton>
           <Boton variante="fantasma" onClick={() => setAbierto(false)}>
-            Ahora no
+            {t('refugios.bloquear.ahoraNo')}
           </Boton>
         </div>
       </Dialogo>

@@ -31,6 +31,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Boton } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import estilos from './hilo.module.css'
 
 export interface HiloEnVivoProps {
@@ -48,6 +49,7 @@ interface FilaRealtime {
 }
 
 export function HiloEnVivo({ postId, idsConocidos, alMostrar }: HiloEnVivoProps) {
+  const t = useTraductor()
   const [nuevos, setNuevos] = useState<string[]>([])
 
   useEffect(() => {
@@ -98,9 +100,7 @@ export function HiloEnVivo({ postId, idsConocidos, alMostrar }: HiloEnVivoProps)
           alMostrar()
         }}
       >
-        {nuevos.length === 1
-          ? 'Hay 1 respuesta nueva'
-          : `Hay ${nuevos.length} respuestas nuevas`}
+        {t('hilo.respuestasNuevas', { n: nuevos.length })}
       </Boton>
     </div>
   )

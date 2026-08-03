@@ -30,8 +30,10 @@
 // anónimas de la misma persona. Ni se muestra ni se redondea — no aparece.
 // ============================================================================
 
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { requirePerfil } from '@/lib/auth/session'
 import { CabeceraPerfil } from '@/components/perfil/CabeceraPerfil'
 import { RejillaInsignias } from '@/components/perfil/RejillaInsignias'
@@ -43,9 +45,12 @@ import estilos from '@/components/perfil/perfil.module.css'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = {
-  title: 'Perfil · Darma',
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('perfil.metaTituloAjeno'),
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function PaginaPerfilAjeno({
@@ -57,6 +62,7 @@ export default async function PaginaPerfilAjeno({
   // que sin sesión esta consulta no devolvería nada de todas formas. Pedirla
   // aquí convierte un vacío inexplicable en un redirect al login.
   const sesion = await requirePerfil()
+  const t = obtenerTraductor(await resolverLocale())
 
   const { id } = await params
 
@@ -82,7 +88,7 @@ export default async function PaginaPerfilAjeno({
 
       <section className={estilos.seccion} aria-labelledby="titulo-nivel-ajeno">
         <h2 className={estilos.tituloSeccion} id="titulo-nivel-ajeno">
-          Nivel
+          {t('perfil.progresoTitulo')}
         </h2>
         {/* `MedidorKarma` solo acepta `karmaReputacion`: por diseño de B16 no
             tiene dónde recibir el saldo gastable ni los cristales. */}
@@ -91,8 +97,8 @@ export default async function PaginaPerfilAjeno({
 
       <RejillaInsignias
         insignias={ajeno.insignias}
-        titulo="Insignias"
-        textoVacio="Todavía no hay insignias que enseñar aquí."
+        titulo={t('perfil.insigniasTitulo')}
+        textoVacio={t('perfil.insigniasVacioAjeno')}
       />
 
       {/* El puente al chat cifrado. Va DESPUÉS del nivel y las insignias a

@@ -14,6 +14,7 @@
 // Server Component: cero JS de cliente.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { Avatar, Chip, Insignia } from '../ui/index.ts'
 import type { Disponibilidad, PerfilPublico } from './tipos.ts'
 import estilos from './perfil.module.css'
@@ -25,17 +26,19 @@ export interface CabeceraPerfilProps {
 }
 
 /**
- * Texto de la disponibilidad. `necesito_hablar` se escribe en primera persona y
- * sin dramatizar: es la propia persona quien lo ha puesto, y la cabecera de su
- * perfil no es el sitio donde etiquetarla de «en crisis».
+ * Clave de catálogo de cada disponibilidad. `necesito_hablar` está escrita en
+ * primera persona y sin dramatizar: es la propia persona quien lo ha puesto, y
+ * la cabecera de su perfil no es el sitio donde etiquetarla de «en crisis».
  */
-const TEXTO_DISPONIBILIDAD: Readonly<Record<Disponibilidad, string>> = {
-  disponible: 'Disponible para escuchar',
-  necesito_hablar: 'Necesito hablar',
-  ausente: 'Ausente',
+const CLAVE_DISPONIBILIDAD: Readonly<Record<Disponibilidad, string>> = {
+  disponible: 'perfil.disponibleParaEscuchar',
+  necesito_hablar: 'perfil.disponibilidad.necesito_hablar',
+  ausente: 'perfil.disponibilidad.ausente',
 }
 
-export function CabeceraPerfil({ perfil, bio }: CabeceraPerfilProps) {
+export async function CabeceraPerfil({ perfil, bio }: CabeceraPerfilProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <header className={estilos.cabecera}>
       <Avatar semilla={perfil.avatarSeed} tamano={80} alias={perfil.alias} nivel={perfil.nivel} />
@@ -48,7 +51,7 @@ export function CabeceraPerfil({ perfil, bio }: CabeceraPerfilProps) {
           {/* `necesito_hablar` en tono 'aviso' y no 'peligro': señala que esta
               persona quiere compañía, no que sea un problema. */}
           <Chip tono={perfil.disponibilidad === 'necesito_hablar' ? 'aviso' : 'neutro'}>
-            {TEXTO_DISPONIBILIDAD[perfil.disponibilidad]}
+            {t(CLAVE_DISPONIBILIDAD[perfil.disponibilidad])}
           </Chip>
         </div>
 

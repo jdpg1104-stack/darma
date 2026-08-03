@@ -18,16 +18,21 @@
 import type { Metadata } from 'next'
 
 import { MiPosicion, Podio, SelectorPeriodo, Tablero } from '@/components/ranking'
+import { CLAVE_PERIODO } from '@/components/ranking/periodos'
 import { EstadoVacio } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { requireSesion } from '@/lib/auth/session'
 import { consultarMiFila, consultarTablero } from '@/lib/ranking/consulta'
 import { inicioPeriodo } from '@/lib/ranking/periodos'
-import { esPeriodo, ETIQUETA_PERIODO, type PeriodoRanking } from '@/lib/ranking/tipos'
+import { esPeriodo, type PeriodoRanking } from '@/lib/ranking/tipos'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata: Metadata = {
-  title: 'Quienes más acompañan · Darma',
-  description: 'La tabla de quienes más han escuchado a otras personas en Darma.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('ranking.metaTitulo'),
+    description: t('ranking.metaDescripcion'),
+  }
 }
 
 // Depende de la sesión (tu fila) y de la foto, que cambia cada hora. La caché
@@ -42,6 +47,7 @@ export default async function PaginaRanking({ searchParams }: Props) {
   // `requireSesion()` primero. Si no hay sesión lanza y el error sube al
   // `error.tsx` del segmento; el proxy además ya habría redirigido antes.
   const sesion = await requireSesion()
+  const t = obtenerTraductor(await resolverLocale())
   const { periodo: crudo } = await searchParams
 
   // Un `?periodo=` inventado no es un error de pantalla: se cae a la semana. Es
@@ -60,21 +66,20 @@ export default async function PaginaRanking({ searchParams }: Props) {
 
   return (
     <div>
-      <h1>Quienes más acompañan</h1>
+      <h1>{t('ranking.titulo')}</h1>
       {/* La métrica se explica en la propia pantalla. Sin esta línea, el
           tablero parece premiar «actividad» y el mensaje del producto —el
           estatus se gana escuchando, no publicando— se pierde. */}
       <p>
-        Aquí no cuenta lo que publicas: cuenta a cuántas personas has acompañado con un
-        comentario que de verdad ayudó. {ETIQUETA_PERIODO[periodo]}.
+        {t('ranking.intro')} {t(CLAVE_PERIODO[periodo])}.
       </p>
 
       <SelectorPeriodo activo={periodo} />
 
       {tablero.items.length === 0 ? (
         <EstadoVacio
-          titulo="Todavía no hay tabla para este periodo"
-          descripcion="En cuanto la comunidad empiece a acompañarse, aparecerá aquí."
+          titulo={t('ranking.vacioTitulo')}
+          descripcion={t('ranking.vacioDescripcion')}
           tono="cuidado"
         />
       ) : (

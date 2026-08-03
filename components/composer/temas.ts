@@ -27,21 +27,12 @@ export const TEMAS = [
 
 export type TemaDarma = (typeof TEMAS)[number]
 
-/** Etiqueta visible. Se separa del valor porque el valor viaja a la base de
- *  datos y no puede cambiar; la etiqueta es copy y sí puede. */
-export const ETIQUETA_TEMA: Readonly<Record<TemaDarma, string>> = {
-  ansiedad: 'Ansiedad',
-  duelo: 'Duelo',
-  soledad: 'Soledad',
-  trabajo: 'Trabajo',
-  familia: 'Familia',
-  pareja: 'Pareja',
-  salud: 'Salud',
-  identidad: 'Identidad',
-  dinero: 'Dinero',
-  otro: 'Otro',
-}
-
+/**
+ * La etiqueta visible NO vive aquí: está en el catálogo, bajo
+ * `publicar.temas.<valor>`. El valor es lo que viaja a la base de datos y no
+ * puede cambiar; el copy sí cambia —y además cambia con el idioma—, así que se
+ * resuelve al pintar con `t('publicar.temas.' + valor)`.
+ */
 export function esTemaDarma(valor: unknown): valor is TemaDarma {
   return typeof valor === 'string' && (TEMAS as readonly string[]).includes(valor)
 }
@@ -53,20 +44,12 @@ export function esTemaDarma(valor: unknown): valor is TemaDarma {
 export const TIPOS_POST = ['desahogo', 'pregunta', 'gratitud'] as const
 export type TipoPost = (typeof TIPOS_POST)[number]
 
-export const ETIQUETA_TIPO: Readonly<Record<TipoPost, string>> = {
-  desahogo: 'Desahogo',
-  pregunta: 'Pregunta',
-  gratitud: 'Gratitud',
-}
-
-/** Una línea que explica qué se espera de cada tipo, para que la elección no
- *  sea adivinar. */
-export const AYUDA_TIPO: Readonly<Record<TipoPost, string>> = {
-  desahogo: 'Necesito soltarlo y que alguien lo lea.',
-  pregunta: 'Quiero saber cómo lo ha hecho otra gente.',
-  gratitud: 'Algo ha ido bien y quiero contarlo.',
-}
-
+/**
+ * Igual que los temas: la etiqueta está en `publicar.tipos.<valor>` y la línea
+ * que explica qué se espera de cada tipo, en `publicar.ayudaTipo.<valor>`.
+ * `feed/TarjetaPost.tsx` pinta el chip del tipo con esas mismas claves, así que
+ * la etiqueta de un post es la misma en el composer y en el feed.
+ */
 export function esTipoPost(valor: unknown): valor is TipoPost {
   return typeof valor === 'string' && (TIPOS_POST as readonly string[]).includes(valor)
 }

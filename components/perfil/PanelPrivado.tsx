@@ -15,6 +15,7 @@
 // barrera está en Postgres; este componente solo la refleja.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { PerfilPropio } from './tipos.ts'
 import estilos from './perfil.module.css'
 
@@ -22,13 +23,17 @@ export interface PanelPrivadoProps {
   privado: PerfilPropio['privado']
 }
 
-export function PanelPrivado({ privado }: PanelPrivadoProps) {
-  const saldos: ReadonlyArray<{ etiqueta: string; valor: number }> = [
-    { etiqueta: 'Karma gastable', valor: privado.karmaGastable },
-    { etiqueta: 'Cristales', valor: privado.cristales },
-    { etiqueta: 'Escuchas por canjear', valor: privado.creditosEscucha },
-    { etiqueta: 'Personas acompañadas', valor: privado.escuchasDadas },
-    { etiqueta: 'Veces que has escrito', valor: privado.publicaciones },
+export async function PanelPrivado({ privado }: PanelPrivadoProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
+  // La `clave` es lo que identifica cada saldo (y lo que se usa como `key` de
+  // React): la etiqueta traducida cambia con el idioma y no puede serlo.
+  const saldos: ReadonlyArray<{ clave: string; etiqueta: string; valor: number }> = [
+    { clave: 'gastable', etiqueta: t('perfil.privadoKarmaGastable'), valor: privado.karmaGastable },
+    { clave: 'cristales', etiqueta: t('perfil.privadoCristales'), valor: privado.cristales },
+    { clave: 'creditos', etiqueta: t('perfil.privadoEscuchasPorCanjear'), valor: privado.creditosEscucha },
+    { clave: 'escuchas', etiqueta: t('perfil.privadoPersonasAcompanadas'), valor: privado.escuchasDadas },
+    { clave: 'publicaciones', etiqueta: t('perfil.privadoVecesEscrito'), valor: privado.publicaciones },
   ]
 
   return (
@@ -42,12 +47,12 @@ export function PanelPrivado({ privado }: PanelPrivadoProps) {
             fill="currentColor"
           />
         </svg>
-        Solo tú ves esto
+        {t('perfil.privadoAviso')}
       </p>
 
       <dl className={estilos.saldos}>
         {saldos.map((s) => (
-          <div className={estilos.saldo} key={s.etiqueta}>
+          <div className={estilos.saldo} key={s.clave}>
             <dd className={estilos.saldoValor}>{s.valor}</dd>
             <dt className={estilos.saldoEtiqueta}>{s.etiqueta}</dt>
           </div>

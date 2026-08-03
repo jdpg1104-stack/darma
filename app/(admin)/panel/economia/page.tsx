@@ -23,6 +23,7 @@
 // PEDIDOS.md, no a una optimización.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
@@ -42,73 +43,73 @@ export const runtime = 'nodejs'
 export default async function PaginaEconomia() {
   await requireAdmin('operaciones', { accion: `${ACCIONES.panel}.economia` })
 
+  const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
   const filas = await leerRollup(admin, ventanaDias(DIAS_VENTANA_DETALLE))
   const economia = getEconomia(filas)
 
   return (
     <section>
-      <h1>Economía</h1>
+      <h1>{t('admin.economia.titulo')}</h1>
 
       {economia.ingresoEstimado ? (
         <p>
-          <strong>Ingreso parcialmente estimado.</strong> Las compras sin recibo se valoran con
-          el mapa de precios provisional de este bloque. Pendiente de que B12 exponga el
-          catálogo real desde <code>lib/billing/</code>.
+          <strong>{t('admin.economia.avisoEstimadoFuerte')}</strong>{' '}
+          {t('admin.economia.avisoEstimadoResto')} <code>lib/billing/</code>.
         </p>
       ) : null}
 
       <dl>
         <div>
-          <dt>Ingreso de la ventana</dt>
+          <dt>{t('admin.economia.ingresoVentana')}</dt>
           <dd>{euros(economia.ingresoCentimos)}</dd>
         </div>
         <div>
-          <dt>ARPPU</dt>
+          <dt>{t('admin.economia.arppu')}</dt>
           <dd>{euros(economia.arppuCentimos)}</dd>
         </div>
         <div>
-          <dt>Compradores únicos (cota superior)</dt>
+          <dt>{t('admin.economia.compradoresUnicos')}</dt>
           <dd>{enmascarar(economia.compradoresUnicos)}</dd>
         </div>
         <div>
-          <dt>Cristales vendidos</dt>
+          <dt>{t('admin.economia.cristalesVendidos')}</dt>
           <dd>{entero(economia.cristalesVendidos)}</dd>
         </div>
         <div>
-          <dt>Karma emitido</dt>
+          <dt>{t('admin.economia.karmaEmitido')}</dt>
           <dd>{entero(economia.karmaEmitido)}</dd>
         </div>
         <div>
-          <dt>Karma drenado</dt>
+          <dt>{t('admin.economia.karmaDrenado')}</dt>
           <dd>{entero(economia.karmaDrenado)}</dd>
         </div>
         <div>
-          <dt>Stock gastable agregado</dt>
+          <dt>{t('admin.economia.stockGastableAgregado')}</dt>
           <dd>{entero(economia.stockGastable)}</dd>
         </div>
         <div>
-          <dt>Personas que topan el límite diario</dt>
+          <dt>{t('admin.economia.pctTope')}</dt>
           <dd>{porcentaje(economia.pctUsuariosEnTope)}</dd>
         </div>
       </dl>
 
       <p>
-        «Compradores únicos» suma los de cada día, así que sobrecuenta a quien compró en dos
-        días distintos: es una cota superior consciente. El cálculo exacto exigiría un
-        <code> count(distinct) </code> en vivo sobre <code>crystal_ledger</code>, que es
-        justo lo que este panel no puede hacer.
+        {t('admin.economia.notaCompradores1')}
+        <code> count(distinct) </code>
+        {t('admin.economia.notaCompradores2')} <code>crystal_ledger</code>
+        {t('admin.economia.notaCompradores3')}
       </p>
 
       <TablaSerie
-        titulo={`Serie diaria de los últimos ${DIAS_VENTANA_DETALLE} días`}
+        titulo={t('admin.tabla.serieDiaria', { dias: DIAS_VENTANA_DETALLE })}
         columnas={[
-          { clave: 'dia', etiqueta: 'Día' },
-          { clave: 'emitido', etiqueta: 'Karma emitido' },
-          { clave: 'drenado', etiqueta: 'Karma drenado' },
-          { clave: 'stock', etiqueta: 'Stock gastable' },
-          { clave: 'compradores', etiqueta: 'Compradores' },
-          { clave: 'cristales', etiqueta: 'Cristales' },
+          { clave: 'dia', etiqueta: t('admin.tabla.dia') },
+          { clave: 'emitido', etiqueta: t('admin.economia.karmaEmitido') },
+          { clave: 'drenado', etiqueta: t('admin.economia.karmaDrenado') },
+          { clave: 'stock', etiqueta: t('admin.economia.stockGastable') },
+          { clave: 'compradores', etiqueta: t('admin.tabla.compradores') },
+          { clave: 'cristales', etiqueta: t('admin.tabla.cristales') },
         ]}
         filas={filas.map((f) => ({
           dia: f.dia,

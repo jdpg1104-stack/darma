@@ -11,6 +11,8 @@
 // `(created_at, id)` — nunca `OFFSET`, tampoco aquí (CONTRATOS §5).
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
+
 export interface ColumnaSerie {
   clave: string
   etiqueta: string
@@ -23,9 +25,10 @@ export interface TablaSerieProps {
   filas: ReadonlyArray<Readonly<Record<string, string>>>
 }
 
-export function TablaSerie({ titulo, columnas, filas }: TablaSerieProps) {
+export async function TablaSerie({ titulo, columnas, filas }: TablaSerieProps) {
   if (filas.length === 0) {
-    return <p>Todavía no hay ningún día calculado en esta ventana.</p>
+    const t = obtenerTraductor(await resolverLocale())
+    return <p>{t('admin.sinDiasEnVentana')}</p>
   }
 
   return (

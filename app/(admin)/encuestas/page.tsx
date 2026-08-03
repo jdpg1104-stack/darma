@@ -23,6 +23,7 @@
 // uno solo.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../api/admin/_guard.ts'
 import { ROL_MINIMO } from '../../api/polls/crear/limites.ts'
@@ -43,18 +44,25 @@ interface FilaEncuesta {
   created_at: string
 }
 
-const ESTADOS: Readonly<Record<string, string>> = {
-  active: 'En el feed',
-  // No es lo mismo «retirada por moderación» que «guardada sin publicar por
-  // señales de crisis», pero `polls.state` no distingue los dos casos. Se
-  // etiqueta por lo que la persona ve: no está en el feed.
-  hidden: 'Fuera del feed',
-  removed: 'Retirada',
-}
+/**
+ * `polls.state` → CLAVE del catálogo. No es lo mismo «retirada por moderación»
+ * que «guardada sin publicar por señales de crisis», pero `polls.state` no
+ * distingue los dos casos. Se etiqueta por lo que la persona ve: no está en el
+ * feed.
+ *
+ * `Map` y no objeto literal: la clave viene de la base de datos y un `state`
+ * inesperado no debe poder tocar el prototipo.
+ */
+const CLAVE_POR_ESTADO = new Map<string, string>([
+  ['active', 'admin.encuestas.estado.active'],
+  ['hidden', 'admin.encuestas.estado.hidden'],
+  ['removed', 'admin.encuestas.estado.removed'],
+])
 
 export default async function PaginaEncuestas() {
   await requireAdmin(ROL_MINIMO, { accion: 'admin.encuestas.lista' })
 
+  const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
   const { data } = await admin
     .from('polls')
@@ -66,42 +74,42 @@ export default async function PaginaEncuestas() {
 
   return (
     <section>
-      <h1>Encuestas</h1>
-      <p>
-        Una encuesta se le sirve a toda la red desde el feed. Se publica con el rol de moderación y
-        cada creación queda en el registro de auditoría con quién y cuándo, no con qué se escribió.
-      </p>
-      <p>
-        Si la pregunta o alguna de las opciones traen señales de crisis, la encuesta se guarda pero
-        NO entra en el feed, se registra el evento y se muestran los recursos de ayuda en la misma
-        respuesta. No se borra ni se oculta nada en silencio.
-      </p>
+      <h1>{t('admin.encuestas.titulo')}</h1>
+      <p>{t('admin.encuestas.intro1')}</p>
+      <p>{t('admin.encuestas.intro2')}</p>
 
-      <h2>Nueva encuesta</h2>
+      <h2>{t('admin.encuestas.nueva')}</h2>
       <FormularioEncuesta />
 
-      <h2>Últimas encuestas</h2>
+      <h2>{t('admin.encuestas.ultimas')}</h2>
       <TablaSerie
-        titulo="Encuestas creadas (banco y personas)"
+        titulo={t('admin.encuestas.tablaTitulo')}
         columnas={[
-          { clave: 'pregunta', etiqueta: 'Pregunta' },
-          { clave: 'idioma', etiqueta: 'Idioma' },
-          { clave: 'origen', etiqueta: 'Origen' },
-          { clave: 'estado', etiqueta: 'Estado' },
-          { clave: 'votos', etiqueta: 'Respuestas' },
-          { clave: 'creada', etiqueta: 'Creada' },
+          { clave: 'pregunta', etiqueta: t('admin.encuestas.colPregunta') },
+          { clave: 'idioma', etiqueta: t('admin.encuestas.colIdioma') },
+          { clave: 'origen', etiqueta: t('admin.encuestas.colOrigen') },
+          { clave: 'estado', etiqueta: t('admin.encuestas.colEstado') },
+          { clave: 'votos', etiqueta: t('admin.encuestas.colRespuestas') },
+          { clave: 'creada', etiqueta: t('admin.encuestas.colCreada') },
         ]}
-        filas={filas.map((f) => ({
-          pregunta: f.question,
-          idioma: f.language,
-          origen: f.origin === 'banco' ? 'Banco curado' : 'Persona',
-          estado: ESTADOS[f.state] ?? f.state,
-          // El total NO revela el reparto, y es lo que permite entender por qué
-          // una encuesta todavía no enseña porcentajes sin mentir sobre cuánta
-          // gente ha contestado.
-          votos: entero(f.total_votes),
-          creada: fecha(f.created_at),
-        }))}
+        filas={filas.map((f) => {
+          const claveEstado = CLAVE_POR_ESTADO.get(f.state)
+          return {
+            // La pregunta la escribió una persona: se pinta tal cual, nunca se traduce.
+            pregunta: f.question,
+            idioma: f.language,
+            origen:
+              f.origin === 'banco'
+                ? t('admin.encuestas.origenBanco')
+                : t('admin.encuestas.origenPersona'),
+            estado: claveEstado === undefined ? f.state : t(claveEstado),
+            // El total NO revela el reparto, y es lo que permite entender por qué
+            // una encuesta todavía no enseña porcentajes sin mentir sobre cuánta
+            // gente ha contestado.
+            votos: entero(f.total_votes),
+            creada: fecha(f.created_at),
+          }
+        })}
       />
     </section>
   )

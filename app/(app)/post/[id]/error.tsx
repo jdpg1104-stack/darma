@@ -16,6 +16,7 @@
 
 import { useEffect } from 'react'
 import { Boton, EstadoVacio } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 
 export default function ErrorHilo({
   error,
@@ -24,6 +25,8 @@ export default function ErrorHilo({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const t = useTraductor()
+
   useEffect(() => {
     console.error('[darma][b04] fallo al pintar el hilo', { digest: error.digest })
   }, [error])
@@ -31,10 +34,10 @@ export default function ErrorHilo({
   return (
     <main>
       <EstadoVacio
-        titulo="No hemos podido abrir esta conversación"
-        descripcion="No es culpa tuya y no se ha perdido nada. Prueba otra vez en un momento."
+        titulo={t('hilo.error.titulo')}
+        descripcion={t('hilo.error.descripcion')}
         tono="cuidado"
-        accion={<Boton onClick={reset}>Volver a intentarlo</Boton>}
+        accion={<Boton onClick={reset}>{t('comun.reintentar')}</Boton>}
       />
       {error.digest ? <p aria-hidden="true">{error.digest}</p> : null}
     </main>

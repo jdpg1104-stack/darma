@@ -1,10 +1,19 @@
+'use client'
+
 // ============================================================================
-// Una fila de resultado. Server Component PURO: cero bytes de JS.
+// Una fila de resultado.
 //
-// Se separa de `TarjetaEncuesta` (que sí es `'use client'`) precisamente para
-// eso: lo único que necesita interactividad es el acto de votar. Los resultados
-// son texto y una barra, y meterlos en el bundle de cliente sería pagar JS por
-// pintar un rectángulo.
+// Se separa de `TarjetaEncuesta` porque lo único que necesita interactividad es
+// el acto de votar: aquí no hay estado, ni efectos, ni `fetch`. Es una barra y
+// dos textos.
+//
+// ⚠️ Llevaba `Server Component PURO: cero bytes de JS` hasta la traducción. El
+// texto sale ahora de `useTraductor()`, así que el archivo declara
+// `'use client'`. En la práctica no cambia lo que se envía al navegador: el
+// único sitio desde el que se pinta es `TarjetaEncuesta`, que ya es cliente, y
+// un módulo importado desde cliente viaja al bundle lleve la directiva o no. Lo
+// que cambia es que ahora la frontera está escrita, y un Server Component que
+// lo importe recibirá una frontera de cliente en vez de un error de hooks.
 //
 // TRES DECISIONES DE ACCESIBILIDAD:
 //  1. La barra es decorativa (`aria-hidden`): el porcentaje ya está en el texto.
@@ -19,6 +28,8 @@
 
 import { clsx } from 'clsx'
 
+import { useTraductor } from '@/i18n/Proveedor'
+
 import estilos from './Encuesta.module.css'
 
 export interface BarraResultadoProps {
@@ -31,6 +42,7 @@ export interface BarraResultadoProps {
 }
 
 export function BarraResultado({ label, porcentaje, votos, esMiVoto }: BarraResultadoProps) {
+  const t = useTraductor()
   const seguro = Math.max(0, Math.min(100, porcentaje))
 
   return (
@@ -42,10 +54,11 @@ export function BarraResultado({ label, porcentaje, votos, esMiVoto }: BarraResu
       <span className={estilos.barra} style={{ width: `${seguro}%` }} aria-hidden="true" />
       <span className={estilos.etiquetaResultado}>
         {label}
-        {esMiVoto ? ' · tu respuesta' : ''}
+        {esMiVoto ? ` · ${t('feed.encuesta.tuRespuesta')}` : ''}
       </span>
       <span className={estilos.porcentaje}>
-        {seguro} %<span className="sr-only"> ({votos} respuestas)</span>
+        {seguro} %
+        <span className="sr-only"> ({t('feed.encuesta.respuestas', { n: votos })})</span>
       </span>
     </li>
   )

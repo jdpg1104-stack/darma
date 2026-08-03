@@ -20,6 +20,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Respuesta } from '@/lib/auth/respuestas'
+import { traducirCodigoError } from '@/i18n'
+import { useTraductor } from '@/i18n/Proveedor'
 
 type Estado = 'inicial' | 'enviando' | 'enlaceEnviado'
 
@@ -43,13 +45,12 @@ async function pedir<T>(url: string, opciones?: RequestInit): Promise<Respuesta<
 
 export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
   const router = useRouter()
+  const t = useTraductor()
   const [estado, setEstado] = useState<Estado>('inicial')
   const [correo, setCorreo] = useState('')
   const [enmascarado, setEnmascarado] = useState('')
   const [error, setError] = useState<string | null>(
-    errorInicial === 'enlace'
-      ? 'Ese enlace ya no vale (los enlaces caducan). Pide uno nuevo o entra sin nada.'
-      : null,
+    errorInicial === 'enlace' ? t('auth.entrada.enlaceCaducado') : null,
   )
 
   const ocupado = estado === 'enviando'
@@ -60,7 +61,9 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
     try {
       const cuerpo = await pedir<{ userId: string }>('/api/auth/anonimo')
       if (!cuerpo.ok) {
-        setError(cuerpo.message)
+        // Por CÓDIGO, no por `message`: el mensaje del servidor viene en un solo
+        // idioma (CONTRATOS §4 e `i18n/index.ts`).
+        setError(traducirCodigoError(cuerpo.code, t, cuerpo.retryAfter ? { retryAfter: cuerpo.retryAfter } : {}))
         setEstado('inicial')
         return
       }
@@ -69,7 +72,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
       router.refresh()
       router.push('/onboarding')
     } catch {
-      setError('No hemos podido conectarte. Comprueba tu conexión y vuelve a intentarlo.')
+      setError(t('auth.entrada.errorConexion'))
       setEstado('inicial')
     }
   }
@@ -85,7 +88,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
         body: JSON.stringify({ email: valor }),
       })
       if (!cuerpo.ok) {
-        setError(cuerpo.message)
+        setError(traducirCodigoError(cuerpo.code, t, cuerpo.retryAfter ? { retryAfter: cuerpo.retryAfter } : {}))
         setEstado('inicial')
         return
       }
@@ -94,7 +97,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
       setCorreo('')
       setEstado('enlaceEnviado')
     } catch {
-      setError('No hemos podido enviarlo. Comprueba tu conexión y vuelve a intentarlo.')
+      setError(t('auth.entrada.errorEnvio'))
       setEstado('inicial')
     }
   }
@@ -102,10 +105,10 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
   return (
     <div className="card fade-in" style={{ display: 'grid', gap: 20 }}>
       <header style={{ display: 'grid', gap: 8 }}>
-        <span className="chip" style={{ justifySelf: 'start' }}>Anónimo de verdad</span>
-        <h1 style={{ fontSize: 26, lineHeight: 1.2, margin: 0 }}>Entra sin decir quién eres</h1>
+        <span className="chip" style={{ justifySelf: 'start' }}>{t('auth.entrada.chip')}</span>
+        <h1 style={{ fontSize: 26, lineHeight: 1.2, margin: 0 }}>{t('auth.entrada.titulo')}</h1>
         <p style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-          No pedimos nombre, ni correo, ni teléfono. Eliges un seudónimo y ya estás dentro.
+          {t('auth.entrada.subtitulo')}
         </p>
       </header>
 
@@ -133,21 +136,21 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
         disabled={ocupado}
         style={{ width: '100%' }}
       >
-        {ocupado ? 'Un momento…' : 'Entrar sin dar mis datos'}
+        {ocupado ? t('auth.entrada.enviando') : t('auth.entrada.botonAnonimo')}
       </button>
 
       <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: 0 }} />
 
       {estado === 'enlaceEnviado' ? (
         <p role="status" style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-          Si esa dirección tiene cuenta, le hemos enviado un enlace a{' '}
-          <strong style={{ color: 'var(--ink)' }}>{enmascarado}</strong>. Caduca pronto: ábrelo
-          desde este mismo dispositivo.
+          {t('auth.entrada.enlaceEnviadoInicio')}{' '}
+          <strong style={{ color: 'var(--ink)' }}>{enmascarado}</strong>
+          {t('auth.entrada.enlaceEnviadoFin')}
         </p>
       ) : (
         <form onSubmit={pedirEnlace} style={{ display: 'grid', gap: 10 }}>
           <label htmlFor="correo" style={{ color: 'var(--muted)', fontSize: 14 }}>
-            ¿Ya tenías cuenta y cambiaste de móvil? Te enviamos un enlace.
+            {t('auth.entrada.etiquetaCorreo')}
           </label>
           <input
             id="correo"
@@ -159,7 +162,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
             maxLength={254}
             value={correo}
             onChange={(evento) => setCorreo(evento.target.value)}
-            placeholder="tu@correo.com"
+            placeholder={t('auth.entrada.marcadorCorreo')}
             style={{
               minHeight: 'var(--touch)',
               padding: '0 14px',
@@ -171,11 +174,10 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
             }}
           />
           <button type="submit" className="btn btn--ghost" disabled={ocupado}>
-            Enviarme el enlace
+            {t('auth.entrada.botonEnlace')}
           </button>
           <p style={{ color: 'var(--muted)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-            Tu correo sirve solo para reconocerte si vuelves. No se guarda junto a tu perfil ni
-            aparece en ninguna pantalla.
+            {t('auth.entrada.notaCorreo')}
           </p>
         </form>
       )}

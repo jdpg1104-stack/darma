@@ -12,6 +12,7 @@
 // se deja que los números hablen.
 // ============================================================================
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { Avatar, Insignia } from '../ui/index.ts'
 import type { FilaRanking } from '@/lib/ranking/tipos'
 import estilos from './ranking.module.css'
@@ -21,19 +22,21 @@ export interface PodioProps {
   filas: readonly FilaRanking[]
 }
 
-export function Podio({ filas }: PodioProps) {
+export async function Podio({ filas }: PodioProps) {
   const top = filas.slice(0, 3)
   if (top.length === 0) return null
 
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
-    <ol className={estilos.podio} aria-label="Quienes más han acompañado en este periodo">
+    <ol className={estilos.podio} aria-label={t('ranking.podioEtiqueta')}>
       {top.map((fila, indice) => (
         <li
           key={fila.perfil.id}
           className={`${estilos.escalon} ${indice === 0 ? estilos.primero : ''}`}
         >
           <span className={estilos.puesto}>
-            <span className="sr-only">Puesto </span>
+            <span className="sr-only">{t('ranking.puesto')} </span>
             {fila.posicion}
           </span>
 
@@ -50,7 +53,7 @@ export function Podio({ filas }: PodioProps) {
           {/* «personas acompañadas», no «escuchas» ni «puntos»: el copy del
               sistema de diseño (B16, Trampa #5) no usa la palabra métrica. */}
           <span className={estilos.escuchasPodio}>
-            {fila.escuchas} {fila.escuchas === 1 ? 'persona acompañada' : 'personas acompañadas'}
+            {fila.escuchas} {t('ranking.personas', { n: fila.escuchas })}
           </span>
         </li>
       ))}

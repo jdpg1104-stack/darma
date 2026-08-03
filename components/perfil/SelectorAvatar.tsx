@@ -27,6 +27,7 @@
 
 import { useState } from 'react'
 
+import { useTraductor } from '@/i18n/Proveedor'
 import { Avatar, Boton } from '../ui/index.ts'
 import type { KarmaLevel } from '../../lib/karma.ts'
 import estilos from './perfil.module.css'
@@ -54,19 +55,20 @@ export function SelectorAvatar({
   nivel,
   nombreCampo = 'avatarSeed',
 }: SelectorAvatarProps) {
+  const t = useTraductor()
   const [semilla, setSemilla] = useState(semillaInicial)
 
   return (
     <div className={estilos.campo}>
       <span className={estilos.etiqueta} id="etiqueta-avatar">
-        Tu avatar
+        {t('perfil.edicion.etiquetaAvatar')}
       </span>
 
       <div className={estilos.selectorAvatar}>
         <Avatar semilla={semilla} tamano={80} alias={alias} nivel={nivel} />
 
         <Boton variante="secundario" onClick={() => setSemilla(nuevaSemilla())}>
-          Probar otro
+          {t('perfil.edicion.botonAvatar')}
         </Boton>
       </div>
 
@@ -75,10 +77,7 @@ export function SelectorAvatar({
           exactamente lo correcto: no se pierde nada. */}
       <input type="hidden" name={nombreCampo} value={semilla} readOnly />
 
-      <p className={estilos.pista}>
-        Se genera a partir de un número aleatorio. No sale de una foto y no dice
-        nada de ti.
-      </p>
+      <p className={estilos.pista}>{t('perfil.edicion.pistaAvatar')}</p>
     </div>
   )
 }

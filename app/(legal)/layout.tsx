@@ -10,12 +10,26 @@
 //     textos hay que poder leerlos ANTES de registrarse.
 //  2. Server Component puro, sin estado y sin eventos: cero KB de JavaScript de
 //     cliente. Una página legal que necesita JS para leerse es una página legal
-//     que alguien no va a leer.
+//     que alguien no va a leer. Por eso el idioma se resuelve con
+//     `obtenerTraductor(await resolverLocale())` y no con `useTraductor()`.
+//
+// ⚠️ LAS PÁGINAS DE ESTE GRUPO SON `force-static`. Bajo esa configuración Next
+// devuelve cookies y cabeceras vacías, así que `resolverLocale()` cae al idioma
+// por defecto y todo `/legal/**` se sirve en español aunque la persona tenga la
+// interfaz en inglés. Es lo mismo que ya le pasa al `lang` del `<html>` en
+// `app/layout.tsx` sobre estas rutas. Traducir esto de verdad exige decidir si
+// `/legal` deja de ser estático — y esa decisión (una página legal tiene que
+// poder leerse cuando la app está caída) no es de este encargo. Anotado en el
+// resumen de la migración.
 // ============================================================================
 
 import Link from 'next/link'
 
-export default function LayoutLegal({ children }: Readonly<{ children: React.ReactNode }>) {
+import { obtenerTraductor, resolverLocale } from '@/i18n'
+
+export default async function LayoutLegal({ children }: Readonly<{ children: React.ReactNode }>) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <div
       style={{
@@ -29,7 +43,7 @@ export default function LayoutLegal({ children }: Readonly<{ children: React.Rea
             href="/legal"
             style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: 14 }}
           >
-            ← Documentos legales de Darma
+            ← {t('legal.volverAlIndice')}
           </Link>
         </header>
 
@@ -46,12 +60,11 @@ export default function LayoutLegal({ children }: Readonly<{ children: React.Rea
           }}
         >
           <p style={{ margin: 0 }}>
-            Si ahora mismo estás en peligro, no esperes a terminar de leer esto:{' '}
+            {t('legal.pie.antes')}{' '}
             <a href="/ayuda" style={{ color: 'var(--ink)' }}>
-              aquí tienes los teléfonos de ayuda
+              {t('legal.pie.enlace')}
             </a>
-            . El 112 funciona en toda la Unión Europea y el 024 es gratuito en España, las
-            veinticuatro horas.
+            {t('legal.pie.despues')}
           </p>
         </footer>
       </div>

@@ -71,97 +71,21 @@ test('la lista de exclusiones es explícita y contiene el nombre del producto', 
 // ── El guard sobre el árbol real ────────────────────────────────────────────
 
 /**
- * DEUDA CONOCIDA. Estos archivos son de OTROS bloques (F4, B01, B16) y hoy
- * llevan copy escrito a pelo. B17 no puede tocarlos —cada archivo tiene un solo
- * dueño—, así que se anota la deuda aquí y el pedido va en HANDOFF/PEDIDOS.md.
- *
- * El guard sigue siendo útil: falla en cuanto aparece un archivo NUEVO con texto
- * sin traducir. La lista solo puede encoger; cuando un dueño migre el suyo a
- * `t('...')`, que borre su línea de aquí.
+ * Archivos con copy escrito a pelo que el guard tolera. La lista solo puede
+ * encoger, y hoy está vacía.
  */
 const DEUDA_LITERALES_CONOCIDA: readonly string[] = [
-  // Ola 1 (F4, B01, B16)
-  'app/layout.tsx',
-  'app/page.tsx',
-  'components/auth/AsistenteOnboarding.tsx',
-  'components/auth/AvatarSemilla.tsx',
-  'components/auth/PanelEntrada.tsx',
-  'components/ui/MedidorKarma.tsx',
-  // Ola 2 (B02, B03, B04, B05, B11). Los seis bloques se escribieron en
-  // paralelo con B17, así que ninguno pudo consumir un catálogo que aún no
-  // existía cuando empezaron. La deuda se anota entera de golpe y cada dueño
-  // borra su línea al migrar a `t('...')`; el pedido está en PEDIDOS.md.
-  'app/(admin)/moderacion/Acciones.tsx',
-  'app/(admin)/moderacion/page.tsx',
-  'app/(app)/feed/error.tsx',
-  'app/(app)/feed/page.tsx',
-  'app/(app)/perfil/editar/page.tsx',
-  'app/(app)/perfil/page.tsx',
-  'app/(app)/post/[id]/error.tsx',
-  'app/(app)/publicar/page.tsx',
-  'components/composer/Composer.tsx',
-  'components/feed/ElementoTarjeta.tsx',
-  'components/feed/FeedVacio.tsx',
-  'components/feed/ScrollInfinito.tsx',
-  'components/feed/SelectorCarril.tsx',
-  'components/feed/SlotEncuesta.tsx',
-  'components/feed/TarjetaPost.tsx',
-  'components/perfil/FormularioEditar.tsx',
-  'components/perfil/HistorialKarma.tsx',
-  'components/perfil/PanelPrivado.tsx',
-  'components/perfil/SelectorAvatar.tsx',
-  'components/thread/BotonUtil.tsx',
-  'components/thread/Comentario.tsx',
-  'components/thread/CompositorRespuesta.tsx',
-  'components/thread/EstadoValidacion.tsx',
-  'components/thread/ListaComentarios.tsx',
-  'components/video/TarjetaVideo.tsx',
-  // Ola 3 (B06, B09, B10, B13, B20). Mismo motivo que la ola 2: se escribieron
-  // en paralelo y ninguno pudo consumir el catálogo. Los de `refuge/` son los
-  // que más prisa tienen de traducirse — incluyen las advertencias de la frase
-  // de recuperación, que no se pueden entender a medias.
-  'app/(app)/ranking/page.tsx',
-  'app/(app)/refugios/page.tsx',
-  'app/(legal)/layout.tsx',
-  'app/(legal)/legal/_documento.tsx',
-  'app/(legal)/legal/page.tsx',
-  'components/polls/TarjetaEncuesta.tsx',
-  'components/pwa/AvisoSinConexion.tsx',
-  'components/pwa/OptInPush.tsx',
-  'components/ranking/InsigniaMovimiento.tsx',
-  'components/ranking/MiPosicion.tsx',
-  'components/ranking/Podio.tsx',
-  'components/ranking/SelectorPeriodo.tsx',
-  'components/ranking/Tablero.tsx',
-  'components/refuge/AvisoClaveCambiada.tsx',
-  'components/refuge/Burbuja.tsx',
-  'components/refuge/DialogoFraseRecuperacion.tsx',
-  'components/refuge/Hilo.tsx',
-  'components/refuge/MenuBloquear.tsx',
-  'components/refuge/NumeroSeguridad.tsx',
-  'components/refuge/Redactor.tsx',
-  'components/refuge/TarjetaCrisis.tsx',
-  // Ola 4 (B12, B19) e integración.
-  'app/(admin)/_componentes/NavegacionAdmin.tsx',
-  'app/(admin)/_componentes/Sparkline.tsx',
-  'app/(admin)/_componentes/TablaSerie.tsx',
-  'app/(admin)/panel/activacion/page.tsx',
-  'app/(admin)/panel/crisis/page.tsx',
-  'app/(admin)/panel/economia/page.tsx',
-  'app/(admin)/panel/page.tsx',
-  'app/(admin)/panel/reciprocidad/page.tsx',
-  'app/(admin)/panel/roles/page.tsx',
-  'components/economia/DialogoBoost.tsx',
-  'components/economia/HistorialCompras.tsx',
-  'components/economia/SaldoCristales.tsx',
-  'components/economia/SelectorRegalo.tsx',
-  // `/ayuda` encabeza la lista de lo que hay que traducir PRIMERO, y por un
-  // motivo que no es de proceso: es la pantalla del botón de crisis. Alguien
-  // que la abra en inglés y encuentre el texto en español está buscando un
-  // teléfono en un idioma que no entiende, en el peor momento posible.
-  'app/ayuda/page.tsx',
-  'app/(admin)/encuestas/FormularioEncuesta.tsx',
-  'app/(admin)/encuestas/page.tsx',
+  // VACÍA, y es una buena noticia: toda la interfaz está en el catálogo.
+  //
+  // Aquí llegó a haber 52 archivos. Se llenó porque los veinte bloques se
+  // escribieron en paralelo con el de traducción y ninguno pudo consumir un
+  // catálogo que aún no existía; se vació cuando cuatro sesiones migraron los
+  // 52 y el escáner aprendió a distinguir el copy del código que se le parece.
+  //
+  // Mantenerla vacía es lo que hace que el guard proteja: con un solo archivo
+  // dentro, la siguiente persona que añada texto sin traducir puede meterlo en
+  // la lista «como los demás» y nadie lo notará. Si vuelve a hacer falta añadir
+  // una línea, que sea con fecha y con quién la va a quitar.
 ]
 
 function relativo(absoluto: string): string {

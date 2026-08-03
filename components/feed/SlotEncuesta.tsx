@@ -1,3 +1,5 @@
+'use client'
+
 // ============================================================================
 // El hueco de la encuesta.
 //
@@ -15,9 +17,15 @@
 // `feed_encuestas_keyset`, así que hidratar la encuesta NO debe añadir una
 // consulta por tarjeta (eso sería un N+1 en la pantalla más cargada de la app):
 // lo suyo es una sola consulta por página con `in (ids)`.
+//
+// `'use client'` por el idioma, no por interactividad: este componente lo pinta
+// también `ScrollInfinito`, que es de cliente, así que el texto tiene que salir
+// del contexto de locale (`useTraductor`) y no de `resolverLocale()`, que solo
+// existe en el servidor. Sigue sin estado, sin efectos y sin manejadores.
 // ============================================================================
 
 import { Chip, Tarjeta } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 
 import estilos from './Feed.module.css'
 
@@ -27,11 +35,13 @@ export interface SlotEncuestaProps {
 }
 
 export function SlotEncuesta({ encuestaId }: SlotEncuestaProps) {
+  const t = useTraductor()
+
   return (
     <Tarjeta como="section" className={estilos.tarjeta} data-encuesta={encuestaId}>
       <p className={estilos.encuesta}>
-        <Chip>Encuesta</Chip>
-        ¿Alguien más se siente así? Responder es anónimo, incluso para quien preguntó.
+        <Chip>{t('feed.encuesta')}</Chip>
+        {t('feed.encuestaTexto')}
       </p>
     </Tarjeta>
   )

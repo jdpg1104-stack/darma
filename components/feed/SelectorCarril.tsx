@@ -15,6 +15,7 @@
 import Link from 'next/link'
 
 import type { Carril } from '@/app/api/feed/tipos'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 
 import estilos from './Feed.module.css'
 
@@ -22,14 +23,17 @@ export interface SelectorCarrilProps {
   activo: Carril
 }
 
-const OPCIONES: ReadonlyArray<{ carril: Carril; etiqueta: string; href: string }> = [
-  { carril: 'para_ti', etiqueta: 'Para ti', href: '/feed' },
-  { carril: 'nuevo', etiqueta: 'Recientes', href: '/feed?carril=nuevo' },
+/** La etiqueta es una CLAVE del catálogo, no copy: el texto se resuelve al pintar. */
+const OPCIONES: ReadonlyArray<{ carril: Carril; clave: string; href: string }> = [
+  { carril: 'para_ti', clave: 'feed.paraTi', href: '/feed' },
+  { carril: 'nuevo', clave: 'feed.recientes', href: '/feed?carril=nuevo' },
 ]
 
-export function SelectorCarril({ activo }: SelectorCarrilProps) {
+export async function SelectorCarril({ activo }: SelectorCarrilProps) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
-    <nav className={estilos.carriles} aria-label="Carriles del feed">
+    <nav className={estilos.carriles} aria-label={t('feed.carriles')}>
       {OPCIONES.map((opcion) => (
         <Link
           key={opcion.carril}
@@ -38,7 +42,7 @@ export function SelectorCarril({ activo }: SelectorCarrilProps) {
           className={estilos.carril}
           aria-current={opcion.carril === activo ? 'page' : undefined}
         >
-          {opcion.etiqueta}
+          {t(opcion.clave)}
         </Link>
       ))}
     </nav>

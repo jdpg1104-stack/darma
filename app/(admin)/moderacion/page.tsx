@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { Chip, EstadoVacio, Tarjeta } from '@/components/ui'
+import { obtenerTraductor, resolverLocale, type Traductor } from '@/i18n'
 import { exigirModerador } from '@/lib/ai/guardia'
 import { leerColaCrisis, leerColaModeracion, type ItemCola, type ItemCrisis } from '@/lib/ai/cola'
 import { recursosVerificados } from '@/lib/ai/recursos'
@@ -27,10 +28,13 @@ import { AccionesCrisis, AccionesFlag } from './Acciones'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export const metadata = {
-  title: 'Moderación · Darma',
-  // Un panel de moderación indexado sería un mapa del sistema para cualquiera.
-  robots: { index: false, follow: false },
+export async function generateMetadata() {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('moderacion.meta.titulo'),
+    // Un panel de moderación indexado sería un mapa del sistema para cualquiera.
+    robots: { index: false, follow: false },
+  }
 }
 
 function fecha(iso: string): string {
@@ -39,17 +43,17 @@ function fecha(iso: string): string {
   return new Date(iso).toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
 }
 
-function TarjetaCrisis({ item }: { item: ItemCrisis }) {
+function TarjetaCrisis({ item, t }: { item: ItemCrisis; t: Traductor }) {
   return (
     <Tarjeta como="article" acento="crisis">
       <header>
         <Chip tono={item.risk === 'critical' ? 'peligro' : 'aviso'}>
-          {item.risk === 'critical' ? 'Crítico' : 'Alto'}
+          {item.risk === 'critical' ? t('moderacion.chip.critico') : t('moderacion.chip.alto')}
         </Chip>{' '}
         <span>{fecha(item.createdAt)}</span>
       </header>
       <p>
-        Persona <code>{item.userId}</code>
+        {t('moderacion.persona')} <code>{item.userId}</code>
         {item.refType ? ` · ${item.refType}` : ''}
         {item.refId ? ` · ${item.refId}` : ''}
       </p>
@@ -58,11 +62,13 @@ function TarjetaCrisis({ item }: { item: ItemCrisis }) {
   )
 }
 
-function TarjetaFlag({ item }: { item: ItemCola }) {
+function TarjetaFlag({ item, t }: { item: ItemCola; t: Traductor }) {
   return (
     <Tarjeta como="article">
       <header>
-        <Chip tono={item.severity >= 4 ? 'peligro' : 'neutro'}>Severidad {item.severity}</Chip>{' '}
+        <Chip tono={item.severity >= 4 ? 'peligro' : 'neutro'}>
+          {t('moderacion.chip.severidad', { n: item.severity })}
+        </Chip>{' '}
         <Chip>{item.signal}</Chip> <span>{fecha(item.createdAt)}</span>
       </header>
       <p>
@@ -79,6 +85,7 @@ export default async function PaginaModeracion() {
   // Lanza `sin_permiso` si quien mira no es moderador. La comprobación es del
   // servidor; no hay ninguna versión de esta página que se pinte sin pasarla.
   const { admin } = await exigirModerador()
+  const t = obtenerTraductor(await resolverLocale())
 
   // Las dos colas en paralelo: son independientes y así el panel abre en el
   // tiempo de la más lenta, no en la suma.
@@ -89,37 +96,37 @@ export default async function PaginaModeracion() {
 
   return (
     <main>
-      <h1>Moderación</h1>
+      <h1>{t('moderacion.titulo')}</h1>
 
       {!recursosVerificados() && (
         <Tarjeta como="section" acento="crisis">
-          <strong>Los teléfonos de crisis siguen sin verificar por una persona.</strong>{' '}
-          Se muestran igualmente (una tarjeta de crisis vacía es un callejón sin salida),
-          pero hasta que alguien los confirme contra su fuente oficial no se pueden dar
-          por buenos. Lista pendiente en <code>i18n/recursosCrisis.ts</code>.
+          <strong>{t('moderacion.avisoTelefonosFuerte')}</strong>{' '}
+          {t('moderacion.avisoTelefonosResto')} <code>i18n/recursosCrisis.ts</code>.
         </Tarjeta>
       )}
 
       {/* ── PRIMERO LA CRISIS. Siempre. ─────────────────────────────────── */}
       <section aria-labelledby="cola-crisis">
-        <h2 id="cola-crisis">Crisis sin atender ({crisis.items.length})</h2>
+        <h2 id="cola-crisis">{t('moderacion.colaCrisis', { n: crisis.items.length })}</h2>
         {crisis.items.length === 0 ? (
           <EstadoVacio
-            titulo="Nadie espera ahora mismo"
-            descripcion="No hay eventos de riesgo alto o crítico pendientes de atender."
+            titulo={t('moderacion.vacioCrisisTitulo')}
+            descripcion={t('moderacion.vacioCrisisDescripcion')}
             tono="cuidado"
           />
         ) : (
-          crisis.items.map((item) => <TarjetaCrisis key={item.id} item={item} />)
+          crisis.items.map((item) => <TarjetaCrisis key={item.id} item={item} t={t} />)
         )}
       </section>
 
       <section aria-labelledby="cola-moderacion">
-        <h2 id="cola-moderacion">Cola de moderación ({moderacion.items.length})</h2>
+        <h2 id="cola-moderacion">
+          {t('moderacion.colaModeracion', { n: moderacion.items.length })}
+        </h2>
         {moderacion.items.length === 0 ? (
-          <EstadoVacio titulo="Sin señales pendientes" />
+          <EstadoVacio titulo={t('moderacion.vacioFlags')} />
         ) : (
-          moderacion.items.map((item) => <TarjetaFlag key={item.id} item={item} />)
+          moderacion.items.map((item) => <TarjetaFlag key={item.id} item={item} t={t} />)
         )}
       </section>
     </main>

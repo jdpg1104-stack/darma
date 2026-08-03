@@ -13,6 +13,7 @@
 
 import type { Metadata } from 'next'
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { DOCUMENTOS_LEGALES } from '@/lib/privacy/textos'
 
 import { Documento } from '../_documento'
@@ -21,9 +22,14 @@ export const dynamic = 'force-static'
 
 const documento = DOCUMENTOS_LEGALES['retencion']
 
-export const metadata: Metadata = {
-  title: documento.titulo,
-  description: `Documento legal de Darma, versión ${documento.version}.`,
+// `documento.titulo` NO se traduce: es el título del documento legal tal y como
+// vive en `lib/privacy/textos.ts`, cuyo cuerpo está fijado por sha256.
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: documento.titulo,
+    description: t('legal.documento.descripcionMeta', { version: documento.version }),
+  }
 }
 
 export default function PaginaRetencion() {

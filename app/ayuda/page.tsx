@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { obtenerTraductor, resolverLocale, type Traductor } from '@/i18n'
 import { resolverPais } from '@/i18n/pais'
 import {
   recursosParaPais,
@@ -21,7 +22,9 @@ import estilos from './ayuda.module.css'
 //
 //  1. **Server Component sin una línea de JavaScript de cliente.** Nada que
 //     hidratar, nada que pueda fallar. Los teléfonos son enlaces `tel:` y
-//     funcionan aunque el bundle no llegue nunca.
+//     funcionan aunque el bundle no llegue nunca. Por eso el idioma se resuelve
+//     con `obtenerTraductor(await resolverLocale())` y NO con `useTraductor()`:
+//     el hook obligaría a marcar esta página como `'use client'`.
 //  2. **Pública en el proxy.** Nadie en riesgo debe toparse con un muro de
 //     login. Esta ruta se declara en `PUBLIC_ROUTES` por razones que no son
 //     técnicas.
@@ -37,6 +40,16 @@ import estilos from './ayuda.module.css'
 //     números no están confirmados uno a uno y de que si uno no responde hay
 //     que probar el siguiente. Ocultarlo sería peor: alguien podría llamar,
 //     encontrarse un número muerto y concluir que no hay nadie al otro lado.
+//     Ese aviso se traduce ENTERO: en inglés dice exactamente lo mismo, sin
+//     suavizar. Un aviso que solo existe en español es un aviso que no existe
+//     para quien no lee español.
+//
+// ── EL IDIOMA Y EL PAÍS SON DOS EJES DISTINTOS ─────────────────────────────
+// `resolverLocale()` decide en qué idioma se lee la página. `resolverPais()`
+// decide QUÉ NÚMEROS se pintan. No se tocan: un hispanohablante en Estados
+// Unidos lee esta página en español y ve el 988, no el 024. Los nombres de las
+// organizaciones y los números NO se traducen nunca — son los datos oficiales
+// de cada país (ver la cabecera de `i18n/recursosCrisis.ts`).
 //
 // Esta página existía en el diseño desde el principio, pero no era de ningún
 // bloque, así que no la escribió nadie: durante toda la construcción el botón
@@ -44,10 +57,13 @@ import estilos from './ayuda.module.css'
 // reparte de nuevo el trabajo, que esta ruta tenga dueño explícito.
 // ============================================================================
 
-export const metadata: Metadata = {
-  title: 'Ayuda ahora · Darma',
-  description: 'Teléfonos y recursos de ayuda si estás pasando por un momento difícil.',
-  robots: { index: true, follow: true },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = obtenerTraductor(await resolverLocale())
+  return {
+    title: t('crisis.ayuda.metaTitulo'),
+    description: t('crisis.ayuda.metaDescripcion'),
+    robots: { index: true, follow: true },
+  }
 }
 
 // Sin caché: el país sale de la petición, y una respuesta cacheada podría
@@ -65,8 +81,39 @@ function enlaceDe(r: RecursoCrisis): string {
   return r.valor
 }
 
+/**
+ * Los horarios de `recursosCrisis.ts` son DATO, no copy: viven en un módulo
+ * indexado por país y no se pueden traducir ahí sin romper esa relación. Se
+ * traducen aquí, contra una lista cerrada, y lo que no esté en la lista se
+ * pinta tal cual: preferimos un horario en español a una clave sin resolver
+ * delante de alguien que está buscando un teléfono.
+ */
+const CLAVE_POR_HORARIO = new Map<string, string>([
+  ['24/7', 'crisis.horario.veinticuatroSiete'],
+  ['Según el país', 'crisis.horario.segunPais'],
+])
+
+function textoHorario(horario: string, t: Traductor): string {
+  const clave = CLAVE_POR_HORARIO.get(horario)
+  return clave === undefined ? horario : t(clave)
+}
+
+/**
+ * Idiomas en los que ATIENDE la línea (no el idioma de la interfaz). Llegan
+ * como códigos ISO; un código desconocido se pinta tal cual en vez de dejar
+ * ver la clave del catálogo.
+ */
+const IDIOMAS_CONOCIDOS = new Set(['es', 'en', 'ca', 'eu', 'gl', 'fr', 'de'])
+
+function textoIdiomas(codigos: readonly string[], t: Traductor): string {
+  return codigos
+    .map((c) => (IDIOMAS_CONOCIDOS.has(c) ? t(`crisis.idiomasAtencion.${c}`) : c))
+    .join(', ')
+}
+
 export default async function PaginaAyuda() {
-  const pais = await resolverPais()
+  const [locale, pais] = await Promise.all([resolverLocale(), resolverPais()])
+  const t = obtenerTraductor(locale)
   const { pais: paisMostrado, recursos } = recursosParaPais(pais)
   const verificados = tablaListaParaProduccion()
 
@@ -80,12 +127,8 @@ export default async function PaginaAyuda() {
 
   return (
     <main className={estilos.pagina}>
-      <h1 className={estilos.titulo}>Si lo estás pasando mal, habla con alguien ahora</h1>
-      <p className={estilos.entrada}>
-        Estas líneas están atendidas por personas preparadas para escucharte. Son
-        gratuitas y confidenciales. No hace falta que sepas explicar lo que te pasa
-        para llamar.
-      </p>
+      <h1 className={estilos.titulo}>{t('crisis.ayuda.titulo')}</h1>
+      <p className={estilos.entrada}>{t('crisis.ayuda.entrada')}</p>
 
       <ul className={estilos.lista}>
         {ordenados.map((r) => (
@@ -95,13 +138,19 @@ export default async function PaginaAyuda() {
               href={enlaceDe(r)}
               {...(esTelefono(r) ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
             >
+              {/* Ni el número ni el nombre de la organización se traducen. */}
               <span className={estilos.valor}>{r.valor}</span>
               <span className={estilos.nombre}>{r.nombre}</span>
             </a>
             <p className={estilos.detalle}>
-              {r.horario === '24/7' ? 'Disponible 24 horas, todos los días' : r.horario}
-              {r.gratuito ? ' · Llamada gratuita' : ''}
-              {r.idiomasAtencion.length > 0 ? ` · Atienden en ${r.idiomasAtencion.join(', ')}` : ''}
+              {textoHorario(r.horario, t)}
+              {/* También se dice cuando NO es gratuita: la entradilla promete que
+                  cada tarjeta lo indica, y callarlo en las de pago dejaría a alguien
+                  suponiendo que todas lo son. Dos de las líneas reales no lo son. */}
+              {` · ${t(r.gratuito ? 'crisis.tarjeta.gratuito' : 'crisis.tarjeta.noGratuito')}`}
+              {r.idiomasAtencion.length > 0
+                ? ` · ${t('crisis.tarjeta.atiendeEn', { idiomas: textoIdiomas(r.idiomasAtencion, t) })}`
+                : ''}
             </p>
           </li>
         ))}
@@ -109,34 +158,23 @@ export default async function PaginaAyuda() {
 
       {paisMostrado === 'INTERNACIONAL' ? (
         <p className={estilos.nota}>
-          No hemos podido saber desde qué país escribes, así que estos son recursos
-          internacionales. <b>Si estás en peligro ahora mismo, llama al número de
-          emergencias de tu país.</b>
+          {t('crisis.ayuda.internacional')} <b>{t('crisis.ayuda.internacionalUrgente')}</b>
         </p>
       ) : null}
 
       {!verificados ? (
-        <p className={estilos.aviso}>
-          Estamos terminando de confirmar uno a uno estos números con cada
-          organización. Si alguno no responde, prueba con el siguiente de la lista
-          o con el número de emergencias de tu país.
-        </p>
+        <p className={estilos.aviso}>{t('crisis.ayuda.sinVerificar')}</p>
       ) : null}
 
       <hr className={estilos.separador} />
 
       <section className={estilos.limite}>
-        <h2 className={estilos.subtitulo}>Darma no sustituye a la terapia</h2>
-        <p>
-          Aquí te escuchan personas que han pasado por cosas parecidas, y eso vale
-          mucho. Pero no somos profesionales de la salud mental y no podemos
-          atender una urgencia. Si estás en riesgo, llama a uno de los números de
-          arriba: al otro lado hay alguien formado para ayudarte, ahora.
-        </p>
+        <h2 className={estilos.subtitulo}>{t('crisis.ayuda.noTerapiaTitulo')}</h2>
+        <p>{t('crisis.ayuda.noTerapiaCuerpo')}</p>
       </section>
 
       <a className={estilos.volver} href="/feed">
-        Volver
+        {t('comun.volver')}
       </a>
     </main>
   )

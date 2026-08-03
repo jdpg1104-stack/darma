@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
+import { obtenerTraductor, resolverLocale } from '@/i18n'
+import { ProveedorIdioma } from '@/i18n/Proveedor'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Layout raíz.
 //
@@ -54,18 +57,26 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // El locale se resuelve una sola vez, aquí, y sirve para dos cosas distintas:
+  // el atributo `lang` del documento y el traductor de los componentes de
+  // cliente. Estaba fijado a "es", y no es un detalle: un lector de pantalla
+  // anuncia el texto inglés con fonética española, y el traductor automático del
+  // navegador se ofrece a traducir a un idioma que ya es el del usuario.
+  const locale = await resolverLocale()
+  const t = obtenerTraductor(locale)
+
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body>
         {/* Salto al contenido: primer elemento enfocable de la página, para
             quien navega con teclado o lector de pantalla. */}
         <a href="#contenido" className="sr-only">
-          Saltar al contenido principal
+          {t('comun.saltarAlContenido')}
         </a>
-        {children}
+        <ProveedorIdioma locale={locale}>{children}</ProveedorIdioma>
       </body>
     </html>
   )

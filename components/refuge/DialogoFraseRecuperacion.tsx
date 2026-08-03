@@ -12,6 +12,12 @@
 //   2. Darma no puede recuperarla si la pierdes.
 //   3. Sin copia de seguridad, cambiar de móvil borra tus conversaciones.
 //
+// Desde la traducción son CLAVES (`refugios.respaldo.advertencias.*`) y el
+// texto vive en el catálogo, en los dos idiomas. La prueba que las vigila
+// comprueba las dos versiones: en inglés dicen exactamente lo mismo, sin
+// suavizar, porque esta es la pantalla en la que una traducción amable le
+// cuesta a alguien su historial.
+//
 // Las tres son verdad a la vez y hay que decir las tres. Contar solo la 3 vende
 // la copia como un seguro sin coste; contar solo la 1 asusta y hace que nadie
 // la active y pierda su historial en el primer cambio de móvil. La persona
@@ -29,6 +35,7 @@
 import { useState } from 'react'
 
 import { Boton, Dialogo } from '@/components/ui'
+import { useTraductor } from '@/i18n/Proveedor'
 import { crearFraseRecuperacionSincrona } from '@/lib/crypto/frase'
 import { ADVERTENCIAS_RESPALDO } from '@/lib/crypto/respaldo'
 import estilos from './refugio.module.css'
@@ -44,6 +51,7 @@ export interface DialogoFraseRecuperacionProps {
 type Paso = 'advertencias' | 'frase' | 'guardada'
 
 export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: DialogoFraseRecuperacionProps) {
+  const t = useTraductor()
   const [paso, setPaso] = useState<Paso>('advertencias')
   const [frase, setFrase] = useState<readonly string[] | null>(null)
   const [apuntada, setApuntada] = useState(false)
@@ -67,7 +75,7 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
       await alConfirmar(frase)
       setPaso('guardada')
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No hemos podido guardar la copia.')
+      setError(causa instanceof Error ? causa.message : t('refugios.respaldo.errorGuardar'))
     } finally {
       setEnviando(false)
     }
@@ -77,8 +85,8 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
     <Dialogo
       abierto={abierto}
       alCerrar={alCerrar}
-      titulo="Copia de seguridad de tus conversaciones"
-      descripcion="Está desactivada. Antes de activarla, lee esto."
+      titulo={t('refugios.respaldo.titulo')}
+      descripcion={t('refugios.respaldo.descripcion')}
       // No se cierra por accidente: cerrar en mitad de la pantalla que enseña
       // la frase significa perderla, y la persona no lo sabría hasta el día que
       // cambiara de móvil.
@@ -87,19 +95,15 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
       {paso === 'advertencias' ? (
         <>
           <ul className={estilos.advertencias}>
-            {ADVERTENCIAS_RESPALDO.map((advertencia) => (
-              <li key={advertencia}>{advertencia}</li>
+            {ADVERTENCIAS_RESPALDO.map((clave) => (
+              <li key={clave}>{t(clave)}</li>
             ))}
           </ul>
-          <p className={estilos.explicacion}>
-            No hay recuperación por correo, ni por soporte, ni comprobando quién eres.
-            Cualquiera de esas cosas obligaría a que Darma tuviera tu clave, y entonces
-            podríamos leer lo que escribes. No la tenemos y no queremos tenerla.
-          </p>
+          <p className={estilos.explicacion}>{t('refugios.respaldo.sinRecuperacion')}</p>
           <div className={estilos.acciones}>
-            <Boton onClick={generar}>Entendido, generar mi frase</Boton>
+            <Boton onClick={generar}>{t('refugios.respaldo.generar')}</Boton>
             <Boton variante="fantasma" onClick={alCerrar}>
-              Dejarlo desactivado
+              {t('refugios.respaldo.dejarDesactivado')}
             </Boton>
           </div>
         </>
@@ -108,9 +112,9 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
       {paso === 'frase' && frase ? (
         <>
           <p className={estilos.explicacion}>
-            Apúntalas <strong>en papel</strong>, en orden, y guárdalas donde guardarías algo
-            importante. En las notas del móvil no: si pierdes el móvil, pierdes las dos cosas
-            a la vez.
+            {t('refugios.respaldo.apuntarAntes')}{' '}
+            <strong>{t('refugios.respaldo.apuntarEnfasis')}</strong>
+            {t('refugios.respaldo.apuntarDespues')}
           </p>
           <ol className={estilos.frase}>
             {frase.map((palabra, indice) => (
@@ -123,7 +127,7 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
 
           <label>
             <input type="checkbox" checked={apuntada} onChange={(e) => setApuntada(e.target.checked)} />{' '}
-            Las he apuntado y sé que Darma no puede recuperarlas.
+            {t('refugios.respaldo.confirmacion')}
           </label>
 
           {error ? (
@@ -134,10 +138,10 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
 
           <div className={estilos.acciones}>
             <Boton disabled={!apuntada} cargando={enviando} onClick={() => void confirmar()}>
-              Activar la copia
+              {t('refugios.respaldo.activar')}
             </Boton>
             <Boton variante="fantasma" onClick={alCerrar}>
-              Cancelar
+              {t('comun.cancelar')}
             </Boton>
           </div>
         </>
@@ -145,13 +149,10 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
 
       {paso === 'guardada' ? (
         <>
-          <p>Listo. La copia está guardada y solo tu frase la abre.</p>
-          <p className={estilos.explicacion}>
-            Si algún día cambias de móvil, escribe esas doce palabras y tus conversaciones
-            volverán. Si las pierdes, no.
-          </p>
+          <p>{t('refugios.respaldo.hecho')}</p>
+          <p className={estilos.explicacion}>{t('refugios.respaldo.hechoExplicacion')}</p>
           <div className={estilos.acciones}>
-            <Boton onClick={alCerrar}>Cerrar</Boton>
+            <Boton onClick={alCerrar}>{t('comun.cerrar')}</Boton>
           </div>
         </>
       ) : null}
