@@ -1164,3 +1164,336 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       ha aplicado porque **no cupo en disco para medirlo**, y no se sube un
       índice que no se ha comparado. Con espacio, la comparación es de cinco
       minutos · 2026-08-03
+- [ ] **De B19 → F1 / B12 · `spend_karma()` escribe los GASTOS con un `kind` que
+      miente.** En `0001_core.sql`, `spend_karma()` inserta en `karma_events`
+      con `kind = 'comment_validated'` aunque sea un gasto. **Medido contra
+      Postgres** con 30 000 eventos sembrados: agrupar por `kind` daba
+      `sum(delta_spendable) = -175 000` para «comentario validado», un número
+      que no significa nada; agrupando por el SIGNO de los deltas salen los dos
+      valores reales (250 000 emitidos / 250 100 drenados). El rollup de B19 ya
+      agrupa por signo, así que el panel es correcto — pero **cualquier otra
+      consulta del repo que agrupe el ledger por `kind` está mal**, y el propio
+      ledger deja de ser auditable por tipo de movimiento. No se ha tocado
+      `0001` (ya está aplicada): hace falta un `kind` propio para el gasto en
+      una migración nueva de F1, más un backfill · 2026-08-03
+- [ ] **De B19 → B12 · catálogo de precios de los paquetes de cristales.**
+      `crystal_ledger` guarda el delta de cristales, no el precio, así que el
+      ingreso y el ARPPU no salen de ahí. B19 los deriva del `raw_receipt`
+      cuando trae `price_cents` y, si no, de un **stub local** en
+      `app/(admin)/_lib/precios.ts` (clave = tamaño del paquete, no nombre
+      comercial: un nombre lo cambia marketing y rompe la serie histórica ya
+      escrita en `admin_metrics_daily`). Se pide que `lib/billing/` exponga el
+      catálogo real; en cuanto exista, `precios.ts` se reduce a un re-export.
+      Mientras tanto el panel marca el ingreso como **estimado** en pantalla ·
+      2026-08-03
+- [ ] **De B19 → B11 · cerrar TODOS los casos de crisis, no solo los que se
+      miran.** Corrección de un supuesto que circulaba: `human_reviewed` **sí**
+      se escribe hoy — lo hace `atenderCrisis()` en `lib/ai/cola.ts` junto con
+      `attended_at`, `reviewer_id` y `outcome`. Lo que queda abierto es otra
+      cosa: ese es el **único** camino que lo escribe, así que la cobertura del
+      100 % que exige B19 solo es real si la cola de `/moderacion` acaba
+      cerrando cada evento de riesgo `high`/`critical`. Cualquier caso que se
+      revise «de vista» sin pulsar atender cuenta como no revisado, y con razón.
+      Petición concreta: que el panel de moderación no deje salir de un caso sin
+      resolverlo, o que exista un motivo explícito de cierre («falso positivo»)
+      que también marque `human_reviewed` · 2026-08-03
+- [ ] **De B19 → B11 · sustituir la allowlist de moderadores por el rol de la
+      base.** `lib/ai/acceso.ts` decide quién es moderador con
+      `MODERATION_ADMIN_IDS`, una lista de uuids en una variable de entorno.
+      B19 ya tiene lo que hacía falta: `public.admin_roles` +
+      `tiene_rol_admin(p_user, 'moderador')`, `security definer`, concedida solo
+      a `service_role`. Cambio propuesto para B11: `esModerador(userId)` pasa a
+      ser `await tiene_rol_admin(userId, 'moderador')`. Motivo, además del
+      obvio: una lista en el entorno se cambia desde un panel, sin revisión, sin
+      registro y sin que nadie se entere; `admin_roles` deja `granted_by`,
+      `granted_at` y `revoked_at`, y cada acceso queda en `admin_audit_log`.
+      **Ojo, hay acoplamiento ya:** `app/(admin)/layout.tsx` (de B19) envuelve
+      `/moderacion` y exige rol mínimo `soporte` en `admin_roles`, así que hoy
+      un moderador que esté en la allowlist pero **no** en `admin_roles` recibe
+      un 404 del layout antes de llegar a la página · 2026-08-03
+- [ ] **De B19 → B02 · no existe registro de «lectura de un post».** El cuarto
+      escalón del embudo de activación de B19 («primera lectura») se aproxima
+      hoy con la primera **interacción** con un post (`post_votes`), porque en
+      el esquema no hay ninguna tabla de lecturas. La aproximación **subestima**
+      el escalón: mucha gente lee y no vota, y precisamente el perfil de quien
+      llega a Darma a leer sin participar es el que más importa medir. Si B02
+      añade alguna vez una señal de impresión o de lectura, B19 la consume desde
+      el rollup sin tocar el panel · 2026-08-03
+- [ ] **De B19 → B00 · tres desviaciones conscientes del contrato de la ficha
+      B19.md.** (1) `Economia` lleva un campo extra `ingresoEstimado: boolean`:
+      sin él la UI no puede distinguir el ingreso medido del estimado, y un
+      número que no hace esa distinción acaba en una previsión. (2)
+      `TiempoPrimeraRespuesta` y `CoberturaCrisis` llevan además una `serie`,
+      igual que `SaludReciprocidad`, porque las páginas de detalle la necesitan
+      y pedirla por separado costaría una consulta más. (3) Los imports de
+      `app/(admin)/_lib/**` son **relativos** y no con el alias `@/`
+      (CONTRATOS §1): `node --test --experimental-strip-types` no resuelve el
+      alias y la ficha exige poder probar esos módulos sin arrancar Next. Mismo
+      criterio que ya siguen las pruebas de B02 y B06 bajo `app/` · 2026-08-03
+- [ ] **De B19 → B00 / operaciones · el PRIMER superadmin se siembra a mano, a
+      propósito.** `admin_conceder_rol()` exige ya ser superadmin, así que no
+      hay forma de crear el primero desde la aplicación — y es correcto que no
+      la haya: un endpoint de «bootstrap» abierto cuando la tabla está vacía es
+      una escalada de privilegios esperando a que alguien despliegue con la
+      tabla vacía. El alta inicial es un `insert into public.admin_roles
+      (user_id, role) values ('<uuid>','superadmin')` ejecutado con acceso
+      directo a la base, y conviene que quede documentado en el runbook de
+      despliegue · 2026-08-03
+- [ ] **De B19 → B14 / B15 · ocho índices nuevos sobre tablas de otros
+      bloques.** `0191_1_b19_admin.sql` añade (solo añade, no modifica nada):
+      `idx_comments_rollup_dia`, `idx_posts_rollup_dia`,
+      `idx_karma_events_rollup_dia`, `idx_crystal_ledger_rollup_dia`,
+      `idx_crisis_rollup_dia`, `idx_profiles_rollup_dia`,
+      `idx_profiles_karma_diario` (parcial) y `idx_post_votes_user`. Ninguno
+      existía: todos los índices temporales del esquema son por (autor, fecha) o
+      por (post, fecha), y el rollup corta por fecha GLOBAL. Sin ellos el rollup
+      es un `Seq Scan` sobre `comments`. **Medido**: con 36 008 comentarios y
+      9 002 posts sembrados, el rollup de un día tarda **20,5 ms** y usa
+      `Index Only Scan` en `comments` (Heap Fetches: 3) y `Bitmap Index Scan` en
+      `posts`. Coste: escritura marginalmente más cara en esas cinco tablas ·
+      2026-08-03
+- [ ] **De B19 → B17 · deuda de traducción.** Los textos de UI de B19 van en
+      español directo. Archivos a traducir:
+      `app/(admin)/panel/page.tsx`, `app/(admin)/panel/{reciprocidad,crisis,activacion,economia}/page.tsx`,
+      `app/(admin)/_componentes/{TarjetaMetrica,TablaSerie,Sparkline,NavegacionAdmin}.tsx`,
+      `app/(admin)/_componentes/Formato.ts` (unidades «s / min / h / d» y los
+      `toLocaleString('es-ES')`) y `TABS_ADMIN` en
+      `app/(admin)/_lib/navegacion.ts`. Ojo con dos cosas que no son literales
+      sueltos: las unidades de duración necesitan reglas de plural, y el
+      formato de número y moneda debe seguir al locale, no quedarse fijo en
+      `es-ES` · 2026-08-03
+
+### B18 · E2E con Playwright
+
+- [ ] **De B18 → F4 (`package.json`)** · **añadir Playwright a
+      `devDependencies`.** Comando exacto:
+      ```bash
+      npm i -D @playwright/test@^1.62.1
+      npx playwright install --with-deps chromium webkit
+      ```
+      Y dos scripts:
+      ```json
+      "e2e": "playwright test",
+      "e2e:ui": "playwright test --ui"
+      ```
+      B18 **no ha editado `package.json` ni `package-lock.json`** (árbol
+      compartido): instaló con `npm i --no-save --no-package-lock
+      @playwright/test`, que deja los dos archivos intactos. Mientras no se
+      integre, la suite solo corre en una máquina donde alguien haya repetido
+      ese comando. Comprobado: `git status` limpio fuera de `e2e/**`,
+      `playwright.config.ts`, `PEDIDOS.md` y `ESTADO.md` · 2026-08-03
+- [ ] **De B18 → F4 (`.env.example`)** · documentar
+      **`E2E_SUPABASE_PROJECT_REF`** (y opcionalmente `E2E_PORT`). Es el segundo
+      cerrojo del fusible anti-producción de `e2e/utils/admin.ts`: contra una
+      base remota, la suite se niega a ejecutarse si el ref del proyecto no está
+      declarado a mano. Se pide una variable propia a propósito — si bastara con
+      «la URL que hay en `.env.local`», apuntar la suite a producción sería
+      cambiar una variable que ya existe · 2026-08-03
+
+- [ ] **De B18 → F4 / B11 · 🔴 BLOQUEANTE DE DESPLIEGUE: `/ayuda` NO EXISTE.**
+      `components/ui/BotonCrisis.tsx` enlaza a `/ayuda`, `components/feed/TarjetaPost.tsx`
+      también, la landing igual, y `proxy.ts:44` la declara ruta pública «por
+      razones que no son técnicas». Pero **no hay ninguna `app/**/ayuda/page.tsx`**:
+      el botón de crisis de TODA la app lleva a un 404. Es el hallazgo más grave
+      de este bloque. Prueba escrita y en `test.fixme()` apuntando a esta línea:
+      `e2e/specs/09-proxy-sin-sesion.spec.ts` › «/ayuda es alcanzable SIN sesión
+      y existe de verdad». Quítale el `fixme` en cuanto la página exista ·
+      2026-08-03
+- [ ] **De B18 → HUMANO · `SUPABASE_SERVICE_ROLE_KEY` no sirve contra `darma-dev`.**
+      En `.env.local` está vacía; la que hay heredada del shell (`sb_secret_…`)
+      la rechaza el proyecto con `Invalid API key … This API key might also be
+      owned by another Supabase project` — **probablemente es de OTRO proyecto**,
+      lo que además es un riesgo en sí mismo. Consecuencias medidas hoy: casi
+      toda ruta de escritura devuelve `error_interno` (incluidas
+      `POST /api/auth/anonimo`, `/api/posts`, `/api/comments`, `/api/content/*`
+      y hasta `GET /api/me`, todas vía `createAdminClient()`), y los fixtures de
+      B18 no pueden crear usuarios. Los recorridos (a)–(f) quedan en
+      `test.fixme()` con el motivo y **se ejecutarán solos** en cuanto la clave
+      correcta esté puesta: el global setup la PRUEBA de verdad con una lectura
+      mínima en vez de fiarse de que la variable exista · 2026-08-03
+
+- [ ] **De B18 → B03 · `data-testid` en el composer de `/publicar`.** Hacen falta
+      dos: `data-testid="escuchas-hechas"` con el número de escuchas hechas, y
+      uno en el `<p>` del mensaje de reciprocidad (hoy no tiene `id`, ni `role`,
+      ni nada). Ojo: hoy `escuchas-hechas` es **inconstruible** sin cambiar el
+      contrato de props — `app/(app)/publicar/page.tsx` pasa al `Composer` la
+      FRASE de `reciprocityMessage()` y un booleano, nunca el número, y la
+      cabecera del archivo lo justifica. Mientras tanto `PublicarPage.escuchasHechas()`
+      DERIVA el número comparando el texto pintado con lo que produce
+      `reciprocityMessage()` para cada estado; funciona, pero se rompe con
+      cualquier cambio de copy · 2026-08-03
+- [ ] **De B18 → B03 / B04 / B10 / B16 · unificar la tarjeta de recursos de crisis.**
+      Hay **cuatro marcados distintos** para lo mismo y ninguno lleva
+      `data-testid`: `components/composer/TarjetaRecursos.tsx`
+      (`<section aria-labelledby="recursos-titulo">`, el único con ancla estable
+      y el único con `tel:`), `components/thread/CompositorRespuesta.tsx`
+      (sin id, sin `aria-live`, sin `h2`, **sin `tel:`** — el teléfono va como
+      texto plano y no se puede marcar), `components/refuge/TarjetaCrisis.tsx`
+      (`role="note" aria-label="Recursos de ayuda"`) y el pie de
+      `components/feed/TarjetaPost.tsx`. Además los campos se llaman en español
+      en un contrato (`nombre`, `telefono`, `horario`) y en inglés en el otro
+      (`name`, `phone`, `hours`). Propuesta: un solo componente en `components/ui`
+      con `data-testid="tarjeta-recursos"` y `tel:` siempre. **La pantalla de
+      crisis es la que menos margen tiene para variar entre superficies** ·
+      2026-08-03
+- [ ] **De B18 → B05 · `data-testid` en `MedidorKarma` y en `PanelPrivado`.**
+      El medidor solo se localiza por `role="progressbar"` sin nombre accesible
+      propio o por `[data-nivel]`; el panel privado, por
+      `section[aria-labelledby="titulo-panel-privado"]`. Funciona, pero son
+      anclas de implementación · 2026-08-03
+- [ ] **De B18 → F4 / B00 · no existe `app/(app)/layout.tsx`.** Cada ruta monta
+      su `BotonCrisis` por su cuenta (7 sitios distintos, y en `/animo` está en
+      la PÁGINA, no en un layout). CONTRATOS §9 dice que **todos** los layouts de
+      `app/(app)` deben incluirlo: hoy eso se cumple por repetición, así que la
+      pantalla que se añada mañana se quedará sin él y nadie se enterará. La
+      prueba nº 12 de B18 recorre las seis rutas precisamente por esto ·
+      2026-08-03
+- [ ] **De B18 → B01 · el registro por API rechaza los dominios sintéticos.**
+      Comprobado contra `darma-dev`: `signup` devuelve `email_address_invalid`
+      para `.test`, `.local` y `.example.com`, y `over_email_send_rate_limit`
+      para dominios reales. Los usuarios de prueba con sesión REAL solo se
+      pueden crear con `auth.admin.createUser()` (service_role) o por SQL con
+      `crypt()` y las columnas de token a cadena vacía. Anotado aquí porque
+      afecta a cualquier bloque que quiera sesiones reales en sus pruebas ·
+      2026-08-03
+- [ ] **De B18 → B15 / F1 · la Trampa #1 de la ficha YA ESTÁ CERRADA (informativo).**
+      La ficha avisaba de que `profiles_read ... using (true)` dejaba leer
+      `karma_spendable` y `crystals` de cualquiera por PostgREST. Verificado hoy
+      contra `darma-dev` con una sesión `authenticated` real: **devuelve 42501**.
+      `0001_core.sql` ya lleva `revoke select on public.profiles from anon,
+      authenticated` + `grant select (id, alias, avatar_seed, bio,
+      karma_reputation, level, availability, created_at, last_seen_at)`, y la
+      única puerta a los saldos es `mi_perfil_privado()`. Por eso el recorrido
+      (e) de B18 va como prueba de verdad y **no** como `fixme`: dejarlo
+      aparcado sería quitar la vigilancia justo de la línea que cierra el
+      agujero. Que nadie «simplifique» ese `grant` por columnas · 2026-08-03
+
+## Correcciones de integración (B00 · 2026-08-03)
+
+- [x] **CERRADO — no era un fallo.** B19 anotó que `spend_karma()` escribe los
+      gastos con `kind = 'comment_validated'` y midió −175 000 al agrupar por
+      clase. **Verificado contra `darma-dev`: la función desplegada usa
+      `karma_spend`** (`prosrc ilike '%''karma_spend''%'` → true,
+      `'comment_validated'` → false). El arreglo entró en `0001_core.sql` antes
+      de aplicar el esquema. La cifra de B19 sale de su propia siembra, que
+      insertó eventos negativos con la clase antigua. **Agrupar por `kind` es
+      correcto**; no hace falta agrupar por signo del delta. Si el panel lo hace
+      por signo, se puede simplificar.
+- [x] **CERRADO.** `crisis_events.human_reviewed` sí se escribe: lo hace
+      `atenderCrisis()` de B11. Queda abierto solo que ese es el ÚNICO camino,
+      así que la cobertura del 100 % depende de que la cola cierre cada caso.
+- [ ] **De B19 → B11** · unificar la autorización de administración: el panel
+      exige rol en `admin_roles` y `lib/ai/acceso.ts` usa la allowlist
+      `MODERATION_ADMIN_IDS`. Un moderador que esté en la allowlist pero no en
+      la tabla recibe hoy un 404. Debe mandar `tiene_rol_admin()`: una lista de
+      identificadores en una variable de entorno es exactamente lo que la ficha
+      de B19 prohibía.
+- [ ] **De B12 → F4 · `proxy.ts` bloquea los dos webhooks de la tienda.**
+      `PUBLIC_ROUTES` no incluye `/api/billing/`, así que una petición sin cookie
+      a `/api/billing/webhook/apple` o `/api/billing/webhook/google` recibe un
+      401 JSON antes de llegar al handler. Apple y Google lo interpretan como
+      fallo y **reintentan durante días sin éxito**, con lo que las compras
+      quedan sin acreditar hasta que la persona toca «Restaurar compras». Hace
+      falta añadir exactamente `/api/billing/webhook/` (el prefijo, no todo
+      `/api/billing/`: el resto de rutas del bloque sí exigen sesión). No he
+      tocado `proxy.ts`; los handlers están probados invocándolos directamente ·
+      2026-08-03
+- [ ] **De B12 → F2 / B15 · queda cerrado en `0121_1`, pero conviene revisarlo.**
+      `crystal_ledger_read_own` de `0002` deja leer la FILA ENTERA al dueño, y la
+      fila entera incluye `raw_receipt` (recibo crudo de la store: lleva
+      `appAccountToken`, `originalTransactionId` y, en algunos formatos, el
+      correo de la Apple ID) y `external_id`. Un cliente con la anon key los
+      pedía con `?select=raw_receipt`. Eso rompe CONTRATOS §2. La ficha B12 pedía
+      solo anotarlo; se ha cerrado además en `0121_1` §3 con `revoke select` +
+      `grant select` enumerado, porque dejar un dato de identidad legible
+      mientras se tramita el pedido no era una opción. Si F2 prefiere otra forma,
+      que la sustituya — pero no que la quite · 2026-08-03
+- [ ] **De B12 → F2 / B00 · ⚠️ una migración de B12 RELAJA un CHECK de `0002`.**
+      `0121_1` §1 cambia `boosts.amount check (amount > 0)` por `>= 0`. Motivo:
+      la ficha B12 §7 exige que el boost del cupo gratuito se registre con
+      `currency 'karma', amount 0`, y las dos cosas no podían ser verdad a la
+      vez. Descartado no insertar fila (el techo de 3/día dejaría de contarlos y
+      la transparencia pública se perdería) y descartado registrar `amount = 50`
+      con una columna `es_gratis` (mentir en la columna que dice cuánto pagó la
+      persona). Es una relajación —nada que fuera válido deja de serlo— y ningún
+      otro bloque escribe en `boosts`, pero **no es aditiva** y por eso se pide
+      revisión explícita · 2026-08-03
+- [ ] **De B12 → B14 · cron nocturno de reconciliación `crystal_ledger` ↔
+      `profiles.crystals`.** `crystals` es solo un caché; la verdad es el `sum()`
+      del ledger. Hoy no hay nada que compare los dos ni que avise si divergen, y
+      si divergen **gana el ledger** (no se «arregla» el caché a mano). Basta un
+      `select user_id from crystal_ledger group by 1 having sum(delta) <>
+      (select crystals from profiles p where p.id = user_id)` en un cron diario,
+      con alerta si devuelve alguna fila · 2026-08-03
+- [ ] **De B12 → F2 / B05 · faltan columnas para los cosméticos de perfil.**
+      `lib/billing/cosmeticos.ts` tiene el catálogo y la validación
+      (`prohibidoPorqueImitaNivel`, con test), pero **la propiedad no se
+      persiste**: harían falta `profiles.cosmetic_frame` y
+      `profiles.cosmetic_palette` (text, nullable, sin `grant update` a
+      `authenticated` — se escriben desde el servidor tras cobrar). `profiles` es
+      de los cimientos, así que no lo toco. Mientras tanto los cosméticos se
+      muestran sin ruta de compra, en vez de inventar un almacenamiento paralelo
+      que luego haya que migrar · 2026-08-03
+- [ ] **De B12 → F4 / app móvil · el puente nativo `window.darmaIAP` no existe.**
+      `components/economia/BotonComprar.tsx` espera
+      `window.darmaIAP.comprar(sku) → { plataforma, token }`, que debe lanzar
+      StoreKit o Play Billing y devolver el `transactionId` de Apple o
+      `productId|purchaseToken` de Google. Sin él el botón se deshabilita y dice
+      «Solo en la app», que es lo correcto: abrir un checkout web por bienes
+      digitales es motivo de retirada de la ficha en las dos plataformas. **La
+      app debe fijar `appAccountToken` (Apple) y `obfuscatedExternalAccountId`
+      (Google) al `profiles.id`**: sin eso el webhook no sabe a quién acreditar ·
+      2026-08-03
+- [ ] **De B12 → F4 · once variables de entorno de IAP en `.env.example`.**
+      Apple: `APPLE_IAP_ISSUER_ID`, `APPLE_IAP_KEY_ID`, `APPLE_IAP_PRIVATE_KEY`
+      (contenido del `.p8`), `APPLE_BUNDLE_ID`, `APPLE_ROOT_CA_SHA256` (huella
+      SHA-256 de Apple Root CA - G3, separadas por comas) y `APPLE_IAP_ENTORNO`.
+      Google: `GOOGLE_PLAY_PACKAGE`, `GOOGLE_PLAY_CLIENT_EMAIL`,
+      `GOOGLE_PLAY_PRIVATE_KEY`, `GOOGLE_PUBSUB_SERVICE_ACCOUNT` y
+      `GOOGLE_PUBSUB_AUDIENCE`. **Ninguna lleva `NEXT_PUBLIC_`**, y sin ellas el
+      bloque hace fail-closed: no verifica y no acredita. Además,
+      `SUPABASE_SERVICE_ROLE_KEY` está **vacía** en `.env.local`, así que hoy
+      ninguna ruta que use el cliente admin funciona en local · 2026-08-03
+- [ ] **De B12 → producto · reembolsos sin apunte inverso.** Los dos webhooks
+      detectan `REFUND`/`REVOKE` (Apple) y `voidedPurchaseNotification` (Google)
+      y los registran, pero **todavía no insertan el movimiento contrario con
+      `source = 'refund'`**. La parte técnica es trivial; lo que falta es la
+      decisión de producto: qué hacer cuando la persona ya se gastó los
+      cristales, porque `profiles.crystals` tiene `check (crystals >= 0)` y el
+      saldo no puede quedar negativo. Dos opciones razonables (saldo a 0 y deuda
+      registrada, o bloqueo de nuevas compras hasta compensar) y ninguna es
+      obviamente correcta · 2026-08-03
+- [ ] **De B12 → B15 / operaciones · la prueba de concurrencia de N conexiones
+      no se pudo ejecutar.** El caso nº 6 de la ficha pide tres webhooks
+      simultáneos contra la base real. En este entorno no hay forma de abrir tres
+      conexiones a la vez: `dblink` exige contraseña de la base (no disponible) y
+      `SUPABASE_SERVICE_ROLE_KEY` está vacía, así que tampoco se puede llamar a
+      la RPC por HTTP. Lo que sí se ejecutó: tres filas idénticas en una sola
+      sentencia con `on conflict do nothing` → 1 insertada (misma máquina de
+      inserción especulativa que arbitra a varios insertadores), y reintentos en
+      transacciones y **sesiones distintas** (pids 29818, 29827, 30452, 30466) →
+      `acreditado:false` con el saldo congelado. Con credenciales de base, la
+      prueba de verdad es de cinco minutos · 2026-08-03
+- [ ] **De B12 → B17 · deuda de traducción.** Los textos de UI de B12 van en
+      español directo. A traducir: `lib/billing/textos.ts` (las cinco frases,
+      incluida la de la línea roja: **esa debe traducirse con revisión humana**,
+      no automáticamente — es la promesa del producto),
+      `components/economia/*.tsx`, las etiquetas de `lib/billing/catalogo.ts`,
+      `regalos.ts` y `cosmeticos.ts`, y los mensajes de
+      `errorDeBoost`/`errorDeRegalo`. Ojo con el plural de «1 cristal /
+      N cristales», que necesita regla de plural y no concatenación · 2026-08-03
+- [ ] **De B12 → B02 · el feed puede pintar el distintivo de «impulsado».**
+      `boost_vivo(post_id)` está en `0121_1` §8 y devuelve `(id, expires_at)` del
+      boost vivo usando `idx_boosts_active` (3 buffers, 0,11 ms medido). Es
+      `security invoker` y se apoya en `boosts_read`, que es público a propósito:
+      un post impulsado se marca como tal, igual que un anuncio. **`user_id`,
+      `currency` y `amount` ya NO son legibles** (`0121_1` §3): «este post está
+      impulsado» es transparencia, «esta persona pagó 50 cristales» es su
+      historial de gasto · 2026-08-03
+- [ ] **De B12 → B04 / B05 · dónde enganchar la UI de economía.**
+      `components/economia` exporta `DialogoBoost` (necesita `postId` y el
+      `EstadoBoost` de `GET /api/billing/boost`), `SelectorRegalo` (para el hilo,
+      con `refType`/`refId`) y `TiendaCristales`/`HistorialCompras` (para el
+      perfil). No he creado ninguna página bajo `app/(app)/**` porque no es mío:
+      los componentes están listos para montarse donde B04 y B05 decidan ·
+      2026-08-03

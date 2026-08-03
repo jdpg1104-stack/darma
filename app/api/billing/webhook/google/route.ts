@@ -1,0 +1,160 @@
+// ============================================================================
+// POST /api/billing/webhook/google — Real-time developer notifications (Pub/Sub)
+//
+// ── LA FIRMA SE VERIFICA ANTES DE LEER EL CUERPO ────────────────────────────
+// Pub/Sub manda un token OIDC en `Authorization: Bearer`. Se verifica contra el
+// JWKS de Google y se comprueban emisor, audiencia y que el `email` sea
+// EXACTAMENTE la cuenta de servicio autorizada. Sin eso, cualquiera puede
+// POSTear un sobre con la forma de Pub/Sub y regalarse cristales.
+//
+// ── `proxy.ts` LO BLOQUEA HOY ───────────────────────────────────────────────
+// Igual que el de Apple: `/api/billing/` no está en `PUBLIC_ROUTES`. Anotado en
+// `HANDOFF/PEDIDOS.md`; no se edita `proxy.ts` (es de F4).
+//
+// ── 200 RÁPIDO ──────────────────────────────────────────────────────────────
+// Pub/Sub reintenta ante cualquier respuesta que no sea 2xx, con backoff, y
+// puede acumular un backlog de horas. El trabajo es idempotente, así que un
+// reintento no duplica; pero un 5xx por una excepción nuestra tampoco arregla
+// nada. Firma inválida sí es 401.
+//
+// 🔴 Este handler acredita cristales. Nunca karma.
+// ============================================================================
+
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+import { resolverPaquete } from '@/lib/billing/catalogo'
+import {
+  configGoogle,
+  confirmarCompra,
+  extraerNotificacion,
+  verificarRecibo,
+  verificarTokenPubSub,
+} from '@/lib/billing/google'
+import { acreditarCompra } from '@/lib/billing/ledger'
+import { logger } from '@/lib/logger'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const CABECERAS = { 'Cache-Control': 'private, no-store' } as const
+
+export async function POST(request: NextRequest) {
+  const config = configGoogle()
+  if (!config) {
+    logger.exception('billing:webhook_google_sin_configurar', new Error('GOOGLE_* ausentes'), {})
+    return NextResponse.json({ ok: false as const, code: 'error_interno', message: 'No disponible.' }, { status: 503, headers: CABECERAS })
+  }
+
+  // PRIMERO la firma. El cuerpo no se toca hasta que el token es válido.
+  const firma = await verificarTokenPubSub(request.headers.get('authorization'), config)
+  if (!firma.ok) {
+    logger.exception('billing:webhook_google_firma', new Error(firma.motivo ?? 'no verificada'), {})
+    return NextResponse.json({ ok: false as const, code: 'sin_permiso', message: 'No puedes hacer esto.' }, { status: 401, headers: CABECERAS })
+  }
+
+  try {
+    const notificacion = extraerNotificacion(await request.json())
+    if (notificacion) await procesar(notificacion)
+  } catch (causa) {
+    logger.exception('billing:webhook_google_proceso', causa, {})
+  }
+
+  return NextResponse.json({ ok: true as const, data: { recibido: true } }, { status: 200, headers: CABECERAS })
+}
+
+async function procesar(
+  notificacion: NonNullable<ReturnType<typeof extraerNotificacion>>,
+): Promise<void> {
+  // Compra anulada o reembolsada: la corrección se hace con un apunte inverso
+  // (`source = 'refund'`), nunca modificando la fila —el trigger de
+  // inmutabilidad lo impide incluso a service_role—. Pendiente de decidir el
+  // importe cuando el saldo ya se gastó; anotado en PEDIDOS.
+  if (notificacion.voidedPurchaseNotification) {
+    logger.exception('billing:reembolso_pendiente_de_apunte_inverso', new Error('voidedPurchase sin contrapartida'), {
+      order_id: notificacion.voidedPurchaseNotification.orderId ?? 'desconocido',
+    })
+    return
+  }
+
+  const aviso = notificacion.oneTimeProductNotification
+  if (!aviso?.purchaseToken || !aviso.sku) return
+
+  // `notificationType`: 1 = ONE_TIME_PRODUCT_PURCHASED, 2 = ...CANCELED.
+  if (aviso.notificationType !== 1) return
+
+  // Se vuelve a preguntar a Google por el estado real. La notificación dice que
+  // ALGO pasó; la fuente de verdad es `purchases.products.get`.
+  const recibo = await verificarRecibo(`${aviso.sku}|${aviso.purchaseToken}`)
+  if (!recibo.valido || !recibo.externalId) {
+    logger.info('billing:webhook_google_rechazado', { motivo: recibo.motivo ?? 'desconocido' })
+    return
+  }
+
+  const paquete = resolverPaquete(recibo.productId)
+  if (!paquete) {
+    logger.exception('billing:webhook_google_producto', new Error(`productId sin paquete: ${String(recibo.productId)}`), {})
+    return
+  }
+
+  // El destinatario sale de `obfuscatedExternalAccountId`, que la app fija al
+  // `profiles.id` al lanzar la compra. Sin él no se adivina a quién acreditar:
+  // la persona lo recupera con `POST /api/billing/restore`, que sí tiene sesión.
+  const compra = await detalleCompra(aviso.sku, aviso.purchaseToken)
+  const userId = compra?.obfuscatedExternalAccountId
+  if (!userId) {
+    logger.exception('billing:webhook_google_sin_destinatario', new Error('obfuscatedExternalAccountId ausente'), {
+      external_id: recibo.externalId,
+    })
+    return
+  }
+
+  const resultado = await acreditarCompra(createAdminClient(), {
+    userId,
+    externalId: recibo.externalId,
+    sku: paquete.sku,
+    source: 'iap_google',
+    recibo: { productId: recibo.productId, externalId: recibo.externalId },
+  })
+
+  // Acknowledge SIEMPRE después de acreditar: sin él, Google revierte el cobro
+  // a los 3 días y la persona se queda los cristales gratis.
+  if (resultado.acreditado) {
+    const ok = await confirmarCompra(aviso.sku, aviso.purchaseToken)
+    if (!ok) {
+      logger.exception('billing:acknowledge_fallido', new Error('acknowledge de Google no confirmado'), {
+        external_id: recibo.externalId,
+      })
+    }
+  }
+}
+
+/**
+ * Segunda lectura de `purchases.products.get`, solo para el
+ * `obfuscatedExternalAccountId`. Se aísla aquí para que `verificarRecibo`
+ * siga devolviendo el tipo del contrato (`ReciboVerificado`) y no crezca con
+ * campos que solo necesita el webhook.
+ */
+async function detalleCompra(
+  sku: string,
+  purchaseToken: string,
+): Promise<{ obfuscatedExternalAccountId?: string } | null> {
+  const config = configGoogle()
+  if (!config) return null
+
+  const { accessToken } = await import('@/lib/billing/google')
+  const acceso = await accessToken(config)
+  if (!acceso) return null
+
+  try {
+    const url =
+      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(config.packageName)}` +
+      `/purchases/products/${encodeURIComponent(sku)}/tokens/${encodeURIComponent(purchaseToken)}`
+    const respuesta = await fetch(url, { headers: { Authorization: `Bearer ${acceso}` }, cache: 'no-store' })
+    if (!respuesta.ok) return null
+    return (await respuesta.json()) as { obfuscatedExternalAccountId?: string }
+  } catch {
+    return null
+  }
+}

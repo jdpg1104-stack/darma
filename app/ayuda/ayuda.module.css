@@ -1,0 +1,131 @@
+/* /ayuda · CSS Module.
+   Todo color sale de un token de app/globals.css.
+
+   Dos reglas de diseño que aquí no son estéticas:
+   · Los números se pintan GRANDES y con área táctil generosa. Quien llega a
+     esta pantalla puede estar temblando; un objetivo de 44 px es el mínimo
+     legal, no el adecuado para este caso.
+   · Cero animación de entrada y cero color de alarma como fondo. La pantalla
+     tiene que calmar, no acelerar. */
+
+.pagina {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px calc(48px + env(safe-area-inset-bottom, 0px));
+}
+
+.titulo {
+  margin: 0 0 12px;
+  font-size: 26px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.entrada {
+  margin: 0 0 28px;
+  color: var(--muted);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recurso {
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 16px);
+  background: var(--panel);
+  padding: 16px 18px;
+}
+
+.enlace,
+.enlaceUrgente {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Toda la tarjeta es zona de toque, no solo el texto del número. */
+  margin: -16px -18px 0;
+  padding: 16px 18px 8px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.valor {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* El número de emergencias se distingue con el color de peligro en el TEXTO
+   del número, no con un fondo rojo: sobre --panel el contraste es suficiente y
+   la pantalla no se convierte en una alarma. */
+.enlaceUrgente .valor {
+  color: var(--danger);
+}
+
+.nombre {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.detalle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.nota,
+.aviso {
+  margin: 22px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  background: var(--panel2, var(--panel));
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.aviso {
+  border-left: 3px solid var(--warn);
+}
+
+.separador {
+  margin: 32px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.limite h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.limite p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.volver {
+  display: inline-block;
+  margin-top: 32px;
+  min-height: var(--touch, 44px);
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill, 999px);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+}

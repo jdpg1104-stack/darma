@@ -141,6 +141,25 @@ const DEUDA_LITERALES_CONOCIDA: readonly string[] = [
   'components/refuge/NumeroSeguridad.tsx',
   'components/refuge/Redactor.tsx',
   'components/refuge/TarjetaCrisis.tsx',
+  // Ola 4 (B12, B19) e integración.
+  'app/(admin)/_componentes/NavegacionAdmin.tsx',
+  'app/(admin)/_componentes/Sparkline.tsx',
+  'app/(admin)/_componentes/TablaSerie.tsx',
+  'app/(admin)/panel/activacion/page.tsx',
+  'app/(admin)/panel/crisis/page.tsx',
+  'app/(admin)/panel/economia/page.tsx',
+  'app/(admin)/panel/page.tsx',
+  'app/(admin)/panel/reciprocidad/page.tsx',
+  'app/(admin)/panel/roles/page.tsx',
+  'components/economia/DialogoBoost.tsx',
+  'components/economia/HistorialCompras.tsx',
+  'components/economia/SaldoCristales.tsx',
+  'components/economia/SelectorRegalo.tsx',
+  // `/ayuda` encabeza la lista de lo que hay que traducir PRIMERO, y por un
+  // motivo que no es de proceso: es la pantalla del botón de crisis. Alguien
+  // que la abra en inglés y encuentre el texto en español está buscando un
+  // teléfono en un idioma que no entiende, en el peor momento posible.
+  'app/ayuda/page.tsx',
 ]
 
 function relativo(absoluto: string): string {

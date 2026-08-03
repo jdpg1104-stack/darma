@@ -1,0 +1,61 @@
+// ============================================================================
+// B19 · Qué pestañas ve cada rol
+//
+// Copia la FORMA de `adminNav.ts`/`adminAccess.ts` del proyecto hermano —una
+// tabla declarativa de tabs con rol mínimo, resuelta por una función pura— y no
+// su fondo: allí el rol sale de un correo, aquí de `admin_roles` en Postgres.
+//
+// ⚠️ ESTO ES COSMÉTICA. Ocultar una pestaña no protege nada: la ruta se puede
+// teclear a mano y la API se puede llamar con `curl`. La comprobación real
+// vuelve a ocurrir en `requireAdmin()` en cada ruta y en cada página. Si alguna
+// vez alguien borra este archivo entero, el sistema sigue siendo seguro; solo
+// se vuelve incómodo.
+// ============================================================================
+
+import type { RolAdmin } from './acceso.ts'
+import { cumpleRol } from './acceso.ts'
+
+export interface TabAdmin {
+  id: string
+  ruta: string
+  etiqueta: string
+  rolMinimo: RolAdmin
+}
+
+/**
+ * El reparto de la ficha B19, §7:
+ *
+ *   soporte     → activación y reciprocidad, solo lectura. NO ve economía ni
+ *                 nada individual.
+ *   moderador   → lo anterior + crisis + el enlace a /moderacion (de B11).
+ *   operaciones → + economía.
+ *   superadmin  → + gestión de roles.
+ *
+ * El orden del array ES el orden visual, y no es alfabético a propósito: la
+ * portada primero, y dentro de las secciones el KPI que manda (reciprocidad)
+ * antes que lo demás.
+ */
+export const TABS_ADMIN: readonly TabAdmin[] = [
+  { id: 'panel',        ruta: '/panel',              etiqueta: 'Resumen',      rolMinimo: 'soporte' },
+  { id: 'reciprocidad', ruta: '/panel/reciprocidad', etiqueta: 'Reciprocidad', rolMinimo: 'soporte' },
+  { id: 'activacion',   ruta: '/panel/activacion',   etiqueta: 'Activación',   rolMinimo: 'soporte' },
+  { id: 'crisis',       ruta: '/panel/crisis',       etiqueta: 'Crisis',       rolMinimo: 'moderador' },
+  // Propiedad de B11. Este bloque solo enlaza la ruta; no toca su código.
+  { id: 'moderacion',   ruta: '/moderacion',         etiqueta: 'Moderación',   rolMinimo: 'moderador' },
+  { id: 'economia',     ruta: '/panel/economia',     etiqueta: 'Economía',     rolMinimo: 'operaciones' },
+  { id: 'roles',        ruta: '/panel/roles',        etiqueta: 'Roles',        rolMinimo: 'superadmin' },
+] as const
+
+/** Pestañas visibles para un rol. PURA. */
+export function tabsVisibles(rol: RolAdmin): TabAdmin[] {
+  return TABS_ADMIN.filter((tab) => cumpleRol(rol, tab.rolMinimo))
+}
+
+/** ¿Puede este rol abrir esta ruta? Se usa en las páginas, no solo en el menú. */
+export function puedeVerRuta(rol: RolAdmin, ruta: string): boolean {
+  const tab = TABS_ADMIN.find((t) => t.ruta === ruta)
+  // Ruta desconocida → NO. Falla cerrado: una página nueva que se olvide de
+  // registrarse aquí queda cerrada, no abierta a todo el mundo.
+  if (!tab) return false
+  return cumpleRol(rol, tab.rolMinimo)
+}

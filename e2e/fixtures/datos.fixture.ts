@@ -1,0 +1,147 @@
+import { clienteAdminE2E } from '../utils/admin'
+import { postSembrado, TEXTO_NEUTRO } from '../utils/textos'
+import { crearUsuario, type UsuarioE2E } from './usuario.fixture'
+
+/**
+ * Siembra N posts de N autores DISTINTOS y devuelve sus ids.
+ *
+ * De autores distintos a propósito: el índice único parcial
+ * `uq_comments_one_listen_per_post (post_id, author_id) where is_validated`
+ * impide ganar tres créditos comentando tres veces el mismo post, así que tres
+ * posts del mismo autor tampoco servirían para el recorrido (b) si algún día
+ * la regla se endurece a «tres personas distintas».
+ *
+ * Va por service_role en un solo `insert` con array, no por la UI: crear tres
+ * posts navegando cuesta ~15 s por test y no prueba nada que no pruebe ya el
+ * recorrido (c).
+ */
+export async function sembrarPosts(n: number): Promise<{ ids: string[]; autores: UsuarioE2E[] }> {
+  const admin = clienteAdminE2E()
+
+  const autores: UsuarioE2E[] = []
+  for (let i = 0; i < n; i += 1) autores.push(await crearUsuario(`autor${i + 1}`))
+
+  // Los autores han de poder publicar: el primer post es gratis
+  // (`posts_published = 0`), así que un solo post por autor pasa el trigger sin
+  // necesidad de tocar `listen_credits` a mano.
+  const filas = autores.map((autor, i) => ({
+    author_id: autor.id,
+    kind: 'desahogo',
+    body: postSembrado(i + 1),
+    topic: 'otro',
+  }))
+
+  const { data, error } = await admin.from('posts').insert(filas).select('id')
+  if (error) throw new Error(`No se han podido sembrar ${n} posts: ${error.message}`)
+
+  return { ids: (data ?? []).map((f) => f.id as string), autores }
+}
+
+/**
+ * Marca un comentario como validado con service_role.
+ *
+ * ESTA ES LA PIEZA CLAVE DEL BLOQUE. Sin `MODERATION_API_KEY` el clasificador
+ * de IA no responde y el sistema **falla cerrado** por diseño: ningún
+ * comentario se valida solo y el bucle de reciprocidad no avanza nunca. Si un
+ * test esperase a que la app validara sola, se quedaría colgado siempre.
+ *
+ * El `update` dispara `trg_comments_validated`, que en la misma transacción
+ * acredita `listen_credits`, llama a `award_karma()` e incrementa
+ * `reply_count`. Es exactamente la cadena real.
+ *
+ * ⚠️ NUNCA se toca `profiles.listen_credits` a mano: eso se saltaría el trigger
+ * que es justo lo que hay que verificar.
+ */
+export async function validarComentario(comentarioId: string): Promise<void> {
+  const admin = clienteAdminE2E()
+  const { error } = await admin
+    .from('comments')
+    .update({ is_validated: true })
+    .eq('id', comentarioId)
+    .eq('is_validated', false)
+
+  if (error) throw new Error(`No se ha podido validar el comentario ${comentarioId}: ${error.message}`)
+}
+
+/**
+ * Deja al usuario con `posts_published >= 1` y `listen_credits = 0`, POR LA VÍA
+ * REAL: publicando una vez.
+ *
+ * ⚠️ El primer post es GRATIS. Si el recorrido (c) usara un usuario recién
+ * creado, la publicación FUNCIONARÍA y el test fallaría sin motivo aparente.
+ * De ahí que esto exista y de ahí que publique de verdad en vez de escribir
+ * `posts_published = 1` a mano.
+ */
+export async function agotarEscuchas(usuario: UsuarioE2E): Promise<void> {
+  const admin = clienteAdminE2E()
+
+  const { error } = await admin.from('posts').insert({
+    author_id: usuario.id,
+    kind: 'desahogo',
+    body: TEXTO_NEUTRO,
+    topic: 'otro',
+  })
+
+  if (error) {
+    throw new Error(`No se ha podido gastar el post gratis de ${usuario.alias}: ${error.message}`)
+  }
+}
+
+/** Lee del ledger, no del caché de `profiles`: `karma_events` es la verdad. */
+export async function karmaDelLedger(usuarioId: string): Promise<number> {
+  const admin = clienteAdminE2E()
+  const { data, error } = await admin
+    .from('karma_events')
+    .select('delta_reputation')
+    .eq('user_id', usuarioId)
+
+  if (error) throw new Error(`No se ha podido leer el ledger de ${usuarioId}: ${error.message}`)
+  return (data ?? []).reduce((suma, f) => suma + (f.delta_reputation as number), 0)
+}
+
+/** Créditos de escucha reales, leídos con service_role. */
+export async function creditosDeEscucha(usuarioId: string): Promise<number> {
+  const admin = clienteAdminE2E()
+  const { data, error } = await admin
+    .from('profiles')
+    .select('listen_credits')
+    .eq('id', usuarioId)
+    .single()
+
+  if (error) throw new Error(`No se han podido leer los créditos de ${usuarioId}: ${error.message}`)
+  return data.listen_credits as number
+}
+
+/** Un contenido de vídeo publicado, para el recorrido (f). */
+export async function sembrarVideo(
+  etiqueta: string,
+  duracionSegundos = 30,
+): Promise<string> {
+  const admin = clienteAdminE2E()
+  const { data, error } = await admin
+    .from('content_items')
+    .insert({
+      source: 'e2e',
+      platform: 'youtube',
+      external_id: `e2e-${etiqueta}-${Date.now()}`,
+      title: `Respiración guiada de prueba ${etiqueta}`,
+      url: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+      language: 'es',
+      duration_seconds: duracionSegundos,
+      topic: 'ansiedad',
+      state: 'published',
+      published_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(`No se ha podido sembrar el vídeo ${etiqueta}: ${error.message}`)
+  return data.id as string
+}
+
+/** Borra un contenido sembrado. */
+export async function borrarVideo(id: string): Promise<void> {
+  const admin = clienteAdminE2E()
+  await admin.from('content_views').delete().eq('content_id', id)
+  await admin.from('content_items').delete().eq('id', id)
+}
