@@ -50,7 +50,21 @@ export interface Hallazgo {
 const AQUI = dirname(fileURLToPath(import.meta.url))
 const RAIZ_POR_DEFECTO = join(AQUI, '..', '..')
 
-const IGNORAR_DIRS = new Set(['node_modules', '.next', '.git', 'out', 'build', 'coverage', 'dist'])
+// `.claude` incluye los worktrees de git que crean las sesiones paralelas: son
+// COPIAS del propio repositorio, así que escanearlas duplica cada hallazgo y,
+// peor, denuncia como secreto el PEM de ejemplo que este mismo guard usa de
+// fixture en su test. Un guard que se acusa a sí mismo enseña a ignorarlo.
+// Lo que de verdad protege es el árbol real, y ese sí se recorre entero.
+const IGNORAR_DIRS = new Set([
+  'node_modules',
+  '.next',
+  '.git',
+  '.claude',
+  'out',
+  'build',
+  'coverage',
+  'dist',
+])
 
 /**
  * Este directorio se salta: contiene los PATRONES de detección y las cadenas de

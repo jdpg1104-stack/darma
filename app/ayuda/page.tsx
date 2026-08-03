@@ -111,6 +111,24 @@ function textoIdiomas(codigos: readonly string[], t: Traductor): string {
     .join(', ')
 }
 
+/**
+ * Agrupa los dígitos para que el número se pueda LEER y teclear.
+ *
+ * `717003717` de un tirón es una fila de nueve cifras que hay que contar con el
+ * dedo; `717 003 717` se lee de un vistazo. El `href` sigue llevando el número
+ * pegado, que es lo que exige `tel:` — lo que cambia es solo lo que se ve.
+ *
+ * Importa más aquí que en cualquier otra pantalla: quien está leyendo esto
+ * puede tener que marcarlo a mano desde otro teléfono.
+ */
+function numeroLegible(valor: string): string {
+  if (!/^\d+$/.test(valor)) return valor
+  if (valor.length === 9) return `${valor.slice(0, 3)} ${valor.slice(3, 6)} ${valor.slice(6)}`
+  if (valor.length === 6) return `${valor.slice(0, 3)} ${valor.slice(3)}`
+  if (valor.length === 10) return `${valor.slice(0, 3)} ${valor.slice(3, 6)} ${valor.slice(6)}`
+  return valor
+}
+
 export default async function PaginaAyuda() {
   const [locale, pais] = await Promise.all([resolverLocale(), resolverPais()])
   const t = obtenerTraductor(locale)
@@ -139,15 +157,19 @@ export default async function PaginaAyuda() {
               {...(esTelefono(r) ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
             >
               {/* Ni el número ni el nombre de la organización se traducen. */}
-              <span className={estilos.valor}>{r.valor}</span>
+              <span className={estilos.valor}>{esTelefono(r) ? numeroLegible(r.valor) : r.valor}</span>
               <span className={estilos.nombre}>{r.nombre}</span>
             </a>
             <p className={estilos.detalle}>
               {textoHorario(r.horario, t)}
-              {/* También se dice cuando NO es gratuita: la entradilla promete que
-                  cada tarjeta lo indica, y callarlo en las de pago dejaría a alguien
-                  suponiendo que todas lo son. Dos de las líneas reales no lo son. */}
-              {` · ${t(r.gratuito ? 'crisis.tarjeta.gratuito' : 'crisis.tarjeta.noGratuito')}`}
+              {/* El coste solo se dice de lo que se LLAMA. Un recurso de tipo `web`
+                  con `gratuito: true` mostraba «Llamada gratuita» sobre una página
+                  web, que no es que sea impreciso: siembra la duda de si al abrirla
+                  van a cobrarte algo. Y se dice en los dos sentidos, porque la
+                  entradilla promete que cada tarjeta lo indica. */}
+              {esTelefono(r)
+                ? ` · ${t(r.gratuito ? 'crisis.tarjeta.gratuito' : 'crisis.tarjeta.noGratuito')}`
+                : ''}
               {r.idiomasAtencion.length > 0
                 ? ` · ${t('crisis.tarjeta.atiendeEn', { idiomas: textoIdiomas(r.idiomasAtencion, t) })}`
                 : ''}

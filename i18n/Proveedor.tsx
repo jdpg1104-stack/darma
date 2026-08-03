@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 
 import { LOCALE_POR_DEFECTO, type Locale } from './routing.ts'
-import { obtenerTraductor, type Traductor } from './index.ts'
+import { obtenerTraductor, type Traductor } from './traductor.ts'
 
 // ============================================================================
 // El puente del idioma hacia los componentes de cliente.

@@ -1,11 +1,28 @@
-// Estado de carga raíz. Next lo muestra automáticamente mientras se resuelve un
-// Server Component (Suspense implícito).
+// Esqueleto de carga compartido por las pantallas de `(app)`.
+//
+// ⚠️ POR QUÉ CADA RUTA TIENE SU PROPIO `loading.tsx` EN VEZ DE UNO COMPARTIDO
+// EN `app/(app)/loading.tsx`, Y POR QUÉ ESTO NO ES UNA MANÍA:
+//
+// El layout raíz es asíncrono —espera a `resolverLocale()` para poner el `lang`
+// del documento—, así que suspende en todas las peticiones. Con un `loading.tsx`
+// en un segmento SUPERIOR al de la página, React nunca completa el intercambio
+// del fallback: se queda en el DOM junto al contenido y **la hidratación no
+// arranca**. La app se ve entera y no responde a nada: el composer mostraba
+// «Preparando el espacio para escribir…» para siempre, y ningún formulario
+// funcionaba.
+//
+// Con el `loading.tsx` en el MISMO segmento que la página, funciona. Se
+// comprobó ruta por ruta: `/feed` era la única sana de toda la app, y era la
+// única que ya tenía el suyo propio.
+//
+// Nada de esto lo veía el `tsc`, ni el lint, ni los 1.209 tests: cada pieza
+// estaba bien por separado. Salió al recorrer la app a mano.
 //
 // A propósito NO hay spinner ni animación: un esqueleto quieto con la forma del
 // contenido que viene reduce la sensación de espera sin añadir movimiento a una
 // pantalla que puede estar mirando alguien con ansiedad. También cumple solo
 // con `prefers-reduced-motion` sin necesidad de una regla aparte.
-export default function Loading() {
+export default function EsqueletoPantalla() {
   return (
     <main
       aria-busy="true"

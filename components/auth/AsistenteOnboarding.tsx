@@ -24,7 +24,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Respuesta } from '@/lib/auth/respuestas'
-import { traducirCodigoError } from '@/i18n'
+import { traducirCodigoError } from '@/i18n/traductor'
 import { useTraductor } from '@/i18n/Proveedor'
 import { AvatarSemilla } from './AvatarSemilla'
 
