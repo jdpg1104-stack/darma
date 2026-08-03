@@ -1,5 +1,5 @@
 -- ============================================================================
--- Darma · 0009 · Cerrar `profiles_exige_auth_user()` a la API
+-- Darma · 0202_1 · Cerrar `profiles_exige_auth_user()` a la API
 --
 -- Es una función de trigger, así que Postgres rechaza invocarla fuera de un
 -- trigger y el riesgo práctico es nulo. Pero quedaba publicada en
@@ -11,6 +11,19 @@
 -- modo solo lectura por tamaño justo en ese momento. Un fallo de infraestructura
 -- dejó media migración aplicada — que es precisamente por qué el linter se pasa
 -- al final y no solo al principio.
+--
+-- ⚠️ EL NÚMERO IMPORTA. Esta migración se llamó `0009` durante unas horas, y
+-- funcionaba en la base de desarrollo porque allí se aplicó a mano DESPUÉS de
+-- la 0201. Sobre una base nueva no: las migraciones corren en orden alfabético,
+-- así que `0009` intentaba revocar permisos de una función que todavía no
+-- existía y `supabase db reset` moría con
+-- `function public.profiles_exige_auth_user() does not exist`.
+--
+-- Solo lo veía una reconstrucción desde cero. Lo cazó el CI la primera vez que
+-- corrió de verdad, que es exactamente para lo que está.
+--
+-- Regla: una migración que toca algo creado por otra tiene que ordenarse
+-- DESPUÉS de ella, y el número es lo único que lo garantiza.
 -- ============================================================================
 
 revoke all on function public.profiles_exige_auth_user() from public, anon, authenticated;
