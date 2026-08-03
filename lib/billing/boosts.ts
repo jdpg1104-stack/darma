@@ -124,12 +124,21 @@ export function errorDeBoost(causa: unknown): ErrorApi {
         // autor de un post marcado por riesgo no debe deducir del mensaje que
         // está en una cola de revisión.
         mensaje: 'Este post no se puede impulsar ahora mismo.',
+        // La clave viaja junto al mensaje para que la pantalla lo pinte en el
+        // idioma de quien lee. `mensaje` se queda como respaldo y es lo que ve
+        // el log.
+        mensajeClave: 'karma.economia.boost.errorNoImpulsable',
       })
     case 'DA005':
       return new ErrorApi('demasiadas_peticiones', {
         causa,
         retryAfter: segundosHastaManana(),
         mensaje: `Ya has impulsado ${BOOST_MAX_DIA} veces hoy. Mañana vuelves a tener sitio.`,
+        // Con la clave genérica de `demasiadas_peticiones` esto saldría como
+        // «prueba otra vez en 40 000 segundos»: el cupo es diario y el
+        // `retryAfter` son horas. El matiz se pierde sin una clave propia.
+        mensajeClave: 'karma.economia.boost.errorCupoDiario',
+        mensajeParams: { max: BOOST_MAX_DIA },
       })
     case 'DA006':
       return new ErrorApi('entrada_invalida', { causa })

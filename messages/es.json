@@ -497,6 +497,8 @@
           "karma": "Te falta karma"
         },
         "error": "No hemos podido impulsarlo ahora mismo.",
+        "errorCupoDiario": "Ya has impulsado {max} veces hoy. Mañana vuelves a tener sitio.",
+        "errorNoImpulsable": "Este post no se puede impulsar ahora mismo.",
         "explicacion": "Durante {horas} horas rinde como si tuviera diez veces los apoyos que tiene. No salta la moderación, no adelanta a nadie en crisis y no cambia según con qué lo pagues.",
         "impulsar": "Impulsar",
         "impulsarEtiqueta": "Impulsar: {etiqueta}",

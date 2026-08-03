@@ -55,6 +55,23 @@ export interface OpcionesErrorApi {
   /** Sustituye al mensaje por defecto. DEBE seguir siendo apto para el público:
    *  ni nombres de tabla, ni SQL, ni la expresión regular que falló. */
   mensaje?: string
+  /**
+   * Clave del catálogo (`messages/*.json`) con la que la interfaz puede pintar
+   * este error EN EL IDIOMA DE QUIEN LEE.
+   *
+   * Existe porque `mensaje` viaja ya resuelto, y el servidor no sabe en qué
+   * idioma lee quien pregunta: una respuesta con matiz —«ya has impulsado 3
+   * veces hoy»— llegaba en español a una pantalla en inglés. Traducir por
+   * `code` a secas tampoco vale: perdería justo ese matiz y dejaría un
+   * genérico.
+   *
+   * `mensaje` NO desaparece: es el respaldo para cuando no hay clave, y lo que
+   * se registra en el log. La interfaz usa la clave si viene, y si no, el
+   * mensaje.
+   */
+  mensajeClave?: string
+  /** Parámetros del ICU de `mensajeClave` (por ejemplo `{ horas: 6 }`). */
+  mensajeParams?: Readonly<Record<string, string | number>>
   /** Segundos hasta que se reabre la ventana. Solo para 429. */
   retryAfter?: number
   /** El error real. Se registra, NO se devuelve. */
@@ -72,6 +89,8 @@ export class ErrorApi extends Error {
   readonly code: CodigoError
   readonly status: number
   readonly retryAfter?: number
+  readonly mensajeClave?: string
+  readonly mensajeParams?: Readonly<Record<string, string | number>>
   readonly causa?: unknown
 
   constructor(code: CodigoError, opciones: OpcionesErrorApi = {}) {
@@ -81,6 +100,8 @@ export class ErrorApi extends Error {
     this.code = code
     this.status = especificacion.status
     if (opciones.retryAfter !== undefined) this.retryAfter = opciones.retryAfter
+    if (opciones.mensajeClave !== undefined) this.mensajeClave = opciones.mensajeClave
+    if (opciones.mensajeParams !== undefined) this.mensajeParams = opciones.mensajeParams
     if (opciones.causa !== undefined) this.causa = opciones.causa
   }
 }

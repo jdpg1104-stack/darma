@@ -497,6 +497,8 @@
           "karma": "Not enough karma"
         },
         "error": "We couldn't boost it right now.",
+        "errorCupoDiario": "You have boosted {max} times today. There will be room again tomorrow.",
+        "errorNoImpulsable": "This post can't be boosted right now.",
         "explicacion": "For {horas} hours it performs as if it had ten times the support it has. It doesn't skip moderation, it doesn't get ahead of anyone in crisis, and it doesn't change depending on how you paid for it.",
         "impulsar": "Boost",
         "impulsarEtiqueta": "Boost: {etiqueta}",

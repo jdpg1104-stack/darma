@@ -49,8 +49,20 @@ export function BotonRegalar({ recipientId, giftKind, etiqueta, refType, refId }
       })
 
       if (!respuesta.ok) {
-        const cuerpo = (await respuesta.json().catch(() => null)) as { message?: string } | null
-        setError(cuerpo?.message ?? t('karma.economia.regalo.error'))
+        const cuerpo = (await respuesta.json().catch(() => null)) as {
+          message?: string
+          mensajeClave?: string
+          mensajeParams?: Record<string, string | number>
+        } | null
+        // La CLAVE manda sobre el mensaje: el servidor no sabe en qué idioma
+        // lee quien pregunta, así que `message` viene siempre en uno solo. Se
+        // conserva como respaldo porque no todos los errores traen clave, y un
+        // mensaje en el idioma equivocado sigue siendo mejor que ninguno.
+        setError(
+          cuerpo?.mensajeClave
+            ? t(cuerpo.mensajeClave, cuerpo.mensajeParams ?? {})
+            : (cuerpo?.message ?? t('karma.economia.regalo.error')),
+        )
         return
       }
       setEnviado(true)

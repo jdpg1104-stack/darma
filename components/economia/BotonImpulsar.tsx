@@ -46,10 +46,22 @@ export function BotonImpulsar({ postId, medio, etiqueta }: BotonImpulsarProps) {
       })
 
       if (!respuesta.ok) {
-        const cuerpo = (await respuesta.json().catch(() => null)) as { message?: string } | null
+        const cuerpo = (await respuesta.json().catch(() => null)) as {
+          message?: string
+          mensajeClave?: string
+          mensajeParams?: Record<string, string | number>
+        } | null
         // El mensaje viene ya redactado del servidor (lib/auth/errores.ts); no
         // se construye aquí ni se enseña nada del proveedor.
-        setError(cuerpo?.message ?? t('karma.economia.boost.error'))
+        // La CLAVE manda sobre el mensaje: el servidor no sabe en qué idioma
+        // lee quien pregunta, así que `message` viene siempre en uno solo. Se
+        // conserva como respaldo porque no todos los errores traen clave, y un
+        // mensaje en el idioma equivocado sigue siendo mejor que ninguno.
+        setError(
+          cuerpo?.mensajeClave
+            ? t(cuerpo.mensajeClave, cuerpo.mensajeParams ?? {})
+            : (cuerpo?.message ?? t('karma.economia.boost.error')),
+        )
         return
       }
       window.location.reload()

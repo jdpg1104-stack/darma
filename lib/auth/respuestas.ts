@@ -19,7 +19,11 @@ export interface RespuestaOk<T> {
 export interface RespuestaError {
   ok: false
   code: CodigoError
+  /** Texto ya resuelto. Respaldo cuando no hay clave, y lo que ve el log. */
   message: string
+  /** Clave de catálogo para pintarlo en el idioma de quien lee. Ver errores.ts. */
+  mensajeClave?: string
+  mensajeParams?: Readonly<Record<string, string | number>>
   retryAfter?: number
 }
 
@@ -51,6 +55,8 @@ export function sobreDeError(causa: unknown): Sobre<never> {
     code: error.code,
     message: error.message,
   }
+  if (error.mensajeClave !== undefined) cuerpo.mensajeClave = error.mensajeClave
+  if (error.mensajeParams !== undefined) cuerpo.mensajeParams = error.mensajeParams
   if (error.retryAfter !== undefined) cuerpo.retryAfter = error.retryAfter
 
   return { status: error.status, cuerpo }
