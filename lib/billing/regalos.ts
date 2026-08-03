@@ -62,16 +62,32 @@ export type TipoRegalo = (typeof TIPOS_REGALO)[number]
 export interface DefinicionRegalo {
   kind: TipoRegalo
   costeCristales: number
-  etiqueta: string
+  /**
+   * CLAVE del catálogo i18n, no el nombre. «Una vela» es un dato de este módulo
+   * que acaba LEÍDO en el selector de regalo y en el historial, dos pantallas
+   * que ya están traducidas: guardar aquí el español dejaría media pantalla en
+   * otro idioma. La resuelve la vista con su locale, igual que
+   * `KARMA_WEIGHTS[kind].description` → `karma.tipos.<kind>`.
+   *
+   * 🔴 El guard de `regalos.test.ts` NO mira esta clave: mira el texto que sale
+   * de los dos catálogos. Un regalo que prometiera karma en inglés no se vería
+   * comprobando la clave.
+   */
+  claveEtiqueta: string
   /** Emoji o glifo. Puramente decorativo; nada que imite un nivel de karma. */
   simbolo: string
 }
 
 export const CATALOGO_REGALOS: Readonly<Record<TipoRegalo, DefinicionRegalo>> = {
-  vela: { kind: 'vela', costeCristales: 10, etiqueta: 'Una vela', simbolo: '🕯️' },
-  abrazo: { kind: 'abrazo', costeCristales: 50, etiqueta: 'Un abrazo', simbolo: '🫂' },
-  faro: { kind: 'faro', costeCristales: 150, etiqueta: 'Un faro', simbolo: '🗼' },
-  constelacion: { kind: 'constelacion', costeCristales: 400, etiqueta: 'Una constelación', simbolo: '✨' },
+  vela: { kind: 'vela', costeCristales: 10, claveEtiqueta: 'karma.economia.regalos.vela', simbolo: '🕯️' },
+  abrazo: { kind: 'abrazo', costeCristales: 50, claveEtiqueta: 'karma.economia.regalos.abrazo', simbolo: '🫂' },
+  faro: { kind: 'faro', costeCristales: 150, claveEtiqueta: 'karma.economia.regalos.faro', simbolo: '🗼' },
+  constelacion: {
+    kind: 'constelacion',
+    costeCristales: 400,
+    claveEtiqueta: 'karma.economia.regalos.constelacion',
+    simbolo: '✨',
+  },
 } as const
 
 export const REGALOS: readonly DefinicionRegalo[] = [

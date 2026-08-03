@@ -88,7 +88,7 @@
       "ultimas": "Latest polls"
     },
     "meta": {
-      "titulo": "Control room · Darma"
+      "titulo": "Control room"
     },
     "metricas": "Metrics",
     "nav": {
@@ -341,7 +341,7 @@
     "finDelDia": "That's all for today. Come back tomorrow.",
     "meta": {
       "descripcion": "Short wellbeing videos, hand-picked. No comments, nobody watching.",
-      "titulo": "Lift · Darma"
+      "titulo": "Lift"
     },
     "progreso": "Video progress",
     "reproducirPausar": "Play or pause: {titulo}",
@@ -364,7 +364,7 @@
       "internacional": "We couldn't work out which country you're writing from, so these are international resources.",
       "internacionalUrgente": "If you are in danger right now, call the emergency number for the country you're in.",
       "metaDescripcion": "Helplines and support if you are going through a hard time.",
-      "metaTitulo": "Help now · Darma",
+      "metaTitulo": "Help now",
       "noTerapiaCuerpo": "The people who listen to you here have been through similar things, and that counts for a lot. But we are not mental health professionals and we cannot handle an emergency. If you are at risk, call one of the numbers above: there is someone trained to help you on the other end, right now.",
       "noTerapiaTitulo": "Darma is not a replacement for therapy",
       "sinVerificar": "We are still confirming these numbers one by one with each organisation. If one of them doesn't answer, try the next one on the list, or the emergency number for the country you're in.",
@@ -437,7 +437,7 @@
     "escuchas": "{n, plural, one {# person has listened} other {# people have listened}}",
     "finDeLista": "You've reached the end.",
     "impulsado": "Boosted",
-    "metaTitulo": "Your feed · Darma",
+    "metaTitulo": "Your feed",
     "paraTi": "For you",
     "quitarApoyo": "Take back my support",
     "recientes": "Latest",
@@ -471,7 +471,7 @@
     "meAyudo": "This helped",
     "meAyudoHecho": "You told them it helped",
     "metaDescripcion": "Someone has said what's going on. This is where they're heard.",
-    "metaTitulo": "A conversation · Darma",
+    "metaTitulo": "A conversation",
     "noContada": "This didn't count as listening",
     "primeraPersona": "If you feel up to it, you could be the first person to listen.",
     "publicado": "Posted",
@@ -500,6 +500,11 @@
         "explicacion": "For {horas} hours it performs as if it had ten times the support it has. It doesn't skip moderation, it doesn't get ahead of anyone in crisis, and it doesn't change depending on how you paid for it.",
         "impulsar": "Boost",
         "impulsarEtiqueta": "Boost: {etiqueta}",
+        "opciones": {
+          "cristales": "{n, plural, one {# crystal} other {# crystals}}",
+          "gratis": "Free (today's allowance)",
+          "karma": "{n} karma"
+        },
         "titulo": "Boost this post"
       },
       "cupoGratis": "You get one free boost a day. It's paid for by the karma you already earned listening to other people: being read never depends on paying.",
@@ -518,6 +523,12 @@
         "vacioTitulo": "Nothing here yet"
       },
       "lineaRoja": "Crystals don't buy karma or priority. Listening does.",
+      "paquetes": {
+        "crystals_100": "A handful of crystals",
+        "crystals_1200": "A chest of crystals",
+        "crystals_3000": "A constellation",
+        "crystals_550": "A bag of crystals"
+      },
       "regalo": {
         "enviado": "Sent",
         "enviar": "Send",
@@ -526,6 +537,12 @@
         "reparto": "{neto} reach them · {comision} keep Darma going",
         "sinCristales": "Not enough crystals",
         "titulo": "Send a gift"
+      },
+      "regalos": {
+        "abrazo": "A hug",
+        "constelacion": "A constellation",
+        "faro": "A lighthouse",
+        "vela": "A candle"
       },
       "saldo": {
         "cristales": "{n, plural, one {crystal} other {crystals}}",
@@ -599,7 +616,6 @@
     "noSomosEmergencias": "Darma is not an emergency service and does not replace a mental health professional.",
     "pie": {
       "antes": "If you are in danger right now, don't wait until you've finished reading this:",
-      "despues": ". 112 works across the whole European Union and 024 is free in Spain, twenty-four hours a day.",
       "enlace": "here are the helpline numbers"
     },
     "privacidad": "Privacy",
@@ -632,7 +648,7 @@
     "colaModeracion": "Moderation queue ({n})",
     "marcarRevisado": "Mark as reviewed",
     "meta": {
-      "titulo": "Moderation · Darma"
+      "titulo": "Moderation"
     },
     "persona": "Person",
     "revisar": "Review",
@@ -674,7 +690,7 @@
       "etiquetaAlias": "Alias",
       "etiquetaAvatar": "Your avatar",
       "guardado": "Saved.",
-      "metaTitulo": "Edit your profile · Darma",
+      "metaTitulo": "Edit your profile",
       "pista": "Your level and your karma aren't editable: they come from what you do. That's what makes them mean something.",
       "pistaAlias": "Between 3 and 24 characters. Letters, numbers, underscores and spaces. It's unique: if someone already has it, we'll tell you.",
       "pistaAvatar": "It's generated from a random number. It doesn't come from a photo and it says nothing about you.",
@@ -741,8 +757,8 @@
     "insigniasTituloPropio": "Your badges",
     "insigniasVacio": "None yet. They'll show up here on their own.",
     "insigniasVacioAjeno": "No badges to show here yet.",
-    "metaTitulo": "Your profile · Darma",
-    "metaTituloAjeno": "Profile · Darma",
+    "metaTitulo": "Your profile",
+    "metaTituloAjeno": "Profile",
     "nivel": {
       "brote": "Sprout",
       "guia": "Guide",
@@ -780,7 +796,7 @@
     "listo": "You've sat with three people. Your turn now: we're reading.",
     "marcador": "No filter needed. Nobody knows who you are.",
     "metaDescripcion": "Tell us what's going on. We're reading.",
-    "metaTitulo": "Post · Darma",
+    "metaTitulo": "Post",
     "pii": {
       "cierre": "Nobody shares contact details on Darma — it's what keeps this a safe place to say what's going on. Would you take it out before posting?",
       "email": "We spotted something that looks like an email address.",
@@ -819,7 +835,7 @@
     "errorCargarMas": "We couldn't load more. Try again in a moment.",
     "intro": "What you post doesn't count here: what counts is how many people you've sat with through a comment that actually helped.",
     "metaDescripcion": "The table of the people who have listened to others most on Darma.",
-    "metaTitulo": "Who shows up most · Darma",
+    "metaTitulo": "Who shows up most",
     "miPosicionEnlace": "See who could use company",
     "miPosicionVacio": "You're not on this table yet. You will be as soon as you sit with someone.",
     "movimientoBaja": "{n, plural, one {Down # place} other {Down # places}}",

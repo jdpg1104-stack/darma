@@ -1482,6 +1482,13 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `regalos.ts` y `cosmeticos.ts`, y los mensajes de
       `errorDeBoost`/`errorDeRegalo`. Ojo con el plural de «1 cristal /
       N cristales», que necesita regla de plural y no concatenación · 2026-08-03
+      · **Actualización 2026-08-03:** hecho todo salvo dos cosas, que tienen
+      pedido propio más abajo: los mensajes de `errorDeBoost`/`errorDeRegalo`
+      (bloqueados por la forma del sobre de error, pedido a B01) y
+      `cosmeticos.ts` (no llega a ninguna pantalla todavía). La petición de que
+      la frase de la línea roja se revise con una persona sigue en pie: el texto
+      inglés de `karma.economia.lineaRoja` viene de la migración de i18n y esta
+      sesión no lo ha reescrito, solo lo ha convertido en la única fuente
 - [ ] **De B12 → B02 · el feed puede pintar el distintivo de «impulsado».**
       `boost_vivo(post_id)` está en `0121_1` §8 y devuelve `(id, expires_at)` del
       boost vivo usando `idx_boosts_active` (3 buffers, 0,11 ms medido). Es
@@ -1518,20 +1525,52 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `components/video/TarjetaVideo.tsx`, `components/economia/SelectorRegalo.tsx`):
       están limpias, pero el guard da falso positivo con el `) : cond ? (` de un
       ternario en JSX y las sigue viendo sucias · 2026-08-03
-- [ ] **De la migración i18n → B12 · `lib/billing/textos.ts` y las dos rutas de
-      `/api/billing` siguen en español, y ahora hay DOS fuentes para la frase de
-      la línea roja.** `components/economia/**` la lee de
-      `karma.economia.lineaRoja` (los dos idiomas); `app/api/billing/catalog` y
-      `app/api/billing/boost` la devuelven en el cuerpo desde
-      `FRASE_LINEA_ROJA`. Dos copias de la misma promesa es exactamente lo que
-      la constante existía para evitar: que las rutas devuelvan la clave (o el
-      texto ya resuelto con el locale de la petición) y `textos.ts` se quede sin
-      consumidores · 2026-08-03
-- [ ] **De la migración i18n → B12 · las etiquetas de datos siguen en español.**
-      `CATALOGO_REGALOS[*].etiqueta`, `PaqueteCristales.etiqueta` y
-      `opcionesDePago().etiqueta` se pintan tal cual dentro de componentes ya
-      traducidos, así que en inglés salen frases mezcladas. Son datos de B12, no
-      copy de pantalla: la migración no los ha tocado · 2026-08-03
+- [x] **CERRADO · una sola fuente para la frase de la línea roja.**
+      `lib/billing/textos.ts` ya no guarda texto: guarda las CLAVES
+      (`CLAVE_LINEA_ROJA`, …). `/api/billing/catalog` y `/api/billing/boost`
+      devuelven `lineaRojaClave` / `explicacionClave` / `explicacionCupoClave` en
+      vez de la frase en español —una ruta no sabe en qué idioma lee quien
+      pregunta— y `FraseLineaRoja` importa la misma constante en vez de teclear
+      la clave. `lineaRoja.test.ts` comprueba ahora los tres eslabones: el
+      componente está en las cuatro superficies de pago, resuelve esa clave, y la
+      clave tiene texto en los dos idiomas; además falla si la frase vuelve a
+      aparecer escrita a mano en `lib/billing/**`, `app/api/billing/**` o
+      `components/economia/**` · 2026-08-03
+- [x] **CERRADO · las etiquetas de datos son claves de catálogo.**
+      `PaqueteCristales.claveEtiqueta`, `DefinicionRegalo.claveEtiqueta` y
+      `opcionesDePago().claveEtiqueta` (con el coste aparte, para que el plural
+      de «1 cristal / N cristales» lo decida cada idioma y no una concatenación).
+      Claves nuevas en los dos catálogos: `karma.economia.paquetes.*`,
+      `karma.economia.regalos.*` y `karma.economia.boost.opciones.*`. Traduce la
+      vista, no el módulo. `lib/billing/textos.test.ts` comprueba que toda clave
+      que pide el código existe con texto en es y en en —el guard de paridad de
+      i18n no ve eso: una clave que no existe en ninguno de los dos catálogos
+      está perfectamente equilibrada— y el guard de «ningún regalo promete karma
+      en su etiqueta» mira ahora el texto de LOS DOS idiomas, no la clave ·
+      2026-08-03
+- [ ] **De B12 → B01 · el sobre de error no puede llevar una traducción, y por
+      eso quedan dos mensajes de la economía en español en pantalla.**
+      `RespuestaError` (CONTRATOS §4) es `{ ok, code, message, retryAfter }`, con
+      `message` en un solo idioma. La regla de la casa es pintar
+      `traducirCodigoError(code)` y no `message` (así lo hacen
+      `components/auth/**`), pero en la economía eso perdería los dos únicos
+      mensajes que dicen algo que el código no dice: DA004 «Este post no se puede
+      impulsar ahora mismo» (`sin_permiso`) y DA005 «Ya has impulsado 3 veces hoy»
+      (`demasiadas_peticiones`, que con la clave genérica saldría como «prueba
+      otra vez en 40 000 segundos»). Hace falta un campo más en el sobre —una
+      clave de catálogo opcional y sus parámetros— o `errores.*` deja de poder
+      explicar los casos con matiz. Mientras tanto, `BotonImpulsar` y
+      `BotonRegalar` siguen pintando `message`, que en una sesión en inglés sale
+      en español · 2026-08-03
+- [ ] **De B12 → B12 (cuando exista la UI de cosméticos) · `cosmeticos.ts` sigue
+      en español.** `etiqueta` y `descripcion` de `CATALOGO_COSMETICOS` salen por
+      `/api/billing/catalog` en español. Hoy no llegan a ninguna pantalla (la
+      propiedad de un cosmético no se persiste y no hay ruta de compra), así que
+      no se han migrado a claves. Cuando se migren, ojo: el guard
+      `prohibidoPorqueImitaNivel()` compara la ETIQUETA contra una lista de
+      palabras en español. Con claves, tendría que comparar el texto de los dos
+      catálogos, o un cosmético llamado «Mentor Crown» solo en inglés pasaría el
+      guard sin que nadie lo vea · 2026-08-03
 - [ ] **De la migración i18n → F3 · `helpResourcesFor().hours` es español fijo.**
       `crisis.tarjeta.horario24` ya existe en los dos idiomas, pero
       `lib/crisis.ts` devuelve «24 h, todos los días» / «Según el país» como

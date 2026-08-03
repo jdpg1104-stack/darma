@@ -202,20 +202,76 @@ test('🔴 ningún cosmético imita un nivel de karma ni la insignia de mentor',
   }
 })
 
-test('🔴 la frase del producto aparece en todas las superficies de pago', async () => {
-  const superficies = [
-    'TiendaCristales.tsx',
-    'DialogoBoost.tsx',
-    'SelectorRegalo.tsx',
-    'HistorialCompras.tsx',
-  ]
+// ── LA FRASE EN LAS CUATRO SUPERFICIES ──────────────────────────────────────
+//
+// La frase ya no es una constante en español: vive en `messages/es.json` y
+// `messages/en.json` bajo `CLAVE_LINEA_ROJA`, y la pinta `<FraseLineaRoja />`.
+// Eso parte la comprobación en tres eslabones, y los tres se comprueban aquí
+// porque la promesa solo se cumple si la cadena entera se cumple:
+//
+//   1. las cuatro superficies de pago pintan el componente,
+//   2. el componente resuelve exactamente esa clave (y no otra tecleada a mano),
+//   3. la clave tiene texto de verdad en LOS DOS idiomas.
+//
+// Comprobar solo el punto 1 —que es lo que hacía este test cuando la frase era
+// una constante— dejaría pasar un componente que resuelve una clave inexistente
+// y pinta «karma.economia.lineaRoja» en una pantalla de pago.
 
-  for (const superficie of superficies) {
+const SUPERFICIES_DE_PAGO = [
+  'TiendaCristales.tsx',
+  'DialogoBoost.tsx',
+  'SelectorRegalo.tsx',
+  'HistorialCompras.tsx',
+] as const
+
+test('🔴 la frase del producto aparece en todas las superficies de pago', () => {
+  for (const superficie of SUPERFICIES_DE_PAGO) {
     const fuente = readFileSync(join(RAIZ, 'components', 'economia', superficie), 'utf8')
     assert.match(
       fuente,
       /<FraseLineaRoja/,
-      `${superficie} es una superficie de pago y tiene que pintar la frase «Los cristales no dan karma ni prioridad. Escuchar sí.»`,
+      `${superficie} es una superficie de pago y tiene que pintar la frase de la línea roja`,
     )
   }
+})
+
+test('🔴 la frase existe, en los dos idiomas, y es la que pinta el componente', async () => {
+  const { LOCALES, obtenerTraductor } = await import('../../i18n/index.ts')
+  const { CLAVE_LINEA_ROJA } = await import('./textos.ts')
+
+  // El componente no puede teclear su propia clave: la importa de `textos.ts`,
+  // que es la MISMA que devuelven `/api/billing/catalog` y `/api/billing/boost`.
+  // Si aquí volviera a aparecer una cadena literal, servidor y pantalla podrían
+  // apuntar a dos frases distintas otra vez.
+  const componente = readFileSync(join(RAIZ, 'components', 'economia', 'FraseLineaRoja.tsx'), 'utf8')
+  assert.match(componente, /\bCLAVE_LINEA_ROJA\b/, 'FraseLineaRoja tiene que usar CLAVE_LINEA_ROJA')
+  assert.match(componente, /t\(CLAVE_LINEA_ROJA\)/, 'la frase se resuelve con el traductor del locale')
+
+  for (const locale of LOCALES) {
+    const frase = obtenerTraductor(locale)(CLAVE_LINEA_ROJA)
+    assert.notEqual(
+      frase,
+      CLAVE_LINEA_ROJA,
+      `sin texto para ${CLAVE_LINEA_ROJA} en ${locale}: la pantalla de pago pintaría la clave`,
+    )
+    assert.ok(frase.trim().length > 20, `la frase en ${locale} está vacía o es un marcador`)
+  }
+})
+
+test('🔴 la frase no vuelve a estar escrita a mano en ningún sitio', () => {
+  // Una sola fuente significa una sola fuente. Si la frase aparece como cadena
+  // literal en el código de pago, es una segunda copia que dentro de seis meses
+  // dirá algo distinto — y en un solo idioma.
+  const literal = /Los cristales no dan karma|Crystals don't buy karma/
+  const archivos = [...TERRITORIOS.flatMap(archivosDe)].filter(
+    (ruta) => !ruta.endsWith('lineaRoja.test.ts'),
+  )
+
+  const hallazgos = archivos.filter((ruta) => literal.test(soloCodigo(readFileSync(ruta, 'utf8')).join('\n')))
+
+  assert.deepEqual(
+    hallazgos.map((ruta) => relative(RAIZ, ruta)),
+    [],
+    'la frase se lee del catálogo (CLAVE_LINEA_ROJA), no se teclea',
+  )
 })

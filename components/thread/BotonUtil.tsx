@@ -29,11 +29,32 @@ export function BotonUtil({ comentarioId, marcado, alMarcar }: BotonUtilProps) {
   const [error, setError] = useState<string | null>(null)
   const [enCurso, iniciar] = useTransition()
 
+  // El aviso de error se pinta en LAS DOS ramas, y por eso está extraído aquí.
+  //
+  // Antes vivía solo dentro de la rama «sin marcar», y la rama «marcado»
+  // retornaba antes. Como `alMarcar()` cambia el estado del padre, bastaba con
+  // que el padre marcara de forma optimista para que el error se desmontara
+  // antes de que nadie pudiera leerlo: la acción fallaba en silencio y el botón
+  // se quedaba como si hubiera funcionado.
+  //
+  // `role="alert"` y no `role="status"`: `status` es cortés y un lector de
+  // pantalla puede posponerlo o no anunciarlo si el foco se ha movido. Esto es
+  // un fallo de una acción que la persona acaba de pedir, y tiene que
+  // interrumpir.
+  const aviso = error ? (
+    <span role="alert" aria-live="assertive">
+      {error}
+    </span>
+  ) : null
+
   if (marcado) {
     return (
-      <Boton variante="secundario" tamano="sm" disabled aria-pressed>
-        {t('hilo.meAyudoHecho')}
-      </Boton>
+      <>
+        <Boton variante="secundario" tamano="sm" disabled aria-pressed>
+          {t('hilo.meAyudoHecho')}
+        </Boton>
+        {aviso}
+      </>
     )
   }
 
@@ -57,7 +78,7 @@ export function BotonUtil({ comentarioId, marcado, alMarcar }: BotonUtilProps) {
       <Boton variante="secundario" tamano="sm" onClick={marcar} cargando={enCurso}>
         {t('hilo.meAyudo')}
       </Boton>
-      {error ? <span role="status">{error}</span> : null}
+      {aviso}
     </>
   )
 }

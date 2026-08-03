@@ -32,7 +32,7 @@ import { sobreOk } from '@/lib/auth/respuestas'
 import { requirePerfil } from '@/lib/auth/session'
 import { estadoBoost, impulsarPost, opcionesDePago } from '@/lib/billing/boosts'
 import { LIMITES_PETICION } from '@/lib/billing/limites'
-import { EXPLICACION_CUPO_GRATIS, FRASE_LINEA_ROJA } from '@/lib/billing/textos'
+import { CLAVE_EXPLICACION_CUPO_GRATIS, CLAVE_LINEA_ROJA } from '@/lib/billing/textos'
 import { esquemaBoost, parsear } from '@/lib/billing/validacion'
 import { rateLimit } from '@/lib/rateLimit'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -53,10 +53,12 @@ export async function GET(_request: NextRequest) {
 
     return sobreOk({
       ...estado,
-      // Ya ordenadas: gratis, karma y solo al final el dinero.
+      // Ya ordenadas: gratis, karma y solo al final el dinero. Cada opción trae
+      // su CLAVE de catálogo y el coste aparte; la etiqueta la arma la vista.
       opciones: opcionesDePago(estado),
-      lineaRoja: FRASE_LINEA_ROJA,
-      explicacionCupo: EXPLICACION_CUPO_GRATIS,
+      // Claves, no texto: esta ruta no sabe en qué idioma lee quien pregunta.
+      lineaRojaClave: CLAVE_LINEA_ROJA,
+      explicacionCupoClave: CLAVE_EXPLICACION_CUPO_GRATIS,
     })
   })
 }

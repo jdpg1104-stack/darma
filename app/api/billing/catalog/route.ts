@@ -24,7 +24,11 @@ import { cosmeticosPublicables } from '@/lib/billing/cosmeticos'
 import { configGoogle } from '@/lib/billing/google'
 import { LIMITES_PETICION } from '@/lib/billing/limites'
 import { REGALOS, COMISION_REGALO, PRECIO_MINIMO_REGALO } from '@/lib/billing/regalos'
-import { EXPLICACION_CRISTALES, FRASE_LINEA_ROJA, TIENDA_SOLO_EN_LA_APP } from '@/lib/billing/textos'
+import {
+  CLAVE_EXPLICACION_CRISTALES,
+  CLAVE_LINEA_ROJA,
+  CLAVE_TIENDA_SOLO_EN_LA_APP,
+} from '@/lib/billing/textos'
 import { rateLimit } from '@/lib/rateLimit'
 import { createClient } from '@/lib/supabase/server'
 
@@ -55,9 +59,12 @@ export async function GET(_request: NextRequest) {
       precioMinimoRegalo: PRECIO_MINIMO_REGALO,
       disponible,
       // La frase viaja en la respuesta para que ninguna superficie de pago
-      // pueda pintarse sin ella por olvido.
-      lineaRoja: FRASE_LINEA_ROJA,
-      explicacion: disponible ? EXPLICACION_CRISTALES : TIENDA_SOLO_EN_LA_APP,
+      // pueda pintarse sin ella por olvido. Viaja como CLAVE: esta ruta no sabe
+      // en qué idioma lee quien pregunta, así que devolver el texto en español
+      // sería mandarle la promesa del producto en un idioma que quizá no lee.
+      // La resuelve quien pinta la pantalla (ver lib/billing/textos.ts).
+      lineaRojaClave: CLAVE_LINEA_ROJA,
+      explicacionClave: disponible ? CLAVE_EXPLICACION_CRISTALES : CLAVE_TIENDA_SOLO_EN_LA_APP,
     })
   })
 }

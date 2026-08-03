@@ -51,7 +51,14 @@ export interface PaqueteCristales {
   skuApple: string
   /** Identificador del producto en Google Play Console. */
   skuGoogle: string
-  etiqueta: string
+  /**
+   * CLAVE del catálogo i18n, no el nombre. El nombre del paquete es un dato de
+   * este módulo pero se LEE en una pantalla, y esa pantalla puede estar en
+   * inglés: guardar aquí «Bolsa de cristales» metería una frase en español en
+   * una tienda ya traducida. Mismo trato que `KARMA_WEIGHTS[kind].description`
+   * → `karma.tipos.<kind>`. La resuelve la vista con su locale.
+   */
+  claveEtiqueta: string
   /**
    * Orden de magnitud en euros, SOLO para ordenar la tienda y dar contexto.
    * El precio real lo localiza cada tienda a partir de su tier: nunca se cobra
@@ -66,7 +73,7 @@ export const CATALOGO: Readonly<Record<SkuCristales, PaqueteCristales>> = {
     crystals: 100,
     skuApple: 'app.darma.crystals.100',
     skuGoogle: 'app_darma_crystals_100',
-    etiqueta: 'Puñado de cristales',
+    claveEtiqueta: 'karma.economia.paquetes.crystals_100',
     precioReferencia: '~1,09 €',
   },
   crystals_550: {
@@ -74,7 +81,7 @@ export const CATALOGO: Readonly<Record<SkuCristales, PaqueteCristales>> = {
     crystals: 550,
     skuApple: 'app.darma.crystals.550',
     skuGoogle: 'app_darma_crystals_550',
-    etiqueta: 'Bolsa de cristales',
+    claveEtiqueta: 'karma.economia.paquetes.crystals_550',
     precioReferencia: '~4,99 €',
   },
   crystals_1200: {
@@ -82,7 +89,7 @@ export const CATALOGO: Readonly<Record<SkuCristales, PaqueteCristales>> = {
     crystals: 1200,
     skuApple: 'app.darma.crystals.1200',
     skuGoogle: 'app_darma_crystals_1200',
-    etiqueta: 'Cofre de cristales',
+    claveEtiqueta: 'karma.economia.paquetes.crystals_1200',
     precioReferencia: '~9,99 €',
   },
   crystals_3000: {
@@ -90,7 +97,7 @@ export const CATALOGO: Readonly<Record<SkuCristales, PaqueteCristales>> = {
     crystals: 3000,
     skuApple: 'app.darma.crystals.3000',
     skuGoogle: 'app_darma_crystals_3000',
-    etiqueta: 'Constelación',
+    claveEtiqueta: 'karma.economia.paquetes.crystals_3000',
     precioReferencia: '~24,99 €',
   },
 } as const

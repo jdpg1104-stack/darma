@@ -38,6 +38,27 @@
 // clasificador esté caído, el suelo sigue puesto.
 // ============================================================================
 
+import { esLocale } from '../i18n/routing.ts'
+import type { CodigoPais } from '../i18n/pais.ts'
+import {
+  recursosParaPais,
+  RECURSOS_POR_PAIS,
+  type RecursoCrisis,
+  type TipoRecurso,
+} from '../i18n/recursosCrisis.ts'
+
+// Reexportado para que quien ya importa recursos desde `lib/crisis` pueda pasar
+// al dato bueno sin cambiar de puerta. La tabla sigue siendo de `i18n/`.
+export {
+  recursosParaPais,
+  RECURSOS_POR_PAIS,
+  PAISES_SOPORTADOS,
+  CLAVE_EMERGENCIAS_LOCALES,
+  tablaListaParaProduccion,
+  recursosPendientesDeVerificacion,
+} from '../i18n/recursosCrisis.ts'
+export type { RecursoCrisis, RecursosPais, TipoRecurso } from '../i18n/recursosCrisis.ts'
+
 /** Espejo del enum public.risk_level. Ordenado de menor a mayor gravedad. */
 export type RiskLevel = 'none' | 'low' | 'high' | 'critical'
 
@@ -241,92 +262,177 @@ export function assessCrisisRisk(text: string): CrisisAssessment {
 }
 
 // ============================================================================
-// Recursos de ayuda
+// Recursos de ayuda — LA TABLA NO VIVE AQUÍ
 //
-// Los teléfonos son la parte de este archivo que CADUCA. Un número equivocado
-// en una pantalla de crisis es peor que no mostrar número, así que:
-//   · `verifiedAt` es obligatorio en cada entrada y hay que revisarlo.
-//   · Ante un país desconocido se devuelve `INTERNATIONAL_FALLBACK`, nunca una
-//     lista vacía: una pantalla de crisis sin ningún recurso es un callejón sin
-//     salida.
+// La tabla de teléfonos es `i18n/recursosCrisis.ts` y es la ÚNICA. Aquí hubo una
+// segunda, escrita de memoria: sin `fuente` contra la que verificar, sin idiomas
+// de atención, con la fecha en que se escribió haciéndose pasar por fecha de
+// verificación, y sin número de emergencias en PE, US ni GB. Dos tablas de
+// teléfonos de crisis en un repositorio significa exactamente una cosa: el día
+// que se corrija un número, se corregirá en una de las dos.
+//
+// Lo que queda en este archivo es la DETECCIÓN (`assessCrisisRisk`, `escalate`).
+// Lo de abajo es un ADAPTADOR de forma —`RecursoCrisis` → `HelpResource`— para
+// no romper a quien ya importa `helpResourcesFor()` desde aquí. Datos, cero.
+//
+// ⚠️ Si vas a añadir, corregir o verificar un número: `i18n/recursosCrisis.ts`.
+// Ningún dato de contacto puede volver a escribirse en este archivo.
+//
+// ── EL PAÍS Y EL IDIOMA SON DOS EJES DISTINTOS ─────────────────────────────
+// El JSDoc que había aquí decía que el país sale de
+// `identity_vault.country_code` «o, en su defecto, del locale del navegador».
+// Nadie llegó a implementarlo, pero la frase invitaba a hacerlo, y hacerlo es el
+// fallo que `i18n/pais.ts` existe para impedir: con `Accept-Language: es-ES`,
+// alguien en Estados Unidos recibiría el 024 —una línea española a la que no
+// puede llamar— en vez del 988.
+//
+// El idioma decide en QUÉ SE LEE la pantalla. El país decide QUÉ NÚMERO se
+// marca. Que una línea atienda en español (el 988 lo hace) no la convierte en la
+// línea de un hispanohablante en Madrid: el teléfono es una infraestructura
+// nacional, no un atributo del idioma. Por eso el país solo puede salir de
+// `resolverPais()` (cookie explícita → cabecera del edge → `null`), y `null`
+// significa DIRECTORIO INTERNACIONAL, nunca "el país que sugiere el idioma".
 // ============================================================================
 
+/**
+ * Forma histórica de un recurso, la que consumen el composer, las rutas de API y
+ * la tarjeta del refugio. Se mantiene por compatibilidad; el dato bueno —con su
+ * `fuente`, su tipo y sus idiomas de atención— es `RecursoCrisis` de
+ * `i18n/recursosCrisis.ts`, y quien pueda debería consumir aquel directamente.
+ */
 export interface HelpResource {
   name: string
-  /** Teléfono en formato marcable. */
+  /** Teléfono en formato marcable. Solo en líneas y emergencias. */
   phone?: string
+  /** URL, o `sms:` en las líneas de texto: un `tel:` a un número de SMS no llama a nadie. */
   url?: string
-  /** Horario en lenguaje natural. */
+  /** Horario tal y como está en la tabla. Es DATO, no copy: ver `hoursKey`. */
   hours: string
-  /** Fecha (ISO) de la última verificación MANUAL de este dato. */
+  /**
+   * Clave del catálogo con la que traducir `hours`, o `null` si el horario no
+   * está en la lista cerrada y hay que pintarlo tal cual.
+   */
+  hoursKey: string | null
+  /** Fecha (ISO) de la última REVISIÓN. No implica verificación: eso es `verifiedBy`. */
   verifiedAt: string
+  /** Quién confirmó el dato contra `source`. `null` = NADIE todavía. */
+  verifiedBy: string | null
+  /** URL oficial contra la que se verifica el número. */
+  source: string
+  /** Idiomas en los que ATIENDE la línea. Nada que ver con el idioma de la UI. */
+  languages: readonly string[]
+  free: boolean
+  type: TipoRecurso
 }
 
 /**
- * Recursos por código ISO 3166-1 alfa-2. El país sale de
- * identity_vault.country_code (que solo puede leer el service_role) o, en su
- * defecto, del locale del navegador.
+ * Los horarios de la tabla son cadenas en español dentro de pantallas que se
+ * leen en dos idiomas. Traducirlos en la tabla rompería la indexación por país
+ * (el dato dejaría de ser comparable entre entradas), así que aquí solo se
+ * ofrece la CLAVE con la que traducirlos, contra una lista cerrada: lo que no
+ * esté en la lista devuelve `null` y se pinta literal, porque un horario en
+ * español delante de alguien que busca un teléfono es mejor que una clave sin
+ * resolver.
+ *
+ * `/ayuda` hace hoy esta misma traducción con su propio mapa; que la clave salga
+ * de aquí permite que la tarjeta del refugio (que hoy pinta el horario en crudo)
+ * haga lo mismo sin duplicar la lista otra vez.
  */
-export const HELP_RESOURCES: Readonly<Record<string, readonly HelpResource[]>> = {
-  ES: [
-    { name: 'Línea de atención a la conducta suicida', phone: '024', hours: '24 h, todos los días', verifiedAt: '2026-08-03' },
-    { name: 'Teléfono de la Esperanza', phone: '717 003 717', hours: '24 h', verifiedAt: '2026-08-03' },
-    { name: 'Emergencias', phone: '112', hours: '24 h', verifiedAt: '2026-08-03' },
-  ],
-  MX: [
-    { name: 'Línea de la Vida', phone: '800 911 2000', hours: '24 h', verifiedAt: '2026-08-03' },
-    { name: 'Emergencias', phone: '911', hours: '24 h', verifiedAt: '2026-08-03' },
-  ],
-  AR: [
-    { name: 'Centro de Asistencia al Suicida', phone: '135', hours: '24 h (línea gratuita AMBA)', verifiedAt: '2026-08-03' },
-    { name: 'Emergencias', phone: '911', hours: '24 h', verifiedAt: '2026-08-03' },
-  ],
-  CO: [
-    { name: 'Línea de salud mental', phone: '106', hours: '24 h', verifiedAt: '2026-08-03' },
-    { name: 'Emergencias', phone: '123', hours: '24 h', verifiedAt: '2026-08-03' },
-  ],
-  CL: [
-    { name: 'Salud Responde', phone: '600 360 7777', hours: '24 h', verifiedAt: '2026-08-03' },
-    { name: 'Emergencias', phone: '131', hours: '24 h', verifiedAt: '2026-08-03' },
-  ],
-  PE: [
-    { name: 'Línea 113 opción 5 (salud mental)', phone: '113', hours: '24 h', verifiedAt: '2026-08-03' },
-  ],
-  US: [
-    { name: 'Suicide & Crisis Lifeline', phone: '988', hours: '24/7', verifiedAt: '2026-08-03' },
-    { name: 'Crisis Text Line', url: 'https://www.crisistextline.org', hours: '24/7', verifiedAt: '2026-08-03' },
-  ],
-  GB: [
-    { name: 'Samaritans', phone: '116 123', hours: '24/7', verifiedAt: '2026-08-03' },
-  ],
+const CLAVE_POR_HORARIO: ReadonlyMap<string, string> = new Map([
+  ['24/7', 'crisis.horario.veinticuatroSiete'],
+  ['Según el país', 'crisis.horario.segunPais'],
+])
+
+export function helpHoursKey(hours: string): string | null {
+  return CLAVE_POR_HORARIO.get(hours) ?? null
 }
 
+/** `RecursoCrisis` (el dato bueno) → `HelpResource` (la forma histórica). */
+function adaptar(recurso: RecursoCrisis): HelpResource {
+  const comun = {
+    name: recurso.nombre,
+    hours: recurso.horario,
+    hoursKey: helpHoursKey(recurso.horario),
+    verifiedAt: recurso.verificadoEn,
+    verifiedBy: recurso.verificadoPor,
+    source: recurso.fuente,
+    languages: recurso.idiomasAtencion,
+    free: recurso.gratuito,
+    type: recurso.tipo,
+  }
+
+  if (recurso.tipo === 'telefono' || recurso.tipo === 'emergencias') {
+    return Object.freeze({ ...comun, phone: recurso.valor })
+  }
+  // Las de SMS viajan como `url` con esquema `sms:`: quien las pinte como
+  // `tel:` abriría el marcador sobre un número que no atiende llamadas.
+  if (recurso.tipo === 'sms') return Object.freeze({ ...comun, url: `sms:${recurso.valor}` })
+  return Object.freeze({ ...comun, url: recurso.valor })
+}
+
+/** Vista adaptada de la tabla, calculada una vez. Incluye `INTERNACIONAL`. */
+const ADAPTADOS: Readonly<Record<string, readonly HelpResource[]>> = (() => {
+  const mapa = Object.create(null) as Record<string, readonly HelpResource[]>
+  for (const clave of Object.keys(RECURSOS_POR_PAIS)) {
+    mapa[clave] = Object.freeze(RECURSOS_POR_PAIS[clave]!.recursos.map(adaptar))
+  }
+  return Object.freeze(mapa)
+})()
+
 /**
- * Red de seguridad para países sin lista propia. Un directorio internacional,
- * no un teléfono: dar un número de otro país sería inútil o peligroso.
+ * Red de seguridad para países sin lista propia: un directorio internacional, no
+ * un teléfono. Dar el número de otro país sería inútil o peligroso.
+ *
+ * Es la vista adaptada del bloque `INTERNACIONAL` de `i18n/recursosCrisis.ts`;
+ * no hay datos aquí.
  */
-export const INTERNATIONAL_FALLBACK: readonly HelpResource[] = [
-  {
-    name: 'Directorio internacional de líneas de ayuda (Befrienders Worldwide)',
-    url: 'https://befrienders.org',
-    hours: 'Según el país',
-    verifiedAt: '2026-08-03',
-  },
-  {
-    name: 'Directorio de la OMS / findahelpline.com',
-    url: 'https://findahelpline.com',
-    hours: 'Según el país',
-    verifiedAt: '2026-08-03',
-  },
-]
+export const INTERNATIONAL_FALLBACK: readonly HelpResource[] = ADAPTADOS.INTERNACIONAL!
+
+/** Vista adaptada por país, sin el bloque internacional. Compatibilidad. */
+export const HELP_RESOURCES: Readonly<Record<string, readonly HelpResource[]>> = Object.freeze(
+  Object.fromEntries(
+    Object.keys(ADAPTADOS)
+      .filter((clave) => clave !== 'INTERNACIONAL')
+      .map((clave) => [clave, ADAPTADOS[clave]!]),
+  ),
+)
+
+/**
+ * Valida un candidato a código de país. Espejo de `normalizarPais()`
+ * (`i18n/pais.ts`), reescrito aquí en cuatro líneas y no importado a propósito:
+ * este módulo lo consume también un componente de cliente, y `i18n/pais.ts`
+ * arrastra `next/headers`.
+ *
+ * Un locale en minúsculas (`'es'`, `'en'`) se rechaza EXPLÍCITAMENTE. Antes se
+ * hacía `toUpperCase()` sin más, de modo que `helpResourcesFor('es')` —el idioma
+ * español— devolvía los teléfonos de España. Ese es el eje equivocado, y el
+ * precio de equivocarse no es simétrico: quien pasa un código legítimo en
+ * minúsculas se lleva el directorio internacional (correcto, aunque menos
+ * concreto), y quien pasa un idioma ya no se lleva el número de un país en el
+ * que no está.
+ */
+function codigoDePais(valor: string | null | undefined): CodigoPais | null {
+  if (typeof valor !== 'string') return null
+  const limpio = valor.trim()
+  if (!/^[A-Za-z]{2}$/.test(limpio)) return null
+  if (esLocale(limpio)) return null
+  const mayus = limpio.toUpperCase()
+  // `ZZ` es el "desconocido" de ISO-3166 y lo que devuelve el edge cuando no
+  // sabe. Como país daría una tarjeta vacía; se prefiere el fallback.
+  return mayus === 'ZZ' ? null : mayus
+}
 
 /**
  * Recursos para un país. NUNCA devuelve una lista vacía.
- * @param countryCode ISO 3166-1 alfa-2; `null`/desconocido → fallback.
+ *
+ * Quien decide es `recursosParaPais()`: aquí solo se valida la entrada y se
+ * adapta la forma de la salida.
+ *
+ * @param countryCode ISO 3166-1 alfa-2; `null`/desconocido → directorio
+ *                    internacional. NO le pases un locale: no es lo mismo.
  */
 export function helpResourcesFor(countryCode: string | null | undefined): readonly HelpResource[] {
-  if (!countryCode) return INTERNATIONAL_FALLBACK
-  return HELP_RESOURCES[countryCode.toUpperCase()] ?? INTERNATIONAL_FALLBACK
+  return ADAPTADOS[recursosParaPais(codigoDePais(countryCode)).pais]!
 }
 
 /**

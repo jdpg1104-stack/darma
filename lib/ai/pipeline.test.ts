@@ -17,7 +17,8 @@ import { evaluarContenido, type DepsPipeline } from './pipeline.ts'
 import { construirFilaAuditoria } from './auditoria.ts'
 import { evaluarPresupuesto } from './presupuesto.ts'
 import { decidirSancion, deltaDeSancion } from './sancion.ts'
-import { esModeradorSegun, parsearAllowlist } from './acceso.ts'
+import { parsearSemillaSuperadmin, ROL_MINIMO_MODERACION } from './acceso.ts'
+import { cumpleRol } from '../../app/(admin)/_lib/acceso.ts'
 import { construirTarjeta, recursosMostrados, recursosVerificados } from './recursos.ts'
 import { USO_CERO } from './modelo.ts'
 import { KARMA_WEIGHTS } from '../karma.ts'
@@ -393,18 +394,24 @@ test('la sanción escala con la reincidencia; el shadow-ban llega a la tercera',
 
 // ── Acceso de moderador (base de la prueba 11 de la ficha) ─────────────────
 
-test('sin MODERATION_ADMIN_IDS configurada, NADIE es moderador', () => {
-  const vacia = parsearAllowlist(undefined)
-  assert.equal(vacia.size, 0)
-  assert.equal(esModeradorSegun(AUTOR, vacia), false)
+test('el rol de moderación es un nivel de `admin_roles`, no una lista de uuids', () => {
+  // La comprobación REAL vive en Postgres (`tiene_rol_admin()`); aquí solo se
+  // fija el contrato del lado del código: qué mínimo se exige y que la
+  // jerarquía se lee `>=`, igual que en la función de la base.
+  assert.equal(ROL_MINIMO_MODERACION, 'moderador')
+  assert.equal(cumpleRol('soporte', ROL_MINIMO_MODERACION), false)
+  assert.equal(cumpleRol('superadmin', ROL_MINIMO_MODERACION), true)
 })
 
-test('la allowlist acepta comas, espacios y mayúsculas', () => {
-  const lista = parsearAllowlist(` ${AUTOR.toUpperCase()} , 00000000-0000-0000-0000-000000000000 `)
-  assert.equal(lista.size, 2)
-  assert.equal(esModeradorSegun(AUTOR, lista), true)
-  assert.equal(esModeradorSegun('99999999-9999-9999-9999-999999999999', lista), false)
-  assert.equal(esModeradorSegun('', lista), false)
+test('MODERATION_ADMIN_IDS ya no autoriza a nadie: solo siembra el primer superadmin', () => {
+  assert.equal(parsearSemillaSuperadmin(undefined).size, 0)
+  const CON_LETRAS = 'ABCDEF00-1111-2222-3333-444444444444'
+  const semilla = parsearSemillaSuperadmin(` ${CON_LETRAS} , ${AUTOR} `)
+  assert.equal(semilla.size, 2)
+  // Normaliza a minúsculas para que el script de bootstrap no inserte dos filas
+  // por el mismo uuid escrito de dos formas.
+  assert.equal(semilla.has(CON_LETRAS.toLowerCase()), true)
+  assert.equal(semilla.has(CON_LETRAS), false)
 })
 
 // ── Recursos ────────────────────────────────────────────────────────────────

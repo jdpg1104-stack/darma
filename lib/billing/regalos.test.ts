@@ -10,6 +10,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+import { LOCALES, obtenerTraductor } from '../../i18n/index.ts'
 import { esErrorApi } from '../auth/errores.ts'
 import {
   CATALOGO_REGALOS,
@@ -91,11 +92,29 @@ test('FALLO · los SQLSTATE propios se traducen a códigos públicos, sin filtra
   assert.ok(!raro.message.includes('gifts'), 'el mensaje público no puede llevar el nombre de una tabla')
 })
 
-test('🔴 ningún regalo del catálogo promete karma en su etiqueta', () => {
+test('🔴 ningún regalo del catálogo promete karma en su etiqueta, EN NINGÚN IDIOMA', () => {
+  // El catálogo guarda la CLAVE, así que mirar `claveEtiqueta` no serviría de
+  // nada: todas empiezan por `karma.economia.` y la comprobación pasaría
+  // siempre. Lo que hay que mirar es el TEXTO que sale de cada idioma — un
+  // regalo llamado «Karma boost» solo en `en.json` sería invisible si esto
+  // comprobara el español o la clave.
   for (const regalo of REGALOS) {
-    const texto = `${regalo.kind} ${regalo.etiqueta}`.toLowerCase()
-    assert.ok(!texto.includes('karma'), `«${regalo.etiqueta}» sugiere que el regalo da karma`)
-    assert.ok(!texto.includes('nivel'), `«${regalo.etiqueta}» sugiere progresión de nivel`)
+    for (const locale of LOCALES) {
+      const etiqueta = obtenerTraductor(locale)(regalo.claveEtiqueta)
+      assert.notEqual(
+        etiqueta,
+        regalo.claveEtiqueta,
+        `${regalo.kind} no tiene texto en ${locale}: la pantalla pintaría la clave`,
+      )
+
+      const texto = `${regalo.kind} ${etiqueta}`.toLowerCase()
+      for (const palabra of ['karma', 'nivel', 'level', 'rank', 'badge', 'insignia']) {
+        assert.ok(
+          !texto.includes(palabra),
+          `«${etiqueta}» (${locale}) sugiere que el regalo da karma o rango`,
+        )
+      }
+    }
   }
   assert.equal(Object.keys(CATALOGO_REGALOS).length, REGALOS.length)
 })

@@ -18,6 +18,8 @@
 // `ECONNREFUSED 10.0.0.4:5432` a Internet.
 // ============================================================================
 
+import { esCronAutorizado } from '../cronAuth.ts'
+
 import type { Comprobacion, EstadoDependencia } from './dependencias.ts'
 import { evaluarPresupuestos, type Violacion } from './presupuestos.ts'
 
@@ -131,17 +133,20 @@ export function construirSaludProfunda(
  * variable olvidada en un endpoint de métricas público.
  */
 export function bearerValido(cabecera: string | null | undefined, secreto: string | undefined): boolean {
-  if (!secreto) return false
-  if (!cabecera?.startsWith('Bearer ')) return false
-
-  const recibido = cabecera.slice('Bearer '.length)
-  if (recibido.length !== secreto.length) return false
-
-  let diferencia = 0
-  for (let i = 0; i < secreto.length; i += 1) {
-    diferencia |= recibido.charCodeAt(i) ^ secreto.charCodeAt(i)
-  }
-  return diferencia === 0
+  // Delega en la implementación única de `lib/cronAuth.ts`.
+  //
+  // Aquí había una cuarta copia de la comparación, y era la débil de las cuatro:
+  // hacía XOR sobre `charCodeAt` (que compara UNIDADES UTF-16, no bytes) y sobre
+  // todo **retornaba antes si las longitudes diferían**. Ese retorno temprano es
+  // justo el oráculo de longitud que las otras tres se molestaban en evitar:
+  // midiendo el tiempo de respuesta se puede averiguar cuánto mide el secreto
+  // antes de intentar adivinarlo.
+  //
+  // No es la superficie más crítica de la app —protege métricas y salud, no
+  // datos de personas—, pero una comparación de secretos escrita a mano y peor
+  // que la de al lado es la clase de cosa que alguien copia mañana a un sitio
+  // donde sí importa.
+  return esCronAutorizado(cabecera, secreto)
 }
 
 export interface RespuestaMetricas {

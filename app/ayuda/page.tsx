@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { obtenerTraductor, resolverLocale, type Traductor } from '@/i18n'
 import { resolverPais } from '@/i18n/pais'
+import { helpHoursKey } from '@/lib/crisis'
 import {
   recursosParaPais,
   tablaListaParaProduccion,
@@ -83,19 +84,18 @@ function enlaceDe(r: RecursoCrisis): string {
 
 /**
  * Los horarios de `recursosCrisis.ts` son DATO, no copy: viven en un módulo
- * indexado por país y no se pueden traducir ahí sin romper esa relación. Se
- * traducen aquí, contra una lista cerrada, y lo que no esté en la lista se
- * pinta tal cual: preferimos un horario en español a una clave sin resolver
- * delante de alguien que está buscando un teléfono.
+ * indexado por país y no se pueden traducir ahí sin romper esa relación. La
+ * lista cerrada que los mapea a claves vive en `lib/crisis.ts` (`helpHoursKey`)
+ * y se consume desde aquí en vez de repetirla: había llegado a estar en los dos
+ * sitios, que es la misma duplicación que acabamos de eliminar en la tabla de
+ * teléfonos, en pequeño.
+ *
+ * Un horario que no esté en la lista se pinta tal cual: preferimos un horario
+ * en español a una clave sin resolver delante de alguien que busca un teléfono.
  */
-const CLAVE_POR_HORARIO = new Map<string, string>([
-  ['24/7', 'crisis.horario.veinticuatroSiete'],
-  ['Según el país', 'crisis.horario.segunPais'],
-])
-
 function textoHorario(horario: string, t: Traductor): string {
-  const clave = CLAVE_POR_HORARIO.get(horario)
-  return clave === undefined ? horario : t(clave)
+  const clave = helpHoursKey(horario)
+  return clave === null ? horario : t(clave)
 }
 
 /**

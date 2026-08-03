@@ -1,13 +1,28 @@
 // ============================================================================
-// Textos de la economía — español directo
+// Textos de la economía — las CLAVES del catálogo, no el texto
 //
-// La frase de la línea roja está AQUÍ y no tecleada en cada componente porque
-// tiene que ser LA MISMA en las cinco superficies de pago. Una frase que dice
-// casi lo mismo en cinco sitios se convierte, con el tiempo, en cinco frases
-// distintas, y la última en cambiar acaba diciendo algo que no queríamos decir.
+// Este archivo existía para que la frase de la línea roja no se tecleara cinco
+// veces. Sigue existiendo por lo mismo, con un idioma más: lo que centraliza ya
+// no es la cadena en español, es la CLAVE de `messages/*.json`.
 //
-// Deuda de traducción anotada en HANDOFF/PEDIDOS.md: el catálogo i18n (B17) va
-// en paralelo y este bloque no puede editar `messages/**`.
+// ── POR QUÉ LA CLAVE Y NO EL TEXTO ──────────────────────────────────────────
+// El texto vive en `messages/es.json` y `messages/en.json`, que es el único
+// sitio donde puede vivir en los dos idiomas. Una constante en español obliga a
+// que exista una segunda copia para el inglés, y dos copias de la misma promesa
+// son, con el tiempo, dos promesas distintas — exactamente lo que este archivo
+// nació para impedir.
+//
+// ── QUIÉN TRADUCE ───────────────────────────────────────────────────────────
+// **La interfaz.** Una ruta de `/api/billing` no sabe en qué idioma lee quien
+// pregunta: devuelve la clave y quien pinta la pantalla la resuelve con su
+// locale. Por eso los campos de la respuesta se llaman `…Clave` y no
+// `lineaRoja`: lo que viaja es un identificador, y llamarlo por su nombre evita
+// que alguien lo pinte tal cual.
+//
+// `lib/billing/textos.test.ts` comprueba que cada una de estas claves existe y
+// tiene texto en los DOS catálogos. Una clave mal escrita no revienta: se
+// pintaría en la pantalla de pago tal cual, `karma.economia.lineaRroja`, que es
+// una superficie de pago sin la promesa del producto.
 // ============================================================================
 
 /**
@@ -17,27 +32,38 @@
  * No es un aviso legal ni una nota al pie: es la promesa que hace que alguien
  * se fíe de contar aquí lo que le pasa. Si un día hay que quitarla de una
  * pantalla, lo que hay que revisar es la pantalla.
+ *
+ * La pinta `components/economia/FraseLineaRoja.tsx`, y `lineaRoja.test.ts`
+ * comprueba que ese componente está en las cuatro superficies de pago y que
+ * esta clave tiene texto en los dos idiomas.
  */
-export const FRASE_LINEA_ROJA = 'Los cristales no dan karma ni prioridad. Escuchar sí.'
+export const CLAVE_LINEA_ROJA = 'karma.economia.lineaRoja'
 
 /** Explicación larga, para la tienda. */
-export const EXPLICACION_CRISTALES =
-  'Los cristales pagan decoración y un poco de alcance, durante un rato. ' +
-  'No suben tu karma, no te ponen antes en la cola de nadie y no cambian el ' +
-  'orden en el que se atiende a quien está en crisis.'
+export const CLAVE_EXPLICACION_CRISTALES = 'karma.economia.explicacionCristales'
 
 /** Se pinta junto a la opción de karma en el diálogo de boost. */
-export const EXPLICACION_CUPO_GRATIS =
-  'Tienes un impulso gratis al día. Lo paga el karma que ya ganaste escuchando ' +
-  'a otras personas: que te lean nunca depende de que pagues.'
+export const CLAVE_EXPLICACION_CUPO_GRATIS = 'karma.economia.cupoGratis'
 
 /** Se pinta cuando la tienda no está disponible (web, o IAP sin configurar). */
-export const TIENDA_SOLO_EN_LA_APP =
-  'Los cristales solo se compran desde la aplicación móvil. ' +
-  'Todo lo demás funciona igual aquí.'
+export const CLAVE_TIENDA_SOLO_EN_LA_APP = 'karma.economia.soloEnLaApp'
 
 /** Junto al selector de regalo. */
-export const EXPLICACION_REGALO =
-  'Un regalo es un gesto visible en el hilo. Parte se queda en Darma para ' +
-  'sostenerlo y el resto llega a quien lo recibe, en cristales. No le da karma: ' +
-  'el karma se gana escuchando.'
+export const CLAVE_EXPLICACION_REGALO = 'karma.economia.explicacionRegalo'
+
+/**
+ * Todas las claves de prosa de la economía, para el test de paridad. Una
+ * constante nueva arriba que no se añada aquí no se comprueba contra el
+ * catálogo, así que se añade aquí.
+ *
+ * Las etiquetas de DATOS (paquetes, regalos, medios de pago) no están en esta
+ * lista: viven junto a su dato en `catalogo.ts`, `regalos.ts` y `boosts.ts`, y
+ * el mismo test las recorre desde allí.
+ */
+export const CLAVES_DE_TEXTO = [
+  CLAVE_LINEA_ROJA,
+  CLAVE_EXPLICACION_CRISTALES,
+  CLAVE_EXPLICACION_CUPO_GRATIS,
+  CLAVE_TIENDA_SOLO_EN_LA_APP,
+  CLAVE_EXPLICACION_REGALO,
+] as const

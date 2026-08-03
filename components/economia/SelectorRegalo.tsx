@@ -13,6 +13,7 @@
 import { Tarjeta } from '@/components/ui'
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { REGALOS, repartir } from '@/lib/billing/regalos'
+import { CLAVE_EXPLICACION_REGALO } from '@/lib/billing/textos'
 
 import { BotonRegalar } from './BotonRegalar'
 import { FraseLineaRoja } from './FraseLineaRoja'
@@ -37,19 +38,22 @@ export async function SelectorRegalo({
   return (
     <Tarjeta className={estilos.tienda}>
       <h2>{t('karma.economia.regalo.titulo')}</h2>
-      <p className={estilos.explicacion}>{t('karma.economia.explicacionRegalo')}</p>
+      <p className={estilos.explicacion}>{t(CLAVE_EXPLICACION_REGALO)}</p>
 
       <ul className={estilos.regalos}>
         {REGALOS.map((regalo) => {
           const reparto = repartir(regalo.costeCristales)
           const alcanza = cristales >= reparto.coste
+          // El nombre del regalo es un DATO de `lib/billing/regalos.ts` y viaja
+          // como clave: se traduce aquí, en la vista, no en el módulo.
+          const etiqueta = t(regalo.claveEtiqueta)
 
           return (
             <li key={regalo.kind} className={estilos.paquete}>
               <span className={estilos.simbolo} aria-hidden="true">
                 {regalo.simbolo}
               </span>
-              <span className={estilos.etiqueta}>{regalo.etiqueta}</span>
+              <span className={estilos.etiqueta}>{etiqueta}</span>
               <span className={estilos.cantidad}>{reparto.coste}</span>
               {/* Los tres números a la vista. `neto` es lo que recibe la otra
                   persona, y es el que importa: se nombra primero. */}
@@ -63,7 +67,7 @@ export async function SelectorRegalo({
                 <BotonRegalar
                   recipientId={recipientId}
                   giftKind={regalo.kind}
-                  etiqueta={regalo.etiqueta}
+                  etiqueta={etiqueta}
                   {...(refType ? { refType } : {})}
                   {...(refId ? { refId } : {})}
                 />

@@ -6,9 +6,12 @@ import {
   escalate,
   requiresIntervention,
   helpResourcesFor,
+  helpHoursKey,
   crisisMessage,
   HELP_RESOURCES,
   INTERNATIONAL_FALLBACK,
+  RECURSOS_POR_PAIS,
+  tablaListaParaProduccion,
   type RiskLevel,
 } from './crisis.ts'
 
@@ -163,25 +166,122 @@ test('nunca se devuelve una lista de recursos vacía', () => {
 test('un país desconocido cae en el directorio internacional', () => {
   assert.deepEqual(helpResourcesFor('ZZ'), INTERNATIONAL_FALLBACK)
   assert.deepEqual(helpResourcesFor(null), INTERNATIONAL_FALLBACK)
+  assert.deepEqual(helpResourcesFor('basura'), INTERNATIONAL_FALLBACK)
 })
 
-test('el código de país no distingue mayúsculas', () => {
-  assert.deepEqual(helpResourcesFor('es'), HELP_RESOURCES.ES)
-})
-
-test('todo recurso tiene teléfono o url, y fecha de verificación', () => {
-  const todos = [...Object.values(HELP_RESOURCES).flat(), ...INTERNATIONAL_FALLBACK]
-  for (const r of todos) {
-    assert.ok(r.phone || r.url, `${r.name} no tiene forma de contacto`)
-    assert.match(r.verifiedAt, /^\d{4}-\d{2}-\d{2}$/, `${r.name} sin fecha de verificación válida`)
-    assert.ok(r.hours.length > 0)
+test('el directorio internacional no lleva NINGÚN teléfono nacional', () => {
+  // Dar el 024 a alguien en Manila es peor que no dar nada.
+  for (const r of INTERNATIONAL_FALLBACK) {
+    assert.equal(r.phone, undefined, `${r.name} cuela un teléfono en el bloque internacional`)
   }
 })
 
-test('España incluye el 024 y el 112', () => {
-  const telefonos = HELP_RESOURCES.ES!.map((r) => r.phone)
-  assert.ok(telefonos.includes('024'))
-  assert.ok(telefonos.includes('112'))
+test('un LOCALE no es un país: `es` NO devuelve los teléfonos de España', () => {
+  // Este era el bug: `toUpperCase()` convertía el idioma español en el país ES,
+  // así que alguien en Estados Unidos con la interfaz en español podía acabar
+  // viendo el 024. El eje del idioma no puede elegir el teléfono.
+  assert.deepEqual(helpResourcesFor('es'), INTERNATIONAL_FALLBACK)
+  assert.deepEqual(helpResourcesFor('en'), INTERNATIONAL_FALLBACK)
+  // Y el país en mayúsculas sigue funcionando, que es como llega de verdad
+  // (`lib/auth/peticion.ts` normaliza la cabecera del edge).
+  assert.deepEqual(helpResourcesFor('ES'), HELP_RESOURCES.ES)
+})
+
+test('todo recurso tiene teléfono o url, y fecha de revisión', () => {
+  const todos = [...Object.values(HELP_RESOURCES).flat(), ...INTERNATIONAL_FALLBACK]
+  for (const r of todos) {
+    assert.ok(r.phone || r.url, `${r.name} no tiene forma de contacto`)
+    assert.match(r.verifiedAt, /^\d{4}-\d{2}-\d{2}$/, `${r.name} sin fecha de revisión válida`)
+    assert.ok(r.hours.length > 0)
+    assert.ok(r.source.startsWith('https://'), `${r.name} sin fuente contra la que verificar`)
+  }
+})
+
+test('los números NO se dan por verificados: `verifiedBy` sigue en null', () => {
+  // Si esto falla porque alguien verificó de verdad, quita su entrada aquí y en
+  // `PENDIENTES_DECLARADOS`. Si falla porque alguien puso un nombre sin abrir la
+  // fuente, es exactamente lo que este test existe para impedir.
+  const todos = [...Object.values(HELP_RESOURCES).flat(), ...INTERNATIONAL_FALLBACK]
+  assert.ok(todos.every((r) => r.verifiedBy === null))
+  assert.equal(tablaListaParaProduccion(), false)
+})
+
+// ── Que la tabla sea UNA sola ───────────────────────────────────────────────
+
+test('los recursos son EXACTAMENTE los de i18n/recursosCrisis.ts', () => {
+  // El adaptador cambia la FORMA, nunca el dato. Si algún día vuelve a haber
+  // dos tablas, este test lo dice antes que un usuario.
+  for (const clave of Object.keys(RECURSOS_POR_PAIS)) {
+    const original = RECURSOS_POR_PAIS[clave]!.recursos
+    const adaptados = clave === 'INTERNACIONAL' ? INTERNATIONAL_FALLBACK : HELP_RESOURCES[clave]!
+    assert.equal(adaptados.length, original.length, `${clave}: se pierden recursos por el camino`)
+    for (const [i, r] of original.entries()) {
+      const a = adaptados[i]!
+      assert.equal(a.name, r.nombre)
+      assert.equal(a.hours, r.horario)
+      assert.equal(a.verifiedAt, r.verificadoEn)
+      // El valor aparece intacto en `phone` o dentro de la `url` (`sms:`).
+      assert.ok(
+        a.phone === r.valor || a.url === r.valor || a.url === `sms:${r.valor}`,
+        `${clave}/${r.nombre}: el valor se transformó (${a.phone ?? a.url} ≠ ${r.valor})`,
+      )
+    }
+  }
+})
+
+test('helpResourcesFor delega en recursosParaPais para todos los países', () => {
+  for (const clave of Object.keys(RECURSOS_POR_PAIS)) {
+    if (clave === 'INTERNACIONAL') continue
+    const porNombre = helpResourcesFor(clave).map((r) => r.name)
+    assert.deepEqual(porNombre, [...RECURSOS_POR_PAIS[clave]!.recursos].map((r) => r.nombre))
+  }
+})
+
+test('cada país tiene su número de EMERGENCIAS, no solo la línea de escucha', () => {
+  // En la tabla vieja de este archivo faltaba en PE, US y GB: si la línea está
+  // saturada —y en crisis lo están— tiene que haber otra puerta en la misma
+  // tarjeta.
+  for (const clave of Object.keys(HELP_RESOURCES)) {
+    assert.ok(
+      HELP_RESOURCES[clave]!.some((r) => r.type === 'emergencias'),
+      `${clave} no ofrece número de emergencias`,
+    )
+  }
+})
+
+test('España sigue dando el 024 y el 112; Estados Unidos el 988 y el 911', () => {
+  const es = HELP_RESOURCES.ES!.map((r) => r.phone)
+  assert.ok(es.includes('024'))
+  assert.ok(es.includes('112'))
+  const us = HELP_RESOURCES.US!.map((r) => r.phone)
+  assert.ok(us.includes('988'))
+  assert.ok(us.includes('911'), 'el 988 sin el 911 deja fuera el peligro inmediato')
+})
+
+test('las líneas de SMS no se pintan como `tel:`', () => {
+  // Marcar un número de SMS abre el teléfono y no llama a nadie.
+  const sms = Object.values(HELP_RESOURCES)
+    .flat()
+    .filter((r) => r.type === 'sms')
+  assert.ok(sms.length > 0, 'la tabla tenía líneas de SMS; si ya no, borra este test')
+  for (const r of sms) {
+    assert.equal(r.phone, undefined, `${r.name} se ofrece como teléfono marcable`)
+    assert.match(r.url ?? '', /^sms:/)
+  }
+})
+
+// ── Horarios: dato en español dentro de pantallas traducidas ────────────────
+
+test('los horarios traducibles traen su clave de catálogo', () => {
+  assert.equal(helpHoursKey('24/7'), 'crisis.horario.veinticuatroSiete')
+  assert.equal(helpHoursKey('Según el país'), 'crisis.horario.segunPais')
+  // Lo que no está en la lista cerrada se pinta literal, nunca como clave suelta.
+  assert.equal(helpHoursKey('De 9 a 21'), null)
+
+  const todos = [...Object.values(HELP_RESOURCES).flat(), ...INTERNATIONAL_FALLBACK]
+  for (const r of todos) {
+    assert.equal(r.hoursKey, helpHoursKey(r.hours), `${r.name}: hoursKey descuadra`)
+  }
 })
 
 test('el mensaje nunca promete que Darma sustituye a un profesional', () => {

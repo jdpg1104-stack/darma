@@ -24,6 +24,7 @@ import { Tarjeta } from '@/components/ui'
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { EstadoBoost, MedioPagoBoost } from '@/lib/billing/boosts'
 import { BOOST_HORAS, opcionesDePago } from '@/lib/billing/boosts'
+import { CLAVE_EXPLICACION_CUPO_GRATIS } from '@/lib/billing/textos'
 
 import { BotonImpulsar } from './BotonImpulsar'
 import { FraseLineaRoja } from './FraseLineaRoja'
@@ -54,28 +55,35 @@ export async function DialogoBoost({ postId, estado }: DialogoBoostProps) {
       </p>
 
       <ul className={estilos.opciones}>
-        {opciones.map((opcion, indice) => (
-          <li
-            key={opcion.medio}
-            className={clsx(
-              estilos.opcion,
-              // La primera DISPONIBLE se destaca, que con el orden de
-              // `opcionesDePago` es siempre la más barata para la persona.
-              indice === opciones.findIndex((o) => o.disponible) && estilos.opcionPreferente,
-              !opcion.disponible && estilos.opcionAgotada,
-            )}
-          >
-            <span>{opcion.etiqueta}</span>
-            {opcion.disponible ? (
-              <BotonImpulsar postId={postId} medio={opcion.medio} etiqueta={opcion.etiqueta} />
-            ) : (
-              <span className={estilos.explicacion}>{t(CLAVE_AGOTADO[opcion.medio])}</span>
-            )}
-          </li>
-        ))}
+        {opciones.map((opcion, indice) => {
+          // `opcionesDePago` devuelve clave + coste, no la frase armada: el
+          // plural de «1 cristal / N cristales» lo decide el catálogo de cada
+          // idioma y no una concatenación en español.
+          const etiqueta = t(opcion.claveEtiqueta, { n: opcion.coste })
+
+          return (
+            <li
+              key={opcion.medio}
+              className={clsx(
+                estilos.opcion,
+                // La primera DISPONIBLE se destaca, que con el orden de
+                // `opcionesDePago` es siempre la más barata para la persona.
+                indice === opciones.findIndex((o) => o.disponible) && estilos.opcionPreferente,
+                !opcion.disponible && estilos.opcionAgotada,
+              )}
+            >
+              <span>{etiqueta}</span>
+              {opcion.disponible ? (
+                <BotonImpulsar postId={postId} medio={opcion.medio} etiqueta={etiqueta} />
+              ) : (
+                <span className={estilos.explicacion}>{t(CLAVE_AGOTADO[opcion.medio])}</span>
+              )}
+            </li>
+          )
+        })}
       </ul>
 
-      <p className={estilos.explicacion}>{t('karma.economia.cupoGratis')}</p>
+      <p className={estilos.explicacion}>{t(CLAVE_EXPLICACION_CUPO_GRATIS)}</p>
       <FraseLineaRoja />
     </Tarjeta>
   )

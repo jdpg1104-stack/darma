@@ -19,7 +19,8 @@ import {
   LIMITE_MAXIMO,
   LIMITE_POR_DEFECTO,
 } from './cola.ts'
-import { esModeradorSegun, parsearAllowlist } from './acceso.ts'
+import { parsearSemillaSuperadmin, ROL_MINIMO_MODERACION } from './acceso.ts'
+import { cumpleRol, ORDEN_ROLES } from '../../app/(admin)/_lib/acceso.ts'
 import { LIMITE_REPORTE } from './modelo.ts'
 import { __resetMemoryBuckets, rateLimitMemory } from '../rateLimit.ts'
 
@@ -54,23 +55,47 @@ test('el límite se normaliza y nunca pasa de 50 (CONTRATOS §5)', () => {
 
 // ── Guarda de moderador (prueba 11 de la ficha) ─────────────────────────────
 
-test('sin rol de moderador no se entra: la allowlist falla CERRADA', () => {
-  const sinConfigurar = parsearAllowlist(undefined)
-  assert.equal(esModeradorSegun('11111111-1111-1111-1111-111111111111', sinConfigurar), false)
-
-  const configurada = parsearAllowlist('22222222-2222-2222-2222-222222222222')
-  assert.equal(esModeradorSegun('11111111-1111-1111-1111-111111111111', configurada), false)
-  assert.equal(esModeradorSegun('22222222-2222-2222-2222-222222222222', configurada), true)
+// El permiso REAL lo decide `tiene_rol_admin()` en Postgres y no se puede
+// probar aquí sin base: lo que se prueba es la jerarquía que esa función aplica
+// (`ar.role >= p_minimo`), que es la parte pura y espejo del enum de la base.
+test('la moderación exige `moderador`: soporte no llega, operaciones y superadmin sí', () => {
+  assert.equal(ROL_MINIMO_MODERACION, 'moderador')
+  assert.equal(cumpleRol('soporte', ROL_MINIMO_MODERACION), false)
+  assert.equal(cumpleRol('moderador', ROL_MINIMO_MODERACION), true)
+  assert.equal(cumpleRol('operaciones', ROL_MINIMO_MODERACION), true)
+  assert.equal(cumpleRol('superadmin', ROL_MINIMO_MODERACION), true)
+  // Si alguien reordena el enum en la base sin reordenar esto, la comparación
+  // `>=` deja de significar lo mismo en los dos sitios.
+  assert.ok(ORDEN_ROLES.indexOf(ROL_MINIMO_MODERACION) > ORDEN_ROLES.indexOf('soporte'))
 })
 
-test('el código de error de la guarda no menciona tablas, SQL ni la allowlist', async () => {
+test('MODERATION_ADMIN_IDS ya no autoriza: es solo semilla del primer superadmin', () => {
+  // La función sobrevive para el script de bootstrap, pero no está en ningún
+  // camino de decisión. Que siga siendo un parser puro es todo lo que se le pide.
+  assert.equal(parsearSemillaSuperadmin(undefined).size, 0)
+  assert.equal(parsearSemillaSuperadmin('').size, 0)
+  const semilla = parsearSemillaSuperadmin(' AAAA-1 , bbbb-2 ; cccc-3 ')
+  assert.deepEqual([...semilla].sort(), ['aaaa-1', 'bbbb-2', 'cccc-3'])
+})
+
+test('el código de error de la guarda no menciona tablas, SQL ni la fuente del rol', async () => {
   // `sin_permiso` es un 403 con un mensaje escrito por nosotros. El detalle
   // interno se queda en el log; el cliente ve un enum estable y una frase.
   const { ErrorApi } = await import('../auth/errores.ts')
   const error = new ErrorApi('sin_permiso')
   assert.equal(error.code, 'sin_permiso')
   assert.equal(error.status, 403)
-  for (const filtracion of ['moderation_flags', 'crisis_events', 'select', 'MODERATION_ADMIN_IDS', 'service_role']) {
+  for (const filtracion of [
+    'moderation_flags',
+    'crisis_events',
+    'select',
+    'MODERATION_ADMIN_IDS',
+    'service_role',
+    // Ahora que el rol sale de la base, el 403 tampoco puede delatar de DÓNDE.
+    'admin_roles',
+    'tiene_rol_admin',
+    'moderador',
+  ]) {
     assert.equal(error.message.toLowerCase().includes(filtracion.toLowerCase()), false)
   }
 })

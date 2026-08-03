@@ -88,7 +88,7 @@
       "ultimas": "Últimas encuestas"
     },
     "meta": {
-      "titulo": "Centro de mando · Darma"
+      "titulo": "Centro de mando"
     },
     "metricas": "Métricas",
     "nav": {
@@ -341,7 +341,7 @@
     "finDelDia": "Por hoy no hay más. Vuelve mañana.",
     "meta": {
       "descripcion": "Vídeos cortos de bienestar, curados. Sin comentarios, sin nadie mirando.",
-      "titulo": "Ánimo · Darma"
+      "titulo": "Ánimo"
     },
     "progreso": "Progreso del vídeo",
     "reproducirPausar": "Reproducir o pausar: {titulo}",
@@ -364,7 +364,7 @@
       "internacional": "No hemos podido saber desde qué país escribes, así que estos son recursos internacionales.",
       "internacionalUrgente": "Si estás en peligro ahora mismo, llama al número de emergencias de tu país.",
       "metaDescripcion": "Teléfonos y recursos de ayuda si estás pasando por un momento difícil.",
-      "metaTitulo": "Ayuda ahora · Darma",
+      "metaTitulo": "Ayuda ahora",
       "noTerapiaCuerpo": "Aquí te escuchan personas que han pasado por cosas parecidas, y eso vale mucho. Pero no somos profesionales de la salud mental y no podemos atender una urgencia. Si estás en riesgo, llama a uno de los números de arriba: al otro lado hay alguien formado para ayudarte, ahora.",
       "noTerapiaTitulo": "Darma no sustituye a la terapia",
       "sinVerificar": "Estamos terminando de confirmar uno a uno estos números con cada organización. Si alguno no responde, prueba con el siguiente de la lista o con el número de emergencias de tu país.",
@@ -437,7 +437,7 @@
     "escuchas": "{n, plural, one {# persona ha escuchado} other {# personas han escuchado}}",
     "finDeLista": "Has llegado al final.",
     "impulsado": "Impulsado",
-    "metaTitulo": "Tu feed · Darma",
+    "metaTitulo": "Tu feed",
     "paraTi": "Para ti",
     "quitarApoyo": "Quitar mi apoyo",
     "recientes": "Recientes",
@@ -471,7 +471,7 @@
     "meAyudo": "Me ayudó",
     "meAyudoHecho": "Le has dicho que te ayudó",
     "metaDescripcion": "Alguien ha contado lo que le pasa. Aquí se le escucha.",
-    "metaTitulo": "Una conversación · Darma",
+    "metaTitulo": "Una conversación",
     "noContada": "No ha contado como escucha",
     "primeraPersona": "Si te apetece, puedes ser la primera persona en escucharle.",
     "publicado": "Publicado",
@@ -500,6 +500,11 @@
         "explicacion": "Durante {horas} horas rinde como si tuviera diez veces los apoyos que tiene. No salta la moderación, no adelanta a nadie en crisis y no cambia según con qué lo pagues.",
         "impulsar": "Impulsar",
         "impulsarEtiqueta": "Impulsar: {etiqueta}",
+        "opciones": {
+          "cristales": "{n, plural, one {# cristal} other {# cristales}}",
+          "gratis": "Gratis (tu cupo de hoy)",
+          "karma": "{n} de karma"
+        },
         "titulo": "Impulsar este post"
       },
       "cupoGratis": "Tienes un impulso gratis al día. Lo paga el karma que ya ganaste escuchando a otras personas: que te lean nunca depende de que pagues.",
@@ -518,6 +523,12 @@
         "vacioTitulo": "Todavía no hay movimientos"
       },
       "lineaRoja": "Los cristales no dan karma ni prioridad. Escuchar sí.",
+      "paquetes": {
+        "crystals_100": "Puñado de cristales",
+        "crystals_1200": "Cofre de cristales",
+        "crystals_3000": "Constelación",
+        "crystals_550": "Bolsa de cristales"
+      },
       "regalo": {
         "enviado": "Enviado",
         "enviar": "Enviar",
@@ -526,6 +537,12 @@
         "reparto": "llegan {neto} · {comision} sostienen Darma",
         "sinCristales": "Te faltan cristales",
         "titulo": "Enviar un regalo"
+      },
+      "regalos": {
+        "abrazo": "Un abrazo",
+        "constelacion": "Una constelación",
+        "faro": "Un faro",
+        "vela": "Una vela"
       },
       "saldo": {
         "cristales": "{n, plural, one {cristal} other {cristales}}",
@@ -599,7 +616,6 @@
     "noSomosEmergencias": "Darma no es un servicio de emergencias ni sustituye a un profesional de la salud mental.",
     "pie": {
       "antes": "Si ahora mismo estás en peligro, no esperes a terminar de leer esto:",
-      "despues": ". El 112 funciona en toda la Unión Europea y el 024 es gratuito en España, las veinticuatro horas.",
       "enlace": "aquí tienes los teléfonos de ayuda"
     },
     "privacidad": "Privacidad",
@@ -632,7 +648,7 @@
     "colaModeracion": "Cola de moderación ({n})",
     "marcarRevisado": "Marcar como revisado",
     "meta": {
-      "titulo": "Moderación · Darma"
+      "titulo": "Moderación"
     },
     "persona": "Persona",
     "revisar": "Revisar",
@@ -674,7 +690,7 @@
       "etiquetaAlias": "Alias",
       "etiquetaAvatar": "Tu avatar",
       "guardado": "Guardado.",
-      "metaTitulo": "Editar tu perfil · Darma",
+      "metaTitulo": "Editar tu perfil",
       "pista": "Tu nivel y tu karma no se editan: se derivan de lo que haces. Es lo que hace que signifiquen algo.",
       "pistaAlias": "Entre 3 y 24 caracteres. Letras, números, guiones bajos y espacios. Es único: si ya lo tiene alguien, te lo diremos.",
       "pistaAvatar": "Se genera a partir de un número aleatorio. No sale de una foto y no dice nada de ti.",
@@ -741,8 +757,8 @@
     "insigniasTituloPropio": "Tus insignias",
     "insigniasVacio": "Aún no hay ninguna. Aparecerán aquí solas.",
     "insigniasVacioAjeno": "Todavía no hay insignias que enseñar aquí.",
-    "metaTitulo": "Tu perfil · Darma",
-    "metaTituloAjeno": "Perfil · Darma",
+    "metaTitulo": "Tu perfil",
+    "metaTituloAjeno": "Perfil",
     "nivel": {
       "brote": "Brote",
       "guia": "Guía",
@@ -780,7 +796,7 @@
     "listo": "Has escuchado a tres personas. Ahora es tu turno: te leemos.",
     "marcador": "Sin filtros. Nadie sabe quién eres.",
     "metaDescripcion": "Cuenta lo que te pasa. Te leemos.",
-    "metaTitulo": "Publicar · Darma",
+    "metaTitulo": "Publicar",
     "pii": {
       "cierre": "En Darma nadie comparte datos de contacto: es lo que hace que este sea un sitio seguro para contar lo que te pasa. ¿Lo quitas antes de publicar?",
       "email": "Hemos visto algo que parece un correo electrónico.",
@@ -819,7 +835,7 @@
     "errorCargarMas": "No hemos podido cargar más. Inténtalo otra vez en un momento.",
     "intro": "Aquí no cuenta lo que publicas: cuenta a cuántas personas has acompañado con un comentario que de verdad ayudó.",
     "metaDescripcion": "La tabla de quienes más han escuchado a otras personas en Darma.",
-    "metaTitulo": "Quienes más acompañan · Darma",
+    "metaTitulo": "Quienes más acompañan",
     "miPosicionEnlace": "Ver quién necesita compañía",
     "miPosicionVacio": "Todavía no apareces en esta tabla. Aparecerás en cuanto acompañes a alguien.",
     "movimientoBaja": "{n, plural, one {Baja # puesto} other {Baja # puestos}}",

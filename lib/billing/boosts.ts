@@ -220,31 +220,37 @@ export async function estadoBoost(supabase: SupabaseClient): Promise<EstadoBoost
  * Opciones que puede ofrecer la UI, YA ORDENADAS: primero lo gratuito, después
  * el karma, y solo al final el dinero. La función es pura para que el orden sea
  * un test y no una costumbre.
+ *
+ * Devuelve una CLAVE de catálogo y el número aparte, no una etiqueta armada.
+ * `${coste} de karma` obliga a que la frase se construya en español y a que el
+ * plural se resuelva concatenando, que es justo lo que rompe en inglés («1
+ * crystals»). La vista hace `t(claveEtiqueta, { n: coste })` y el plural lo
+ * decide el catálogo de cada idioma.
  */
 export function opcionesDePago(estado: EstadoBoost): Array<{
   medio: MedioPagoBoost
   disponible: boolean
   coste: number
-  etiqueta: string
+  claveEtiqueta: string
 }> {
   return [
     {
       medio: 'gratis',
       disponible: estado.cupoGratisRestante > 0,
       coste: 0,
-      etiqueta: 'Gratis (tu cupo de hoy)',
+      claveEtiqueta: 'karma.economia.boost.opciones.gratis',
     },
     {
       medio: 'karma',
       disponible: estado.karmaSpendable >= estado.costeKarma,
       coste: estado.costeKarma,
-      etiqueta: `${estado.costeKarma} de karma`,
+      claveEtiqueta: 'karma.economia.boost.opciones.karma',
     },
     {
       medio: 'cristales',
       disponible: estado.crystals >= estado.costeCristales,
       coste: estado.costeCristales,
-      etiqueta: `${estado.costeCristales} cristales`,
+      claveEtiqueta: 'karma.economia.boost.opciones.cristales',
     },
   ]
 }

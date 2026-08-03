@@ -21,6 +21,7 @@
 import { Tarjeta } from '@/components/ui'
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import type { PaqueteCristales } from '@/lib/billing/catalogo'
+import { CLAVE_EXPLICACION_CRISTALES, CLAVE_TIENDA_SOLO_EN_LA_APP } from '@/lib/billing/textos'
 
 import { BotonComprar } from './BotonComprar'
 import { FraseLineaRoja } from './FraseLineaRoja'
@@ -48,26 +49,33 @@ export async function TiendaCristales({
       <h2>{t('karma.economia.tienda.titulo')}</h2>
       <SaldoCristales cristales={cristales} karmaSpendable={karmaSpendable} />
 
+      {/* Las mismas dos claves que devuelve `/api/billing/catalog` en
+          `explicacionClave`: la pantalla y la respuesta no pueden divergir. */}
       <FraseLineaRoja
-        explicacion={t(
-          disponible ? 'karma.economia.explicacionCristales' : 'karma.economia.soloEnLaApp',
-        )}
+        explicacion={t(disponible ? CLAVE_EXPLICACION_CRISTALES : CLAVE_TIENDA_SOLO_EN_LA_APP)}
       />
 
       <ul className={estilos.paquetes}>
-        {paquetes.map((paquete) => (
-          <li key={paquete.sku} className={estilos.paquete}>
-            <span className={estilos.cantidad}>{paquete.crystals}</span>
-            <span className={estilos.etiqueta}>{paquete.etiqueta}</span>
-            {/* Orden de magnitud, no precio: cada tienda localiza el suyo a
-                partir del tier. Se dice con el «aprox.» delante para que nadie
-                lo lea como el importe que va a pagar. */}
-            <span className={estilos.referencia}>
-              {t('karma.economia.tienda.aprox', { precio: paquete.precioReferencia })}
-            </span>
-            <BotonComprar sku={paquete.sku} etiqueta={paquete.etiqueta} disponible={disponible} />
-          </li>
-        ))}
+        {paquetes.map((paquete) => {
+          // El nombre del paquete es un DATO del catálogo de B12 y viaja como
+          // clave; se traduce aquí, no en `catalogo.ts`, para que el módulo no
+          // tenga que saber en qué idioma se va a pintar.
+          const etiqueta = t(paquete.claveEtiqueta)
+
+          return (
+            <li key={paquete.sku} className={estilos.paquete}>
+              <span className={estilos.cantidad}>{paquete.crystals}</span>
+              <span className={estilos.etiqueta}>{etiqueta}</span>
+              {/* Orden de magnitud, no precio: cada tienda localiza el suyo a
+                  partir del tier. Se dice con el «aprox.» delante para que nadie
+                  lo lea como el importe que va a pagar. */}
+              <span className={estilos.referencia}>
+                {t('karma.economia.tienda.aprox', { precio: paquete.precioReferencia })}
+              </span>
+              <BotonComprar sku={paquete.sku} etiqueta={etiqueta} disponible={disponible} />
+            </li>
+          )
+        })}
       </ul>
     </Tarjeta>
   )

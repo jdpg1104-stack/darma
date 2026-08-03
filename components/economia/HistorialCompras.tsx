@@ -78,11 +78,13 @@ function describir(movimiento: MovimientoPublico, t: Traductor): string {
   if (motivo === 'boost') return t('karma.economia.historial.impulso')
   if (motivo.startsWith('gift:')) {
     const tipo = motivo.slice('gift:'.length)
-    // La etiqueta del regalo sale del catálogo de B12 (`lib/billing/regalos.ts`)
-    // y todavía es español fijo. Anotado en HANDOFF/PEDIDOS.md: no es de este
-    // bloque y cambiarlo aquí sería traducir el dato, no la pantalla.
+    // El catálogo de B12 (`lib/billing/regalos.ts`) guarda la CLAVE del nombre
+    // del regalo, no el nombre: el dato es de B12 y la traducción es de la
+    // vista. Un `gift:` de un tipo retirado del catálogo cae al genérico en vez
+    // de pintar la clave cruda — el histórico guarda lo que pasó, y lo que pasó
+    // puede ser un regalo que ya no existe.
     const etiqueta = esTipoRegalo(tipo)
-      ? CATALOGO_REGALOS[tipo].etiqueta
+      ? t(CATALOGO_REGALOS[tipo].claveEtiqueta)
       : t('karma.economia.historial.regalo')
     return t(
       movimiento.delta > 0
