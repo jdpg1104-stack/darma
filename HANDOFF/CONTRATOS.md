@@ -62,6 +62,18 @@ El tipado de Supabase se genera, no se escribe a mano:
 npx supabase gen types typescript --local > lib/supabase/database.types.ts
 ```
 
+**`lib/supabase/database.types.ts` no lleva cabecera ni comentario alguno.** Es
+deliberado y hay que respetarlo: el CI vuelve a generar los tipos y hace `diff`
+byte a byte contra el archivo, así que **cualquier cosa que añadas a mano
+—incluido un comentario que avise de que no se edita a mano— hace fallar el
+job**. La documentación de ese archivo vive aquí, que es donde no estorba.
+
+Contra la base de desarrollo remota (`darma-dev`) el comando es:
+
+```bash
+npx supabase gen types typescript --project-id vulgobhjxkapxlgotkqg > lib/supabase/database.types.ts
+```
+
 Ese archivo lo **posee B15** y se regenera en CI. Consúmelo así:
 
 ```ts
