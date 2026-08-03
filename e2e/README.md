@@ -25,7 +25,7 @@ npm run db:reset                      # Supabase local
 # …o apuntar al proyecto de desarrollo remoto (ver «Variables»)
 
 # 2 · Toda la suite, los dos proyectos (chromium + Mobile Safari)
-E2E_SUPABASE_PROJECT_REF=vulgobhjxkapxlgotkqg npx playwright test
+E2E_SUPABASE_PROJECT_REF=<ref-de-tu-proyecto-de-desarrollo> npx playwright test
 
 # Un solo recorrido
 npx playwright test 02-bucle-reciprocidad

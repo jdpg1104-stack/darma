@@ -18,6 +18,12 @@ import {
 // parte de la suite que se ejecuta SIEMPRE, incluso hoy con la clave vacía.
 // ============================================================================
 
+// Un identificador cualquiera con la forma de uno real (20 letras minúsculas).
+// NO es el del proyecto de desarrollo ni el de ningún otro: el fusible compara
+// cadenas, así que la prueba vale igual y el repositorio no publica a qué
+// endpoint apunta esta app.
+const PROYECTO_DECLARADO = 'proyectodepruebasxyz'
+
 test.describe('Fusible anti-producción del cliente service_role', () => {
   test('deja pasar Supabase local', () => {
     expect(() => comprobarFusible('http://localhost:54321')).not.toThrow()
@@ -27,22 +33,30 @@ test.describe('Fusible anti-producción del cliente service_role', () => {
   test('LANZA si la URL es remota y no hay proyecto declarado', () => {
     // Sin declaración explícita no se puede distinguir el proyecto de pruebas
     // del de producción, y ante la duda esta suite no toca nada.
-    expect(() => comprobarFusible('https://vulgobhjxkapxlgotkqg.supabase.co')).toThrow(
+    expect(() => comprobarFusible(`https://${PROYECTO_DECLARADO}.supabase.co`)).toThrow(
       ErrorFusibleProduccion,
     )
   })
 
   test('LANZA si la URL remota NO coincide con el proyecto declarado', () => {
-    // El caso real que esto previene: `nldvflhlimnmctyvzzxm` es producción de
-    // otra app, con datos personales de personas reales.
+    // El caso real que esto previene NO es hipotético: en la misma cuenta de
+    // Supabase vive la producción de otra aplicación, con datos personales de
+    // personas reales. Este fusible existe porque una sesión llegó a mirar sus
+    // tablas antes de darse cuenta de qué eran.
+    //
+    // El identificador real de ese proyecto NO se escribe aquí a propósito.
+    // Publicar el endpoint de una base de datos de producción no la abre —lo
+    // impiden las claves y RLS— pero sí le dice al mundo dónde apuntar, y no
+    // hay ninguna razón para regalarlo en un test que funciona igual con un
+    // valor cualquiera.
     expect(() =>
-      comprobarFusible('https://nldvflhlimnmctyvzzxm.supabase.co', 'vulgobhjxkapxlgotkqg'),
+      comprobarFusible('https://otroproyectocualquiera.supabase.co', PROYECTO_DECLARADO),
     ).toThrow(ErrorFusibleProduccion)
   })
 
   test('deja pasar la URL remota que SÍ coincide con el proyecto declarado', () => {
     expect(() =>
-      comprobarFusible('https://vulgobhjxkapxlgotkqg.supabase.co', 'vulgobhjxkapxlgotkqg'),
+      comprobarFusible(`https://${PROYECTO_DECLARADO}.supabase.co`, PROYECTO_DECLARADO),
     ).not.toThrow()
   })
 
@@ -54,12 +68,12 @@ test.describe('Fusible anti-producción del cliente service_role', () => {
   })
 
   test('extrae la referencia del proyecto de una URL de Supabase', () => {
-    expect(refDeProyecto('https://vulgobhjxkapxlgotkqg.supabase.co')).toBe(
-      'vulgobhjxkapxlgotkqg',
+    expect(refDeProyecto(`https://${PROYECTO_DECLARADO}.supabase.co`)).toBe(
+      PROYECTO_DECLARADO,
     )
     expect(refDeProyecto('http://localhost:54321')).toBeNull()
     // Un dominio parecido pero ajeno no debe colarse como si fuera Supabase.
-    expect(refDeProyecto('https://vulgobhjxkapxlgotkqg.supabase.co.malo.example')).toBeNull()
+    expect(refDeProyecto(`https://${PROYECTO_DECLARADO}.supabase.co.malo.example`)).toBeNull()
   })
 
   test('el entorno de ESTA ejecución pasa el fusible', () => {

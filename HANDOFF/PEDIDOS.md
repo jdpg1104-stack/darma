@@ -801,7 +801,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       comentarios** tras el borrado al amparo del art. 17.3.e. Las dos están
       escritas y razonadas en `/legal/menores` y `/legal/privacidad` ·
       2026-08-03
-- [ ] **De B20 → quien opere `darma-dev`** · ⚠️ el proyecto `vulgobhjxkapxlgotkqg`
+- [ ] **De B20 → quien opere `darma-dev`** · ⚠️ el proyecto de desarrollo
       ha entrado en **modo SOLO LECTURA** (`default_transaction_read_only = on`,
       750 MB de base) mientras otro bloque sembraba en masa. No es de B20 —los
       datos de prueba de este bloque se sembraron y se borraron, y el recuento

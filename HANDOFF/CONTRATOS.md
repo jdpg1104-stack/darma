@@ -71,7 +71,7 @@ job**. La documentación de ese archivo vive aquí, que es donde no estorba.
 Contra la base de desarrollo remota (`darma-dev`) el comando es:
 
 ```bash
-npx supabase gen types typescript --project-id vulgobhjxkapxlgotkqg > lib/supabase/database.types.ts
+npx supabase gen types typescript --project-id "$SUPABASE_PROJECT_REF" > lib/supabase/database.types.ts
 ```
 
 Ese archivo lo **posee B15** y se regenera en CI. Consúmelo así:
