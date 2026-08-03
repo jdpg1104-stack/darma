@@ -97,6 +97,15 @@ para el primero de B02. Lo que importa es que el prefijo lleve tu número de
 bloque, así el orden es estable y se ve de quién es cada migración.
 
 **Reglas duras:**
+- **Cada migración necesita una versión ÚNICA de cuatro dígitos.** El CLI de
+  Supabase toma como versión lo que hay antes del primer `_`, así que
+  `0106_1_…`, `0106_2_…` y `0106_3_…` son la MISMA versión y `db reset` muere
+  con `duplicate key value violates unique constraint "schema_migrations_pkey"`.
+  Pasó de verdad y solo lo vio el CI al reconstruir desde cero. Hay un guard que
+  ahora lo caza: `scripts/security/guardMigraciones.test.ts`.
+- **Una migración que toca algo creado por otra debe ordenarse DESPUÉS.** El
+  orden es alfabético y es lo único que lo garantiza. También pasó: una `0009`
+  intentaba revocar permisos de una función que creaba la `0201`.
 - Nunca modifiques una migración que ya existe. Solo añades.
 - Nunca `supabase db reset` sobre una base compartida: te llevas por delante el
   trabajo de las otras cinco sesiones. Si necesitas resetear, hazlo contra tu
