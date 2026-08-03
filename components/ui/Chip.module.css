@@ -1,0 +1,58 @@
+/* Chip · CSS Module.
+
+   Texto SIEMPRE --ink. Medido sobre los fondos teñidos reales:
+     oscuro  ink/chip-logro 10,97 · ink/chip-aviso 10,83 · ink/chip-peligro 11,60
+     claro   ink/chip-logro 14,74 · ink/chip-aviso 14,90 · ink/chip-peligro 14,04
+   El tono lo llevan el borde y el icono, que solo necesitan 3:1 y lo cumplen
+   con las variantes legibles de light-dark(). */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--linea-chip, var(--line));
+  background: var(--fondo-chip, var(--panel2));
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  /* El chip mide 24 px: por debajo del objetivo táctil. No pasa nada porque NO
+     es pulsable. Si algún bloque necesita un chip que se pueda pulsar, no es
+     este componente: pídelo en PEDIDOS.md y se añade con su ::before de 44 px. */
+  white-space: nowrap;
+}
+
+.icono {
+  display: inline-flex;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--tono-chip, currentColor);
+}
+
+.neutro {
+  --linea-chip: var(--line);
+  --fondo-chip: var(--panel2);
+  --tono-chip: var(--muted);
+}
+
+.logro {
+  --tono-chip: light-dark(color-mix(in oklab, var(--accent2) 65%, #000), var(--accent2));
+  --fondo-chip: color-mix(in oklab, var(--accent2) 14%, var(--panel2));
+  --linea-chip: color-mix(in oklab, var(--accent2) 40%, var(--line));
+}
+
+.aviso {
+  --tono-chip: light-dark(color-mix(in oklab, var(--warn) 62%, #000), var(--warn));
+  --fondo-chip: color-mix(in oklab, var(--warn) 14%, var(--panel2));
+  --linea-chip: color-mix(in oklab, var(--warn) 40%, var(--line));
+}
+
+.peligro {
+  --tono-chip: light-dark(color-mix(in oklab, var(--danger) 80%, #000), var(--danger));
+  --fondo-chip: color-mix(in oklab, var(--danger) 14%, var(--panel2));
+  --linea-chip: color-mix(in oklab, var(--danger) 40%, var(--line));
+}

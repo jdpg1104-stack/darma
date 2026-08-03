@@ -1,0 +1,47 @@
+/* Insignia · CSS Module.
+
+   El símbolo lleva el color del nivel (indicador visual: le basta 3:1, y con
+   las variantes de light-dark() lo cumple en los dos temas). La ETIQUETA de
+   texto va en --ink, no en el color del nivel: --gold sobre blanco da 1,68:1 y
+   --accent 4,35:1, así que un nombre de nivel de color sería ilegible en tema
+   claro justo en la pantalla de perfil. */
+
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tono-nivel, var(--muted));
+  line-height: 1;
+}
+
+.simbolo {
+  flex: none;
+}
+
+.texto {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.conEtiqueta {
+  padding: 4px 10px 4px 8px;
+  border: 1px solid color-mix(in oklab, var(--tono-nivel, var(--muted)) 40%, var(--line));
+  border-radius: var(--radius-pill);
+  background: var(--panel2);
+}
+
+/* Mismo mapa que COLOR_POR_NIVEL de components/ui/tokens.ts. */
+.insignia[data-nivel='semilla'] {
+  --tono-nivel: var(--muted);
+}
+.insignia[data-nivel='brote'] {
+  --tono-nivel: light-dark(color-mix(in oklab, var(--accent2) 65%, #000), var(--accent2));
+}
+.insignia[data-nivel='guia'] {
+  --tono-nivel: light-dark(color-mix(in oklab, var(--accent) 90%, #000), var(--accent));
+}
+.insignia[data-nivel='mentor'] {
+  --tono-nivel: light-dark(color-mix(in oklab, var(--gold) 60%, #000), var(--gold));
+}

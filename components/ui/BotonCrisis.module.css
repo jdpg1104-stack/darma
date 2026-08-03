@@ -1,0 +1,94 @@
+/* BotonCrisis · CSS Module.
+   Todo color sale de un token de app/globals.css. Ni un hex de marca.
+
+   El contraste se resuelve con TEXTO --ink sobre superficie --panel (el par que
+   ya cumple AA en toda la app) y se reserva --danger para el BORDE y el ICONO,
+   que son elementos gráficos: WCAG les pide 3:1, no 4,5:1. Poner --danger como
+   texto sobre --panel no llegaría, y poner --danger de fondo obligaría a tinta
+   oscura y a un botón que parece una alarma. */
+
+.base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* 44 px reales de objetivo táctil; el diseño pide 48 en el flotante. */
+  min-height: var(--touch);
+  padding: 12px 18px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+/* NO se toca `outline`: `:focus-visible` de globals.css es la única forma de
+   usar la app con teclado, y pisarlo aquí la rompería en silencio. */
+
+.base:hover {
+  background: color-mix(in oklab, var(--panel) 88%, var(--danger));
+}
+
+.inline {
+  composes: base;
+}
+
+.flotante {
+  composes: base;
+  position: fixed;
+  right: 16px;
+  /* safe-area: en un iPhone con barra de gestos, `bottom: 16px` deja el botón
+     justo debajo de la franja donde el sistema captura el deslizamiento — se
+     vuelve casi impulsable. Y este es el último botón de la app que puede
+     permitirse ser difícil de pulsar. */
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  min-height: 48px;
+  /* Por encima de todo salvo el diálogo modal, que vive en la capa superior del
+     navegador (::backdrop) y no compite por z-index. */
+  z-index: 60;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 45%);
+}
+
+.icono {
+  flex: none;
+  color: var(--danger);
+}
+
+/* En pantallas estrechas el flotante se queda solo con el icono: a 360 px de
+   ancho, la píldora con texto tapa el pie del feed. El nombre accesible lo
+   sigue dando el `aria-label`, así que para un lector de pantalla no cambia
+   nada. */
+@media (max-width: 480px) {
+  .flotante .texto {
+    /* Oculto visualmente pero presente para la accesibilidad: `display: none`
+       lo sacaría también del árbol de accesibilidad. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .flotante {
+    width: 48px;
+    padding: 0;
+  }
+}
+
+/* Deliberadamente NO hay animación de entrada ni pulso: ver el comentario de
+   BotonCrisis.tsx. Se deja la regla como constancia de que es una decisión y no
+   un olvido. */
+@media (prefers-reduced-motion: reduce) {
+  .base {
+    transition: none;
+  }
+}

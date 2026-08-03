@@ -1,0 +1,47 @@
+/* Tarjeta · CSS Module.
+
+   Los acentos usan variantes «legibles» con light-dark(): sobre blanco, --gold
+   da 1,68:1 y --accent2 da 1,97:1, muy por debajo del 3:1 que WCAG exige a un
+   indicador visual. light-dark() lee el `color-scheme` que ya declara
+   globals.css, así que no hace falta duplicar los dos selectores de tema ni
+   tocar nada de F4. En oscuro devuelve el token tal cual (10,31 y 8,77). */
+
+.tarjeta {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  color: var(--ink);
+}
+
+/* Logro: dorado. 10,31:1 en oscuro · 6,05:1 en claro con la mezcla. */
+.logro {
+  --acento: light-dark(color-mix(in oklab, var(--gold) 60%, #000), var(--gold));
+  border-left: 3px solid var(--acento);
+  /* El borde grueso se come 2px del padding para que el texto no se desplace
+     respecto a una tarjeta sin acento: en una lista mixta se nota. */
+  padding-left: 18px;
+}
+
+/* Crisis: verde de calma, NUNCA rojo. Ver el JSDoc de `acento` en Tarjeta.tsx —
+   marcar de rojo el post de alguien que está mal lo señala como una alarma del
+   sistema delante de toda la comunidad. 8,77:1 en oscuro · 5,73:1 en claro. */
+.crisis {
+  --acento: light-dark(color-mix(in oklab, var(--accent2) 65%, #000), var(--accent2));
+  border-left: 3px solid var(--acento);
+  padding-left: 18px;
+}
+
+.interactiva {
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+/* `focus-within` y no solo `hover`: si dentro hay un enlace y llegas con el
+   teclado, la tarjeta tiene que reaccionar igual que con el ratón. */
+.interactiva:hover,
+.interactiva:focus-within {
+  border-color: var(--muted);
+  background: color-mix(in oklab, var(--panel) 92%, var(--ink));
+}

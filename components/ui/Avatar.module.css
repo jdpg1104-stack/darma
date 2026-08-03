@@ -1,0 +1,47 @@
+/* Avatar · CSS Module.
+
+   El redondeo se hace aquí y no en el SVG: con `border-radius` + `overflow:
+   hidden` el navegador recorta el dibujo entero, mientras que un `rx` en el
+   rect de fondo dejaría las figuras de encima con esquinas cuadradas. Y sobre
+   todo, evita el `clipPath` con `id`, que en un feed de 20 avatares serían 20
+   ids repetidos (HTML inválido y, en algunos navegadores, todos los avatares
+   recortados por la máscara del primero). */
+
+.avatar {
+  display: block;
+  flex: none;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  /* Separa el dibujo generado de la superficie. Sin esto, un avatar de tono
+     oscuro sobre --bg oscuro parece flotar sin bordes. */
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 12%, transparent);
+}
+
+/* El aro de nivel se pinta con un box-shadow externo, no con `border`: un
+   borde alteraría la caja y desalinearía el avatar respecto al texto de al
+   lado en las listas. El hueco de 2 px lo separa del dibujo. */
+.conAro {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--ink) 12%, transparent),
+    0 0 0 2px var(--panel),
+    0 0 0 4px var(--aro);
+}
+
+/* Mapa nivel → color. Es el mismo de components/ui/tokens.ts (COLOR_POR_NIVEL);
+   duplicado aquí porque un CSS Module no puede importar de TypeScript. La
+   prueba `tokens y CSS coinciden` de ui.test.ts vigila que no diverjan.
+
+   Variantes legibles con light-dark(): sobre blanco, --gold da 1,68:1 y
+   --accent 4,35:1; el aro es un indicador visual y WCAG le pide 3:1. */
+.conAro[data-nivel='semilla'] {
+  --aro: var(--muted);
+}
+.conAro[data-nivel='brote'] {
+  --aro: light-dark(color-mix(in oklab, var(--accent2) 65%, #000), var(--accent2));
+}
+.conAro[data-nivel='guia'] {
+  --aro: light-dark(color-mix(in oklab, var(--accent) 90%, #000), var(--accent));
+}
+.conAro[data-nivel='mentor'] {
+  --aro: light-dark(color-mix(in oklab, var(--gold) 60%, #000), var(--gold));
+}

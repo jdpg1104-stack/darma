@@ -1,0 +1,188 @@
+{
+  "comun": {
+    "cargando": "Loading…",
+    "cancelar": "Cancel",
+    "guardar": "Save",
+    "reintentar": "Try again",
+    "cerrar": "Close",
+    "volver": "Back",
+    "siguiente": "Next",
+    "anterior": "Previous",
+    "aceptar": "OK",
+    "hola": "Hi",
+    "idioma": "Language",
+    "idiomaEspanol": "Spanish",
+    "idiomaIngles": "English",
+    "pais": "Country",
+    "paisAyuda": "Only used to show you the helplines where you are. It is never stored with your account.",
+    "saltarAlContenido": "Skip to content"
+  },
+  "auth": {
+    "entrar": "Come in",
+    "entrarDescripcion": "Nobody here knows who you are. Not even us.",
+    "alias": "What should we call you",
+    "aliasAyuda": "Between 3 and 24 characters. You can change it whenever you like.",
+    "continuar": "Continue",
+    "salir": "Sign out",
+    "sesionCaducada": "Your session has expired. Come back in to carry on.",
+    "bienvenida": "Welcome to Darma, {alias}."
+  },
+  "feed": {
+    "titulo": "For you",
+    "paraTi": "For you",
+    "recientes": "Latest",
+    "vacio": "Nothing here yet",
+    "vacioDescripcion": "When someone writes, it shows up here. And if you want to go first, that's fine too.",
+    "cargarMas": "See more",
+    "finDeLista": "You've reached the end."
+  },
+  "publicar": {
+    "titulo": "Tell us what's going on",
+    "marcador": "No filter needed. Nobody knows who you are.",
+    "publicar": "Post",
+    "primeraVez": "Your first time comes with no strings attached. Tell us what's going on.",
+    "listo": "You've sat with three people. Your turn now: we're reading.",
+    "faltan": "You're {n, plural, one {one person} other {# people}} away from posting. Nobody here speaks before they've listened.",
+    "enPausa": "Your account is on pause for now. In the meantime you can keep reading and looking after yourself.",
+    "rechazoServidor": "We couldn't post it yet: there's one more person to sit with first. Your words are still here, nothing was lost."
+  },
+  "hilo": {
+    "titulo": "Thread",
+    "escuchar": "Sit with this person",
+    "responderMarcador": "Write to them. No textbook advice: tell them what would have helped you.",
+    "responder": "Reply",
+    "meAyudo": "This helped",
+    "meAyudoHecho": "You told them it helped",
+    "validado": "Listening validated",
+    "sinRespuestas": "Nobody has replied yet. It could be you.",
+    "respuestas": "{n, plural, one {One reply} other {# replies}}"
+  },
+  "perfil": {
+    "titulo": "Your profile",
+    "alias": "Pseudonym",
+    "biografia": "About you",
+    "editar": "Edit",
+    "disponibilidad": {
+      "titulo": "How you are today",
+      "disponible": "Available",
+      "necesito_hablar": "I need to talk",
+      "ausente": "Away"
+    },
+    "nivel": {
+      "semilla": "Seed",
+      "brote": "Sprout",
+      "guia": "Guide",
+      "mentor": "Mentor"
+    },
+    "esMentor": "Sits with others as a mentor"
+  },
+  "karma": {
+    "titulo": "Your karma",
+    "reputacion": "Reputation",
+    "gastable": "Available to spend",
+    "nivelActual": "Current level: {nivel}",
+    "siguienteNivel": "{n, plural, one {# point} other {# points}} to go until {nivel}.",
+    "topeDiario": "You've hit today's cap. Tomorrow it counts again.",
+    "ganadoHoy": "Earned today: {n} of {tope}",
+    "comoSeGana": "Karma is earned by listening. It cannot be bought."
+  },
+  "refugios": {
+    "titulo": "Shelters",
+    "crear": "Create a shelter",
+    "unirse": "Join",
+    "salir": "Leave the shelter",
+    "vacio": "You're not in any shelter yet.",
+    "cifrado": "What's written here is end-to-end encrypted.",
+    "miembros": "{n, plural, one {One person} other {# people}}"
+  },
+  "ranking": {
+    "titulo": "Who shows up most",
+    "posicion": "Rank {n}",
+    "vacio": "Not enough to show for this week yet.",
+    "periodo": {
+      "semana": "This week",
+      "mes": "This month",
+      "siempre": "All time"
+    },
+    "aviso": "This recognises the people who listen, not the people who post most."
+  },
+  "contenido": {
+    "titulo": "Lift",
+    "siguiente": "Next",
+    "completado": "Completed",
+    "sinContenido": "Nothing new right now. Come back later.",
+    "silenciar": "Mute",
+    "activarSonido": "Unmute"
+  },
+  "crisis": {
+    "boton": "I need help now",
+    "aviso": {
+      "critical": "What you've written worries us and we don't want to let it pass. If you're in danger right now, call. We're staying here with you, but we're not professionals and there is help that reaches where we can't.",
+      "high": "Thank you for saying it. We're leaving you people who are ready to listen at any hour, in case you want them at some point. Darma doesn't replace a professional, and there's nothing wrong with looking for one.",
+      "low": "If you ever need it, this is here. No rush."
+    },
+    "tarjeta": {
+      "titulo": "Help you can call",
+      "subtitulo": "People trained to listen. You don't have to be at your worst to call.",
+      "llamar": "Call",
+      "enviarSms": "Send a text",
+      "abrirChat": "Open the chat",
+      "abrirWeb": "Open the site",
+      "horario24": "24 h, every day",
+      "gratuito": "Free call",
+      "noGratuito": "Call charged at your operator's rate",
+      "atiendeEn": "Answers in {idiomas}",
+      "cambiarPais": "This isn't my country",
+      "textoNoSeTraduce": "Names and numbers are shown as they are: they're the official ones for each country."
+    },
+    "recursos": {
+      "lineaSuicidio": "Specialist support for suicidal thoughts and behaviour.",
+      "escuchaEmocional": "Emotional support, no judgement and no rush.",
+      "saludMental": "Mental health guidance.",
+      "emergencias": "General emergency number. Call if there is immediate danger.",
+      "sms": "Write a message if you can't or don't want to speak.",
+      "chat": "A written conversation, straight from the browser.",
+      "directorioInternacional": "A directory of helplines country by country.",
+      "emergenciasLocales": "If there is immediate danger, call the emergency number for the country you're in."
+    }
+  },
+  "moderacion": {
+    "titulo": "Moderation",
+    "cola": "Review queue",
+    "revisar": "Review",
+    "marcarRevisado": "Mark as reviewed",
+    "sinCasos": "Nothing pending.",
+    "riesgo": {
+      "none": "No signal",
+      "low": "Mild signal",
+      "high": "High risk",
+      "critical": "Critical risk"
+    },
+    "casos": "{n, plural, one {One case} other {# cases}}"
+  },
+  "admin": {
+    "titulo": "Control room",
+    "metricas": "Metrics",
+    "usuarios": "People",
+    "contenido": "Content",
+    "sinPermiso": "This section isn't for your account."
+  },
+  "legal": {
+    "titulo": "Legal",
+    "terminos": "Terms of use",
+    "privacidad": "Privacy",
+    "actualizado": "Updated on {fecha}",
+    "noSomosEmergencias": "Darma is not an emergency service and does not replace a mental health professional."
+  },
+  "errores": {
+    "no_autenticado": "You need to be signed in to do this.",
+    "sin_permiso": "This isn't available for your account.",
+    "reciprocidad": "There's still someone to sit with before you can post.",
+    "no_encontrado": "This isn't here any more.",
+    "entrada_invalida": "There's something in what you wrote that we can't accept. Have a look and try again.",
+    "demasiadas_peticiones": "That was very fast. Try again in {retryAfter, plural, one {# second} other {# seconds}}.",
+    "contenido_bloqueado": "We couldn't post this as it is. Your words are still here.",
+    "saldo_insuficiente": "Your balance doesn't cover this.",
+    "error_interno": "Something broke on our side. It's not your fault. Try again in a moment."
+  }
+}

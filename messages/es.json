@@ -1,0 +1,188 @@
+{
+  "comun": {
+    "cargando": "Cargando…",
+    "cancelar": "Cancelar",
+    "guardar": "Guardar",
+    "reintentar": "Reintentar",
+    "cerrar": "Cerrar",
+    "volver": "Volver",
+    "siguiente": "Siguiente",
+    "anterior": "Anterior",
+    "aceptar": "Aceptar",
+    "hola": "Hola",
+    "idioma": "Idioma",
+    "idiomaEspanol": "Español",
+    "idiomaIngles": "Inglés",
+    "pais": "País",
+    "paisAyuda": "Sirve solo para enseñarte los teléfonos de ayuda de donde estás. No se guarda con tu cuenta.",
+    "saltarAlContenido": "Saltar al contenido"
+  },
+  "auth": {
+    "entrar": "Entrar",
+    "entrarDescripcion": "Aquí nadie sabe quién eres. Ni nosotros.",
+    "alias": "Cómo quieres que te llamen",
+    "aliasAyuda": "Entre 3 y 24 caracteres. Puedes cambiarlo cuando quieras.",
+    "continuar": "Continuar",
+    "salir": "Salir",
+    "sesionCaducada": "Tu sesión ha caducado. Vuelve a entrar para seguir.",
+    "bienvenida": "Bienvenida a Darma, {alias}."
+  },
+  "feed": {
+    "titulo": "Para ti",
+    "paraTi": "Para ti",
+    "recientes": "Recientes",
+    "vacio": "Todavía no hay nada por aquí",
+    "vacioDescripcion": "Cuando alguien escriba, lo verás aquí. Y si quieres empezar tú, también está bien.",
+    "cargarMas": "Ver más",
+    "finDeLista": "Has llegado al final."
+  },
+  "publicar": {
+    "titulo": "Cuéntanos qué te pasa",
+    "marcador": "Sin filtros. Nadie sabe quién eres.",
+    "publicar": "Publicar",
+    "primeraVez": "Tu primera vez va sin condiciones. Cuéntanos qué te pasa.",
+    "listo": "Has escuchado a tres personas. Ahora es tu turno: te leemos.",
+    "faltan": "Te {n, plural, one {queda una persona} other {quedan # personas}} por acompañar y podrás publicar. Aquí nadie habla sin haber escuchado.",
+    "enPausa": "Tu cuenta está en pausa temporalmente. Mientras tanto puedes seguir leyendo y cuidándote.",
+    "rechazoServidor": "No hemos podido publicarlo todavía: te falta acompañar a alguien más. Tu texto sigue aquí, no se ha perdido."
+  },
+  "hilo": {
+    "titulo": "Hilo",
+    "escuchar": "Escuchar a esta persona",
+    "responderMarcador": "Escríbele. Sin consejos de manual: cuéntale lo que a ti te habría servido.",
+    "responder": "Responder",
+    "meAyudo": "Me ayudó",
+    "meAyudoHecho": "Le has dicho que te ayudó",
+    "validado": "Escucha validada",
+    "sinRespuestas": "Todavía nadie ha respondido. Puedes ser tú.",
+    "respuestas": "{n, plural, one {Una respuesta} other {# respuestas}}"
+  },
+  "perfil": {
+    "titulo": "Tu perfil",
+    "alias": "Seudónimo",
+    "biografia": "Sobre ti",
+    "editar": "Editar",
+    "disponibilidad": {
+      "titulo": "Cómo estás hoy",
+      "disponible": "Disponible",
+      "necesito_hablar": "Necesito hablar",
+      "ausente": "Ausente"
+    },
+    "nivel": {
+      "semilla": "Semilla",
+      "brote": "Brote",
+      "guia": "Guía",
+      "mentor": "Mentor"
+    },
+    "esMentor": "Acompaña como mentor"
+  },
+  "karma": {
+    "titulo": "Tu karma",
+    "reputacion": "Reputación",
+    "gastable": "Disponible para gastar",
+    "nivelActual": "Nivel actual: {nivel}",
+    "siguienteNivel": "Te {n, plural, one {falta # punto} other {faltan # puntos}} para {nivel}.",
+    "topeDiario": "Hoy ya has llegado al máximo diario. Mañana sigue contando.",
+    "ganadoHoy": "Ganado hoy: {n} de {tope}",
+    "comoSeGana": "El karma se gana escuchando. No se compra."
+  },
+  "refugios": {
+    "titulo": "Refugios",
+    "crear": "Crear un refugio",
+    "unirse": "Unirme",
+    "salir": "Salir del refugio",
+    "vacio": "Aún no estás en ningún refugio.",
+    "cifrado": "Lo que se escribe aquí va cifrado de extremo a extremo.",
+    "miembros": "{n, plural, one {Una persona} other {# personas}}"
+  },
+  "ranking": {
+    "titulo": "Quien más acompaña",
+    "posicion": "Puesto {n}",
+    "vacio": "Todavía no hay suficientes datos esta semana.",
+    "periodo": {
+      "semana": "Esta semana",
+      "mes": "Este mes",
+      "siempre": "Desde el principio"
+    },
+    "aviso": "Esto reconoce a quien escucha, no a quien más publica."
+  },
+  "contenido": {
+    "titulo": "Ánimo",
+    "siguiente": "Siguiente",
+    "completado": "Completado",
+    "sinContenido": "No hay contenido nuevo ahora mismo. Vuelve luego.",
+    "silenciar": "Silenciar",
+    "activarSonido": "Activar sonido"
+  },
+  "crisis": {
+    "boton": "Necesito ayuda ahora",
+    "aviso": {
+      "critical": "Lo que has escrito nos preocupa y no queremos pasarlo por alto. Si estás en peligro ahora mismo, llama. Aquí en Darma nos vamos a quedar contigo, pero no somos profesionales y hay ayuda que sí puede llegar a donde nosotros no llegamos.",
+      "high": "Gracias por contarlo. Te dejamos aquí gente preparada para escucharte a cualquier hora, por si en algún momento la quieres. Darma no sustituye a un profesional, y no pasa nada por buscar uno.",
+      "low": "Si en algún momento lo necesitas, esto está aquí. Sin prisa."
+    },
+    "tarjeta": {
+      "titulo": "Ayuda a la que puedes llamar",
+      "subtitulo": "Personas preparadas para escucharte. No hace falta estar en lo peor para llamar.",
+      "llamar": "Llamar",
+      "enviarSms": "Enviar un mensaje",
+      "abrirChat": "Abrir el chat",
+      "abrirWeb": "Abrir la web",
+      "horario24": "24 h, todos los días",
+      "gratuito": "Llamada gratuita",
+      "noGratuito": "Coste de llamada según tu operador",
+      "atiendeEn": "Atiende en {idiomas}",
+      "cambiarPais": "No es mi país",
+      "textoNoSeTraduce": "Los nombres y los números se muestran tal cual: son los oficiales de cada país."
+    },
+    "recursos": {
+      "lineaSuicidio": "Atención especializada en conducta suicida.",
+      "escuchaEmocional": "Escucha emocional, sin juicio y sin prisa.",
+      "saludMental": "Orientación en salud mental.",
+      "emergencias": "Número general de emergencias. Llama si hay peligro inmediato.",
+      "sms": "Escribe un mensaje si no puedes o no quieres hablar.",
+      "chat": "Conversación por escrito, desde el navegador.",
+      "directorioInternacional": "Directorio de líneas de ayuda país por país.",
+      "emergenciasLocales": "Si hay peligro inmediato, llama al número de emergencias de tu país."
+    }
+  },
+  "moderacion": {
+    "titulo": "Moderación",
+    "cola": "Cola de revisión",
+    "revisar": "Revisar",
+    "marcarRevisado": "Marcar como revisado",
+    "sinCasos": "No hay nada pendiente.",
+    "riesgo": {
+      "none": "Sin señal",
+      "low": "Señal leve",
+      "high": "Riesgo alto",
+      "critical": "Riesgo crítico"
+    },
+    "casos": "{n, plural, one {Un caso} other {# casos}}"
+  },
+  "admin": {
+    "titulo": "Centro de mando",
+    "metricas": "Métricas",
+    "usuarios": "Personas",
+    "contenido": "Contenido",
+    "sinPermiso": "Esta sección no es para tu cuenta."
+  },
+  "legal": {
+    "titulo": "Legal",
+    "terminos": "Términos de uso",
+    "privacidad": "Privacidad",
+    "actualizado": "Actualizado el {fecha}",
+    "noSomosEmergencias": "Darma no es un servicio de emergencias ni sustituye a un profesional de la salud mental."
+  },
+  "errores": {
+    "no_autenticado": "Necesitas haber entrado para hacer esto.",
+    "sin_permiso": "Esto no está disponible para tu cuenta.",
+    "reciprocidad": "Todavía te falta acompañar a alguien para poder publicar.",
+    "no_encontrado": "Esto ya no está aquí.",
+    "entrada_invalida": "Hay algo en lo que has escrito que no podemos aceptar. Revísalo y vuelve a intentarlo.",
+    "demasiadas_peticiones": "Vas muy rápido. Prueba otra vez en {retryAfter, plural, one {# segundo} other {# segundos}}.",
+    "contenido_bloqueado": "No hemos podido publicar esto tal y como está. Tu texto sigue aquí.",
+    "saldo_insuficiente": "No te llega el saldo para esto.",
+    "error_interno": "Algo se ha roto por nuestro lado. No es culpa tuya. Inténtalo otra vez en un momento."
+  }
+}

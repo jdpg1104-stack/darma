@@ -1,0 +1,179 @@
+/* Boton · CSS Module.
+   Todo color sale de un token de app/globals.css. Ni un hex de marca.
+
+   ACCENT_FILL (ver components/ui/tokens.ts): --accent con texto blanco encima
+   da 4,35:1 y AA pide 4,5:1. Oscurecido un 14 % en oklab sube a 6,10:1 y el
+   violeta se percibe igual. La mezcla se hace en oklab y no en sRGB porque en
+   sRGB el violeta vira a azul al oscurecerlo. */
+
+.boton {
+  --accent-fill: color-mix(in oklab, var(--accent) 86%, #000);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* 44 px reales: objetivo táctil accesible mínimo. */
+  min-height: var(--touch);
+  padding: 12px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    filter var(--dur-fast) var(--ease);
+}
+
+/* NO se toca `outline`. `:focus-visible` de globals.css es la única forma de
+   usar la app con teclado; pisarlo aquí la rompería en silencio. */
+
+.boton:disabled {
+  cursor: not-allowed;
+  /* Se baja opacidad, no se apaga el color: un botón al 40 % sigue teniendo
+     contraste suficiente para leerse, que es lo que importa cuando está
+     deshabilitado justo porque falta algo por hacer. */
+  opacity: 0.55;
+}
+
+/* ── Variantes ─────────────────────────────────────────────────────────────*/
+
+/* Blanco sobre --accent-fill = 6,10:1 (AA). Sobre --accent serían 4,35 (falla). */
+.primario {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  border-color: var(--accent-fill);
+}
+.primario:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+/* Tinta principal sobre --panel2: 14,07:1 en oscuro, 15,84:1 en claro. */
+.secundario {
+  background: var(--panel2);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.secundario:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+/* --muted sobre --bg: 7,74:1 oscuro / 5,33:1 claro. */
+.fantasma {
+  background: transparent;
+  color: var(--muted);
+  border-color: transparent;
+}
+.fantasma:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+/* Relleno --danger con tinta oscura encima: 5,75:1. Con blanco serían 2,97 —el
+   error más repetido de toda la paleta—. --on-accent2 es la tinta de relleno
+   claro; ver PEDIDOS.md, se ha pedido a F4 un `--on-fill` con ese nombre. */
+.peligro {
+  background: var(--danger);
+  color: var(--on-accent2);
+  border-color: var(--danger);
+}
+.peligro:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+/* ── Tamaños ───────────────────────────────────────────────────────────────*/
+
+.sm {
+  /* Se ve de 36 px, pero el área pulsable sigue siendo de 44 (ver ::before). */
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+/* Amplía el objetivo táctil SIN deformar el diseño: un padding de 4px extra
+   movería todo lo que hay alrededor; una capa absoluta no mueve nada. */
+.sm::before {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+  /* Es área de contacto, no decoración: invisible y sin capturar nada más. */
+  pointer-events: auto;
+}
+
+.md {
+  min-height: var(--touch);
+  font-size: 16px;
+}
+
+.lg {
+  min-height: 52px;
+  padding: 14px 28px;
+  font-size: 17px;
+}
+
+.bloque {
+  display: flex;
+  width: 100%;
+}
+
+/* ── Icono y contenido ─────────────────────────────────────────────────────*/
+
+.icono {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.15em;
+  height: 1.15em;
+}
+
+.contenido {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Cargando ──────────────────────────────────────────────────────────────*/
+
+/* El texto se atenúa pero SIGUE OCUPANDO SU SITIO: el ancho del botón no
+   cambia. El indicador se superpone en el centro. */
+.cargando .contenido,
+.cargando .icono {
+  opacity: 0.35;
+}
+
+.indicador {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  border: 2px solid currentColor;
+  /* El cuarto transparente es lo que hace visible el giro. */
+  border-top-color: transparent;
+  animation: darma-giro 700ms linear infinite;
+}
+
+@keyframes darma-giro {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Con el movimiento reducido, el giro desaparece pero el indicador NO: sigue
+   siendo la única señal visual de que hay algo en curso (el estado no puede
+   depender de una animación). Se queda como un anillo estático. */
+@media (prefers-reduced-motion: reduce) {
+  .indicador {
+    animation: none;
+    border-top-color: currentColor;
+    opacity: 0.6;
+  }
+}

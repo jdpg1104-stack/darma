@@ -1,0 +1,117 @@
+/* Dialogo · CSS Module.
+
+   El `<dialog>` nativo trae estilos de agente de usuario que hay que apagar
+   (borde, padding, márgenes automáticos, `color: canvastext`). El z-index no se
+   declara: un diálogo modal vive en la «top layer» del navegador, por encima de
+   TODO lo demás sin competir con ningún z-index de la app. Es justo lo que hace
+   que quede por encima del BotonCrisis flotante sin que ninguno de los dos
+   tenga que conocer al otro. */
+
+.dialogo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  max-width: min(560px, calc(100vw - 32px));
+  width: 100%;
+  /* `overscroll-behavior`: sin esto, al llegar al final del diálogo el scroll
+     «se escapa» a la página de detrás. */
+  overscroll-behavior: contain;
+}
+
+.dialogo::backdrop {
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 20px;
+  /* Con el teclado abierto en móvil el diálogo puede pasarse de alto: que haga
+     scroll él, no el documento. */
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+}
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.titulo {
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  /* Objetivo táctil completo aunque el aspa mida 18 px. */
+  width: var(--touch);
+  height: var(--touch);
+  margin: -10px -10px 0 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cerrar:hover {
+  color: var(--ink);
+  background: var(--panel2);
+}
+
+.descripcion {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.cuerpo {
+  color: var(--ink);
+}
+
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* La entrada es una cortesía, nunca el mecanismo de aparición: el diálogo ya
+   está visible en el fotograma 1 y la animación solo lo acompaña. Si dependiera
+   de ella, con `prefers-reduced-motion` el panel quedaría invisible. */
+.panel {
+  animation: darma-dialogo-entra var(--dur) var(--ease) both;
+}
+
+@keyframes darma-dialogo-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+  .dialogo::backdrop {
+    backdrop-filter: none;
+  }
+}

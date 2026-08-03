@@ -1,0 +1,83 @@
+/* Cargando · CSS Module. */
+
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.fila {
+  display: block;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--panel2);
+  /* El brillo es un gradiente que se desplaza; el fondo base ya da la forma, así
+     que si la animación no corre el esqueleto sigue siendo visible. */
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--ink) 8%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: darma-brillo 1.4s var(--ease) infinite;
+}
+
+.fila[data-corta] {
+  width: 62%;
+}
+
+@keyframes darma-brillo {
+  from {
+    background-position: -110% 0;
+  }
+  to {
+    background-position: 210% 0;
+  }
+}
+
+/* Con el movimiento reducido, el brillo NO se ralentiza: desaparece y queda un
+   fondo estático. Un brillo lento sigue siendo movimiento periférico repetido,
+   que es exactamente lo que provoca el mareo de quien activa esta preferencia. */
+@media (prefers-reduced-motion: reduce) {
+  .fila {
+    animation: none;
+    background-image: none;
+  }
+}
+
+.texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.punto {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  animation: darma-latido 1.2s var(--ease) infinite;
+}
+
+@keyframes darma-latido {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .punto {
+    animation: none;
+    opacity: 0.8;
+  }
+}

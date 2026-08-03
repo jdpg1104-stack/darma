@@ -1,0 +1,44 @@
+/* EstadoVacio · CSS Module.
+   Título en --ink (≥15:1), descripción en --muted (7,08:1 oscuro / 5,67:1
+   claro). Ningún texto de acento: aquí no hay nada que celebrar. */
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.ilustracion {
+  color: var(--line);
+  margin-bottom: 4px;
+}
+
+.titulo {
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.descripcion {
+  max-width: 42ch;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.accion {
+  margin-top: 8px;
+}
+
+/* Vacío que duele: sin ilustración (la quita el componente) y con el título al
+   mismo peso que el cuerpo. La jerarquía tipográfica fuerte convierte el vacío
+   en un titular, y «Todavía nadie ha respondido» no debería ser un titular. */
+.cuidado .titulo {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cuidado {
+  padding: 32px 24px;
+}

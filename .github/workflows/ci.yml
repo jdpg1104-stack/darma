@@ -1,0 +1,156 @@
+name: CI
+
+# Qué defiende este workflow, en orden de gravedad:
+#   1. Que la economía de Darma no se desincronice entre TypeScript y Postgres.
+#   2. Que la anon key no pueda leer ni escribir lo que no le toca (RLS).
+#   3. Que ningún componente de cliente arrastre el cliente admin de Supabase.
+#   4. Que el proyecto compile, pase lint y tenga los tests en verde.
+#
+# El orden importa: los guards baratos van primero para que un fallo de
+# seguridad no espere a que termine un build de tres minutos.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # Un push nuevo cancela el CI del anterior en la misma rama: en un repo con
+  # varias sesiones en paralelo, si no, se acumulan ejecuciones obsoletas que
+  # tardan más y no informan de nada.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  # ── 1. Guards de invariantes ────────────────────────────────────────────────
+  # Segundos, sin base de datos y sin build. Si algo de aquí falla, el resto del
+  # CI da igual: es un fallo de diseño, no de implementación.
+  invariantes:
+    name: Invariantes de seguridad y economía
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      # Los pesos del karma, el tope diario, los niveles, la regla 3:1 y la
+      # fórmula del hot score existen en dos sitios (lib/*.ts y las migraciones).
+      # Este guard es lo único que impide que se separen en silencio — y que se
+      # separen significa que a alguien deja de contarle el karma que ganó.
+      - name: Economía · TypeScript ≡ SQL
+        run: node --test --experimental-strip-types "lib/economySync.test.ts"
+
+      # Una sola importación transitiva del cliente admin desde un árbol con
+      # 'use client' pone la service_role key en el bundle del navegador. Eso no
+      # es un bug con consecuencias: es la app entera abierta.
+      - name: El cliente admin no llega al navegador
+        run: node --test --experimental-strip-types "scripts/security/guardClienteAdmin.test.ts"
+
+      - name: Guards de seguridad restantes
+        run: node --test --experimental-strip-types "scripts/security/*.test.ts"
+
+  # ── 2. Calidad estática ─────────────────────────────────────────────────────
+  calidad:
+    name: Tipos, lint y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      # --incremental false: el .tsbuildinfo cacheado de otra rama puede dar un
+      # verde falso.
+      - name: Tipos
+        run: npx tsc --noEmit --incremental false
+
+      # --max-warnings 0 NO se activa todavía: hay avisos conocidos y
+      # justificados (los scripts de k6 exigen un export default anónimo). Se
+      # sube cuando estén acotados por override en eslint.config.mjs.
+      - name: Lint
+        run: npx eslint .
+
+      - name: Pruebas unitarias
+        run: >
+          node --test --experimental-strip-types
+          "lib/**/*.test.ts" "i18n/*.test.ts"
+          "scripts/**/*.test.ts" "components/**/*.test.ts"
+
+      - name: Build
+        run: npm run build
+        env:
+          # Valores de relleno: el build no habla con Supabase, pero next.config
+          # deriva de aquí el origen de la CSP y con la variable vacía la
+          # cabecera saldría distinta a la de producción.
+          NEXT_PUBLIC_SUPABASE_URL: https://ejemplo.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+
+  # ── 3. RLS contra un Postgres de verdad ─────────────────────────────────────
+  # La única forma honesta de probar una política de RLS es intentar saltársela
+  # con la anon key contra una base real. Un mock de PostgREST prueba el mock.
+  rls:
+    name: Políticas RLS (Postgres real)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Levantar Supabase local
+        run: supabase start
+
+      - name: Aplicar migraciones
+        run: supabase db reset --no-seed
+
+      # Cada caso afirma que una operación PROHIBIDA falla. Un test de RLS que
+      # solo comprueba el camino permitido pasa igual con RLS desactivada, que
+      # es exactamente el fallo que no queremos que se cuele.
+      - name: Suite de RLS
+        run: node --test --experimental-strip-types "supabase/tests/rls.integracion.ts"
+
+      # Los tipos se GENERAN, no se escriben: si el esquema cambió y nadie
+      # regeneró, el diff lo destapa aquí en vez de en producción.
+      - name: database.types.ts está al día
+        run: |
+          supabase gen types typescript --local > /tmp/tipos.ts
+          diff -u lib/supabase/database.types.ts /tmp/tipos.ts \
+            || { echo "::error::database.types.ts desactualizado. Regenera con: npx supabase gen types typescript --local > lib/supabase/database.types.ts"; exit 1; }
+
+  # ── 4. Higiene de secretos y dependencias ───────────────────────────────────
+  secretos:
+    name: Secretos y dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historial completo: un secreto que se coló y se "borró" en el commit
+          # siguiente sigue estando en el repositorio para siempre.
+          fetch-depth: 0
+
+      - name: Escaneo de secretos
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Auditoría de dependencias
+        run: npm audit --audit-level=high

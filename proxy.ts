@@ -31,10 +31,15 @@ import { NextResponse, type NextRequest } from 'next/server'
  * - '/api/cron/'   disparadores de Vercel Cron: llegan sin navegador ni cookie y
  *                  cada handler se autentica solo con CRON_SECRET (Bearer). Si
  *                  el proxy las cortara con 401 nunca llegarían a validarlo.
+ * - '/api/auth/'   las rutas que CREAN la sesión. Exigirles sesión es un
+ *                  círculo: no se puede entrar sin haber entrado. Cada handler
+ *                  se protege por su cuenta (rate limit por IP y validación),
+ *                  que es lo que corresponde a una superficie pre-sesión.
  */
 const PUBLIC_ROUTES = [
   '/entrar',
   '/auth/',
+  '/api/auth/',
   '/legal',
   '/ayuda',
   '/api/cron/',
