@@ -1,24 +1,15 @@
 // ============================================================================
-// B17 · Configuración de petición para next-intl (servidor)
+// Configuración de idioma de la petición (servidor)
 //
-// ⚠️ ESTE ARCHIVO NO IMPORTA `next-intl` TODAVÍA, A PROPÓSITO.
+// `next-intl` se evaluó y se descartó: el catálogo ya viaja en el bundle como
+// JSON importado estáticamente, así que su provider solo habría añadido mandarlo
+// otra vez por el cable contra el presupuesto de 120 KB por ruta de CONTRATOS
+// §11. El razonamiento completo está en `i18n/Proveedor.tsx`, que es lo que se
+// montó en su lugar.
 //
-// `next-intl` no está instalado: añadirlo tocaría `package.json`, que no es de
-// B17 y que comparten otros cinco bloques trabajando ahora mismo. La dependencia
-// está pedida en HANDOFF/PEDIDOS.md junto con los dos cambios de F4
-// (`next.config.ts` y `app/layout.tsx`).
-//
-// Cuando lleguen, este archivo pasa a ser exactamente esto —dos líneas más, sin
-// tocar nada de lo de abajo—:
-//
-//     import { getRequestConfig } from 'next-intl/server'
-//     export default getRequestConfig(configuracionDePeticion)
-//
-// Y `next.config.ts` lo apunta con `createNextIntlPlugin('./i18n/request.ts')`.
-// Mientras tanto, `configuracionDePeticion()` ya es la fuente de verdad y la usa
-// `obtenerTraductor()` en pruebas y en cualquier Server Component que la
-// necesite: el día de la integración no cambia el comportamiento, solo el
-// consumidor.
+// Esto es la fuente de verdad del par (idioma, mensajes) para el servidor: lo
+// consumen `app/layout.tsx` y cualquier Server Component que necesite el
+// subárbol de su pantalla.
 // ============================================================================
 
 import { resolverLocale } from './deteccion.ts'
@@ -50,10 +41,9 @@ export async function configuracionDePeticion(): Promise<ConfiguracionDePeticion
 }
 
 /**
- * Variante para rutas que solo necesitan parte del catálogo. Es la que debe
- * usarse al alimentar `<NextIntlClientProvider>`: mandar los dos JSON enteros al
- * cliente se come el presupuesto de 120 KB por ruta de CONTRATOS §11 él solo en
- * cuanto el catálogo crezca.
+ * Variante para pantallas que solo necesitan parte del catálogo: mandar los dos
+ * JSON enteros al cliente se come el presupuesto de 120 KB por ruta de
+ * CONTRATOS §11 él solo en cuanto el catálogo crezca.
  */
 export async function configuracionDePeticionParcial(
   raices: readonly RaizDeDominio[] = RAICES_DE_DOMINIO,

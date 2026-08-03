@@ -1,4 +1,3 @@
-import { reciprocityMessage } from '@/lib/reciprocity'
 import { expect, omitirSinAdmin, test } from '../fixtures'
 import { PublicarPage } from '../paginas/PublicarPage'
 import { TEXTO_QUE_NO_SE_DEBE_PERDER } from '../utils/textos'
@@ -28,7 +27,7 @@ test.describe('(c) Publicar sin escuchas', () => {
     await publicar.ir()
 
     await expect(
-      page.getByText(reciprocityMessage({ listenCredits: 0, postsPublished: 1 })),
+      publicar.mensajeParaEstado({ listenCredits: 0, postsPublished: 1 }),
     ).toBeVisible()
 
     await publicar.escribir(TEXTO_QUE_NO_SE_DEBE_PERDER)

@@ -18,6 +18,7 @@
 // ============================================================================
 
 import type { KarmaLevel } from '../karma.ts'
+import type { MensajeReciprocidad } from '../reciprocity.ts'
 import type { Disponibilidad, FilaSesion, NivelEntrada } from './session.ts'
 
 /** Todo lo que otra persona puede llegar a saber de ti en Darma. */
@@ -49,7 +50,9 @@ export interface Yo {
     puedePublicar: boolean
     faltanEscuchas: number
     esPrimerPost: boolean
-    mensaje: string
+    /** Clave de catálogo + params, no una frase: el servidor no sabe en qué
+     *  idioma lee quien pregunta. La pinta la UI con `obtenerTraductor()`. */
+    mensaje: MensajeReciprocidad
   }
   dosFactoresActivo: boolean
 }

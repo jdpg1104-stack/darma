@@ -40,7 +40,7 @@ import { sobreOk } from '@/lib/auth/respuestas'
 import { ErrorApi } from '@/lib/auth/errores'
 import { requirePerfil } from '@/lib/auth/session'
 import { assertNoPii, PiiDetectedError } from '@/lib/anonymity'
-import { RECIPROCITY_SERVER_REJECTION, reciprocityMessage } from '@/lib/reciprocity'
+import { CLAVE_RECHAZO_SERVIDOR, reciprocityMessage } from '@/lib/reciprocity'
 import { logCrisisEvent, logger } from '@/lib/logger'
 import type { RespuestaPublicar, PostCreado } from '@/components/composer/contrato'
 import type { TipoPost } from '@/components/composer/temas'
@@ -141,16 +141,15 @@ export async function POST(request: Request) {
         // en pausa es mentira y además le hace perder el tiempo escuchando.
         const enPausa = sesion.bannedUntil !== null && new Date(sesion.bannedUntil).getTime() > Date.now()
         if (enPausa) {
-          throw new ErrorApi('sin_permiso', {
-            mensaje: reciprocityMessage({
-              listenCredits: 0,
-              postsPublished: 1,
-              bannedUntil: sesion.bannedUntil,
-            }),
+          const { clave, params } = reciprocityMessage({
+            listenCredits: 0,
+            postsPublished: 1,
+            bannedUntil: sesion.bannedUntil,
           })
+          throw new ErrorApi('sin_permiso', { mensajeClave: clave, mensajeParams: params })
         }
 
-        throw new ErrorApi('reciprocidad', { mensaje: RECIPROCITY_SERVER_REJECTION, causa: error })
+        throw new ErrorApi('reciprocidad', { mensajeClave: CLAVE_RECHAZO_SERVIDOR, causa: error })
       }
 
       throw new ErrorApi(codigo, { causa: error })

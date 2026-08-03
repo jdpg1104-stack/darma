@@ -1,10 +1,26 @@
 import type { Locator } from '@playwright/test'
+import { obtenerTraductor } from '@/i18n/traductor'
 import {
   LISTENS_PER_POST,
   reciprocityMessage,
   type ReciprocityState,
 } from '@/lib/reciprocity'
 import { BasePage } from './BasePage'
+
+// El contexto del navegador se crea con `locale: 'es-ES'` (playwright.config.ts),
+// así que la pantalla se pinta en español y en español hay que buscarla.
+const t = obtenerTraductor('es')
+
+/**
+ * El texto que `/publicar` pinta para un estado dado, ya resuelto.
+ *
+ * Sale de `reciprocityMessage()` + el catálogo, nunca de copy escrito a mano en
+ * un spec: si cambia la frase, estos localizadores la siguen solos.
+ */
+function copyDeReciprocidad(estado: ReciprocityState): string {
+  const { clave, params } = reciprocityMessage(estado)
+  return t(clave, params)
+}
 
 /**
  * `/publicar` — el composer y el gate de reciprocidad.
@@ -59,40 +75,48 @@ export class PublicarPage extends BasePage {
   /**
    * El mensaje de reciprocidad que se está pintando.
    *
-   * Se localiza por el texto que produce `reciprocityMessage()` —importado de
-   * `lib/reciprocity.ts`, nunca escrito a mano en un spec— porque el `<p>` que
-   * lo contiene no tiene id, role ni `data-testid`. Pedido a B03 en PEDIDOS.md.
+   * Se localiza por el texto derivado de `reciprocityMessage()`, nunca escrito a
+   * mano en un spec, porque el `<p>` que lo contiene no tiene id, role ni
+   * `data-testid`. Pedido a B03 en PEDIDOS.md.
    */
   mensajeParaEstado(estado: ReciprocityState): Locator {
-    return this.page.getByText(reciprocityMessage(estado), { exact: false })
+    return this.page.getByText(copyDeReciprocidad(estado), { exact: false })
+  }
+
+  /**
+   * Cuál de los estados posibles está pintado ahora mismo, y con qué texto.
+   *
+   * Recorre los cuatro estados alcanzables desde `/publicar` (faltan 3, 2, 1 y
+   * listo) en vez de buscar por un fragmento de copy: así no hay ni una frase
+   * fijada en el Page Object.
+   */
+  private async estadoPintado(): Promise<{ hechas: number; texto: string } | null> {
+    for (let hechas = 0; hechas <= LISTENS_PER_POST; hechas += 1) {
+      const nodo = this.page
+        .getByText(copyDeReciprocidad({ listenCredits: hechas, postsPublished: 1 }), {
+          exact: false,
+        })
+        .first()
+      if (await nodo.count()) return { hechas, texto: (await nodo.innerText()).trim() }
+    }
+    return null
   }
 
   async mensajeReciprocidad(): Promise<string> {
-    // La frase siempre termina en la misma coletilla cuando falta escuchar, y
-    // empieza igual cuando ya se puede: se busca por el fragmento invariable
-    // que produce lib/reciprocity.ts para no fijar copy en el Page Object.
-    const marca = reciprocityMessage({ listenCredits: 0, postsPublished: 1 })
-    const cola = marca.slice(marca.indexOf('Aquí nadie habla'))
-    const nodo = this.page.locator(`p:has-text("${cola}")`).first()
-    if (await nodo.count()) return (await nodo.innerText()).trim()
-
-    const permitido = reciprocityMessage({
-      listenCredits: LISTENS_PER_POST,
-      postsPublished: 1,
-    })
-    return (await this.page.getByText(permitido).first().innerText()).trim()
+    const pintado = await this.estadoPintado()
+    if (!pintado) throw new Error(SIN_ESTADO)
+    return pintado.texto
   }
 
   /**
    * Escuchas ya hechas de las 3 que hacen falta, leídas de la UI.
    *
    * ⚠️ La ficha de B18 pedía `data-testid="escuchas-hechas"`, y hoy NO EXISTE:
-   * `/publicar` pasa al Composer la FRASE de `reciprocityMessage()` y un
-   * booleano, nunca el número (decisión deliberada, documentada en la cabecera
-   * de la página). Mientras el testid no llegue —pedido a B03 en PEDIDOS.md—,
-   * el número se DERIVA comparando el texto pintado con lo que produce
-   * `reciprocityMessage()` para cada estado posible. Así el spec sigue sin
-   * contener copy y el día que aparezca el testid solo cambia este método.
+   * `/publicar` pasa al Composer el MOTIVO y el número que faltan, nunca las
+   * hechas (decisión deliberada, documentada en la cabecera de la página).
+   * Mientras el testid no llegue —pedido a B03 en PEDIDOS.md—, el número se
+   * DERIVA de qué mensaje está pintado. El día que aparezca el testid solo
+   * cambia este método.
    */
   async escuchasHechas(): Promise<number> {
     const porTestId = this.page.getByTestId('escuchas-hechas')
@@ -100,17 +124,12 @@ export class PublicarPage extends BasePage {
       return Number.parseInt((await porTestId.innerText()).replace(/\D/g, ''), 10)
     }
 
-    for (let hechas = 0; hechas <= LISTENS_PER_POST; hechas += 1) {
-      const esperado = reciprocityMessage({
-        listenCredits: hechas,
-        postsPublished: 1,
-      })
-      if (await this.page.getByText(esperado, { exact: false }).count()) return hechas
-    }
-
-    throw new Error(
-      'No se ha podido leer el estado de reciprocidad en /publicar: ni data-testid ' +
-        'ni ninguna de las frases de reciprocityMessage() está en la pantalla.',
-    )
+    const pintado = await this.estadoPintado()
+    if (!pintado) throw new Error(SIN_ESTADO)
+    return pintado.hechas
   }
 }
+
+const SIN_ESTADO =
+  'No se ha podido leer el estado de reciprocidad en /publicar: ni data-testid ' +
+  'ni ninguno de los mensajes de reciprocityMessage() está en la pantalla.'

@@ -121,8 +121,15 @@ export function listensRemaining(state: ReciprocityState): number {
   return creditsNeeded(state)
 }
 
+/** Mensaje sin resolver: la clave del catálogo y lo que necesita su ICU. */
+export interface MensajeReciprocidad {
+  clave: 'publicar.enPausa' | 'publicar.primeraVez' | 'publicar.listo' | 'publicar.faltan'
+  /** Solo lo lleva `publicar.faltan`, cuyo plural ICU necesita el número. */
+  params?: { n: number }
+}
+
 /**
- * Mensaje que ve la persona.
+ * Qué mensaje le toca ver a esta persona. Devuelve la CLAVE, no la frase.
  *
  * El tono es una decisión de producto, no un detalle: quien llega aquí muchas
  * veces está mal y quiere desahogarse YA. Un "acceso denegado" en ese momento
@@ -131,35 +138,32 @@ export function listensRemaining(state: ReciprocityState): number {
  *
  * Descartado: "Necesitas 3 créditos para publicar". Convierte el acto de
  * acompañar a alguien en una moneda y hace que la escucha se sienta como un
- * peaje. La palabra "crédito" no debe aparecer nunca de cara al usuario.
+ * peaje. La palabra "crédito" no debe aparecer nunca de cara al usuario — lo
+ * vigila `i18n/deteccion.test.ts` sobre el catálogo, en los dos idiomas.
+ *
+ * POR QUÉ CLAVE Y NO FRASE: el servidor no sabe en qué idioma lee quien
+ * pregunta. Devolver la frase resuelta dejaba `/api/me` y `/api/posts`
+ * respondiendo en español a una pantalla en inglés. Y el plural de
+ * `publicar.faltan` no se puede componer pegando cadenas: en inglés la forma
+ * cambia con el número, así que el número tiene que llegar al ICU sin resolver.
  */
-export function reciprocityMessage(state: ReciprocityState, now: Date = new Date()): string {
+export function reciprocityMessage(
+  state: ReciprocityState,
+  now: Date = new Date(),
+): MensajeReciprocidad {
   const result = canPublish(state, now)
 
-  if (result.reason === 'banned') {
-    return 'Tu cuenta está en pausa temporalmente. Mientras tanto puedes seguir leyendo y cuidándote.'
-  }
+  if (result.reason === 'banned') return { clave: 'publicar.enPausa' }
+  if (result.isFirstPost) return { clave: 'publicar.primeraVez' }
+  if (result.allowed) return { clave: 'publicar.listo' }
 
-  if (result.isFirstPost) {
-    return 'Tu primera vez va sin condiciones. Cuéntanos qué te pasa.'
-  }
-
-  if (result.allowed) {
-    return 'Has escuchado a tres personas. Ahora es tu turno: te leemos.'
-  }
-
-  const faltan = result.creditsNeeded
-  return faltan === 1
-    ? 'Te queda una persona por acompañar y podrás publicar. Aquí nadie habla sin haber escuchado.'
-    : `Te quedan ${faltan} personas por acompañar y podrás publicar. Aquí nadie habla sin haber escuchado.`
+  return { clave: 'publicar.faltan', params: { n: result.creditsNeeded } }
 }
 
 /**
- * Mensaje para cuando el SERVIDOR rechaza la publicación (el trigger lanzó
- * `check_violation`). Se separa del anterior a propósito: llegar aquí significa
- * que la UI y la base discrepaban, así que el copy asume que la persona ya
- * había escrito su texto y lo primero es tranquilizarla sobre eso.
+ * Clave para cuando el SERVIDOR rechaza la publicación (el trigger lanzó
+ * `check_violation`). Se separa de la anterior a propósito: llegar aquí
+ * significa que la UI y la base discrepaban, así que el copy asume que la
+ * persona ya había escrito su texto y lo primero es tranquilizarla sobre eso.
  */
-export const RECIPROCITY_SERVER_REJECTION =
-  'No hemos podido publicarlo todavía: te falta acompañar a alguien más. ' +
-  'Tu texto sigue aquí, no se ha perdido.'
+export const CLAVE_RECHAZO_SERVIDOR = 'publicar.rechazoServidor'

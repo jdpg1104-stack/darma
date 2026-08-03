@@ -27,7 +27,8 @@ import {
   PREFIJO_RECIPROCIDAD,
 } from './publicar.ts'
 import { CUERPO_MAX, CUERPO_MIN, TEMAS } from '../../../../components/composer/temas.ts'
-import { RECIPROCITY_SERVER_REJECTION } from '../../../../lib/reciprocity.ts'
+import { obtenerTraductor } from '../../../../i18n/traductor.ts'
+import { CLAVE_RECHAZO_SERVIDOR } from '../../../../lib/reciprocity.ts'
 
 /** El error tal cual lo devuelve PostgREST cuando el trigger levanta la
  *  excepción de 0001_core.sql. Copiado de una ejecución real contra darma-dev. */
@@ -97,9 +98,16 @@ describe('los dos 23514 · la trampa central del bloque', () => {
   })
 
   test('el copy de reciprocidad que ve la persona no menciona la palabra prohibida', () => {
-    assert.ok(!/crédito|credito/i.test(RECIPROCITY_SERVER_REJECTION))
-    // Y tampoco filtra el mensaje interno del trigger.
-    assert.ok(!RECIPROCITY_SERVER_REJECTION.includes(PREFIJO_RECIPROCIDAD))
+    // Se comprueba el texto RESUELTO, no la clave: lo que hay que vigilar es lo
+    // que acaba en pantalla, y desde que el copy vive en el catálogo eso son dos
+    // frases distintas, una por idioma.
+    for (const idioma of ['es', 'en'] as const) {
+      const texto = obtenerTraductor(idioma)(CLAVE_RECHAZO_SERVIDOR)
+      assert.notEqual(texto, CLAVE_RECHAZO_SERVIDOR, `falta ${CLAVE_RECHAZO_SERVIDOR} en ${idioma}.json`)
+      assert.doesNotMatch(texto.toLowerCase(), /cr[eé]dito|credit/, `«${texto}»`)
+      // Y tampoco filtra el mensaje interno del trigger.
+      assert.ok(!texto.includes(PREFIJO_RECIPROCIDAD))
+    }
   })
 })
 

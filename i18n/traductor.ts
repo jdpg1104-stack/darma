@@ -16,6 +16,7 @@
 import mensajesEs from '../messages/es.json' with { type: 'json' }
 import mensajesEn from '../messages/en.json' with { type: 'json' }
 
+import type { CodigoError } from '../lib/auth/errores.ts'
 import { LOCALE_POR_DEFECTO, esLocale, type Locale } from './routing.ts'
 import { formatearIcu, type ParametrosMensaje } from './icu.ts'
 import { aplanar, type Catalogo } from './catalogo.ts'
@@ -52,9 +53,8 @@ export const RAICES_DE_DOMINIO = [
 export type RaizDeDominio = (typeof RAICES_DE_DOMINIO)[number]
 
 /**
- * Subárbol de mensajes para una ruta concreta. Es lo que se le pasa a
- * `<NextIntlClientProvider messages={…}>`: solo los dominios que esa pantalla
- * usa, nunca el JSON entero.
+ * Subárbol de mensajes para una ruta concreta: solo los dominios que esa
+ * pantalla usa, nunca el JSON entero.
  *
  * @example subarbolDeMensajes('es', ['feed', 'comun', 'crisis'])
  */
@@ -82,12 +82,12 @@ export type Traductor = (clave: string, params?: ParametrosMensaje) => string
 /**
  * Traductor propio, con ICU básico.
  *
- * ⚠️ PROVISIONAL Y A PROPÓSITO. La vía oficial en componentes será
- * `useTranslations` / `getTranslations` de next-intl en cuanto F4 aplique los
- * dos cambios pedidos en HANDOFF/PEDIDOS.md (el plugin en `next.config.ts` y el
- * provider en `app/layout.tsx`). Existe para que B17 cierre en verde sin
- * depender de otra sesión, y para que los guards puedan formatear sin arrancar
- * Next.
+ * Es la vía oficial, no un puente: se evaluó `next-intl` y se descartó. Su
+ * aportación aquí habría sido mandar el catálogo por el cable, y el nuestro ya
+ * viaja en el bundle como JSON importado estáticamente — el provider solo tiene
+ * que decir CUÁL de los dos idiomas usar (ver `i18n/Proveedor.tsx`). Además esto
+ * formatea sin arrancar Next, que es lo que permite que los guards de CI y las
+ * pruebas lo usen tal cual.
  *
  * Una clave que no existe se devuelve TAL CUAL en vez de caer al español: un
  * fallback silencioso deja media app sin traducir para siempre y nadie se
@@ -112,25 +112,33 @@ export function obtenerTraductor(locale: Locale = LOCALE_POR_DEFECTO): Traductor
 // ── Errores traducibles ─────────────────────────────────────────────────────
 
 /**
- * Códigos de error de CONTRATOS §4. Se declara aquí como tipo LOCAL (CONTRATOS
- * §12.1) porque `lib/apiErrors.ts` —dueño F3— hoy exporta OTRO juego de códigos
- * (`unauthorized`, `pii_detected`, …). Esa divergencia está anotada en
- * HANDOFF/PEDIDOS.md para que la resuelvan B00/F3; mientras tanto, la fuente de
- * verdad para las claves de `messages/*.json` es CONTRATOS, no el código.
+ * Los códigos de error de CONTRATOS §4, con una copia en tiempo de ejecución
+ * para validar lo que llega por el cable.
+ *
+ * Va como `Record` sobre `CodigoError` y no como array suelto para que el
+ * compilador exija las DOS direcciones: si el servidor gana un código y aquí no
+ * se añade, esto no compila; si aquí sobra uno que el servidor no emite,
+ * tampoco. La tercera pata —que exista la traducción en los dos idiomas— la
+ * cubre el guard de paridad de `i18n/claves.test.ts`.
+ *
+ * El import es SOLO de tipo, así que no arrastra nada de `lib/auth` al bundle
+ * del navegador. Ver la cabecera de este archivo: aquí eso importa.
  */
-export const CODIGOS_DE_ERROR = [
-  'no_autenticado',
-  'sin_permiso',
-  'reciprocidad',
-  'no_encontrado',
-  'entrada_invalida',
-  'demasiadas_peticiones',
-  'contenido_bloqueado',
-  'saldo_insuficiente',
-  'error_interno',
-] as const
+const DECLARADOS: Readonly<Record<CodigoError, true>> = {
+  no_autenticado: true,
+  sin_permiso: true,
+  reciprocidad: true,
+  no_encontrado: true,
+  entrada_invalida: true,
+  demasiadas_peticiones: true,
+  contenido_bloqueado: true,
+  saldo_insuficiente: true,
+  error_interno: true,
+}
 
-export type CodigoDeError = (typeof CODIGOS_DE_ERROR)[number]
+export const CODIGOS_DE_ERROR = Object.keys(DECLARADOS) as readonly CodigoError[]
+
+export type CodigoDeError = CodigoError
 
 export function esCodigoDeError(v: unknown): v is CodigoDeError {
   return typeof v === 'string' && (CODIGOS_DE_ERROR as readonly string[]).includes(v)

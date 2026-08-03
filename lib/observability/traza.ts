@@ -58,7 +58,7 @@ export async function conTraza<T>(
       ms: Math.round(ms),
       ok: false,
       // Solo el NOMBRE del error. El mensaje de un error de Postgres filtra
-      // tablas, columnas y nombres de índice (ver lib/apiErrors.ts).
+      // tablas, columnas y nombres de índice (ver lib/auth/errores.ts).
       error: causa instanceof Error ? causa.name : 'desconocido',
     })
     throw causa

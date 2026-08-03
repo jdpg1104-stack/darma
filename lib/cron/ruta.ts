@@ -22,9 +22,12 @@
 // y cada handler se autentica solo.
 // ============================================================================
 
-import { NextResponse } from 'next/server'
-import { apiError, withApiErrorHandling } from '../apiErrors.ts'
+import type { NextResponse } from 'next/server'
+import { ErrorApi } from '../auth/errores.ts'
+import { manejarRuta } from '../auth/http.ts'
+import { sobreOk, type Respuesta } from '../auth/respuestas.ts'
 import { esCronAutorizado, secretoCron } from '../ingest/cronAuth.ts'
+import { logger } from '../logger.ts'
 import { createAdminClient } from '../supabase/admin.ts'
 import { despachar, PRESUPUESTO_DESPACHO_MS } from './despachador.ts'
 import { registrarEjecucion, soltarLease, tomarLease } from './registro.ts'
@@ -36,10 +39,8 @@ import type { ResultadoDespacho, Trabajo } from './tipos.ts'
  */
 export const LEASE_SEGUNDOS = 70
 
-export interface RespuestaDespacho {
-  ok: true
-  data: ResultadoDespacho | { despacho: string; omitido: 'en_curso' }
-}
+/** Lo que devuelve un despacho: el resumen, o el aviso de que ya había uno vivo. */
+export type DatosDespacho = ResultadoDespacho | { despacho: string; omitido: 'en_curso' }
 
 /**
  * Cuerpo completo de una ruta de despacho.
@@ -52,30 +53,27 @@ export async function responderDespacho(
   nombre: string,
   autorizacion: string | null,
   trabajos: readonly Trabajo[],
-): Promise<NextResponse> {
-  // Antes del `try` y antes de tocar nada: un 401 no debe costar ni una
-  // consulta, ni una lectura de entorno de más, ni ser distinguible por tiempo
-  // del caso «secreto correcto pero base caída».
-  if (!esCronAutorizado(autorizacion, secretoCron())) {
-    return apiError('unauthorized', undefined, { logContext: { ruta: `cron:${nombre}` } })
-  }
+): Promise<NextResponse<Respuesta<DatosDespacho>>> {
+  // El genérico va ANOTADO a mano: la unión tiene dos ramas y `sobreOk` inferiría
+  // solo la primera que aparece, dejando fuera el atajo del arrendamiento.
+  return manejarRuta<DatosDespacho>(async () => {
+    // Lo primero de todo: un 401 no debe costar ni una consulta, ni una lectura
+    // de entorno de más, ni ser distinguible por tiempo del caso «secreto
+    // correcto pero base caída». El registro va explícito porque el `catch` de
+    // `manejarRuta` no conoce de qué despacho venía la petición, y en un cron
+    // ese dato es la mitad de la línea del log.
+    if (!esCronAutorizado(autorizacion, secretoCron())) {
+      logger.info('cron_no_autorizado', { ruta: `cron:${nombre}` })
+      throw new ErrorApi('no_autenticado')
+    }
 
-  // El genérico va ANOTADO a mano: `withApiErrorHandling` infiere `T` del
-  // PRIMER `NextResponse.json` del cuerpo y luego rechaza el segundo, que tiene
-  // otra forma (el atajo del arrendamiento no devuelve un `ResultadoDespacho`).
-  // Es la misma trampa que B13 dejó anotada en PEDIDOS.md para las rutas de
-  // B20, y se resuelve igual: nombrando la unión.
-  return withApiErrorHandling<RespuestaDespacho>(async () => {
     const admin = createAdminClient()
 
     if (!(await tomarLease(admin, nombre, LEASE_SEGUNDOS))) {
       // Ya hay un disparo corriendo. Se sale con 200 y no con error: esto es el
       // sistema funcionando, y un 5xx haría que Vercel reintentara — es decir,
       // que insistiera en solaparse.
-      return NextResponse.json<RespuestaDespacho>({
-        ok: true,
-        data: { despacho: nombre, omitido: 'en_curso' },
-      })
+      return sobreOk<DatosDespacho>({ despacho: nombre, omitido: 'en_curso' })
     }
 
     try {
@@ -88,11 +86,11 @@ export async function responderDespacho(
         // consulta.
         alTerminarTrabajo: (fila) => registrarEjecucion(admin, nombre, fila),
       })
-      return NextResponse.json<RespuestaDespacho>({ ok: true, data: resultado })
+      return sobreOk<DatosDespacho>(resultado)
     } finally {
       // En `finally`: si algo imprevisto se escapa, el arrendamiento se suelta
       // igual y el disparo siguiente no tiene que esperar a que venza.
       await soltarLease(admin, nombre)
     }
-  }, { ruta: `cron:${nombre}` })
+  })
 }

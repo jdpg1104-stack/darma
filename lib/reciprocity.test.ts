@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+import { obtenerTraductor } from '../i18n/traductor.ts'
 import {
   LISTENS_PER_POST,
   canPublish,
@@ -78,28 +79,46 @@ test('baneo: tiene prioridad sobre el primer post gratis', () => {
 
 // ── Copy ────────────────────────────────────────────────────────────────────
 
-test('el mensaje nunca usa la palabra "crédito" de cara al usuario', () => {
-  const casos: ReciprocityState[] = [
-    state({ listenCredits: 0 }),
-    state({ listenCredits: 2 }),
-    state({ listenCredits: 3 }),
-    state({ postsPublished: 0 }),
-    state({ bannedUntil: '2026-07-01T00:00:00.000Z' }),
-  ]
-  for (const s of casos) {
-    const msg = reciprocityMessage(s, now)
-    assert.ok(!/cr[eé]dito/i.test(msg), `el copy no debe hablar de créditos: "${msg}"`)
-    assert.ok(msg.length > 0)
+// Que el copy no diga «crédito» se vigila donde ahora vive el copy: sobre el
+// catálogo y en los dos idiomas, en `i18n/deteccion.test.ts`. Aquí se comprueba
+// lo que decide este módulo, que es QUÉ clave le toca a cada estado.
+
+test('cada estado elige su clave, y con los params que su ICU necesita', () => {
+  assert.deepEqual(reciprocityMessage(state({ bannedUntil: '2026-07-01T00:00:00.000Z' }), now), {
+    clave: 'publicar.enPausa',
+  })
+  assert.deepEqual(reciprocityMessage(state({ postsPublished: 0 }), now), {
+    clave: 'publicar.primeraVez',
+  })
+  assert.deepEqual(reciprocityMessage(state({ listenCredits: 3 }), now), {
+    clave: 'publicar.listo',
+  })
+  assert.deepEqual(reciprocityMessage(state({ listenCredits: 1 }), now), {
+    clave: 'publicar.faltan',
+    params: { n: 2 },
+  })
+})
+
+test('la pausa manda sobre el saldo y sobre el primer post', () => {
+  // Decirle «te faltan 3 escuchas» a quien está en pausa es mentira, y además
+  // le hace perder el tiempo escuchando para nada.
+  const s = state({ listenCredits: 99, postsPublished: 0, bannedUntil: '2026-07-01T00:00:00.000Z' })
+  assert.equal(reciprocityMessage(s, now).clave, 'publicar.enPausa')
+})
+
+test('el copy resultante concuerda en singular y en plural, en los dos idiomas', () => {
+  for (const idioma of ['es', 'en'] as const) {
+    const t = obtenerTraductor(idioma)
+    const una = reciprocityMessage(state({ listenCredits: 2 }), now)
+    const dos = reciprocityMessage(state({ listenCredits: 1 }), now)
+    const textoUna = t(una.clave, una.params)
+    const textoDos = t(dos.clave, dos.params)
+
+    // `obtenerTraductor` devuelve la clave tal cual si no existe la traducción:
+    // sin esto, las dos aserciones de abajo pasarían con el catálogo vacío.
+    assert.notEqual(textoUna, una.clave, `falta ${una.clave} en ${idioma}.json`)
+
+    assert.doesNotMatch(textoUna, /\d/, `el singular no debe llevar número (${idioma}): «${textoUna}»`)
+    assert.match(textoDos, /\b2\b/, `el plural debe decir cuántas faltan (${idioma}): «${textoDos}»`)
   }
-})
-
-test('el mensaje concuerda en singular cuando falta una sola persona', () => {
-  const msg = reciprocityMessage(state({ listenCredits: 2 }), now)
-  assert.match(msg, /una persona/)
-  assert.ok(!/1 personas/.test(msg))
-})
-
-test('el mensaje dice cuántas faltan cuando son varias', () => {
-  assert.match(reciprocityMessage(state({ listenCredits: 1 }), now), /2 personas/)
-  assert.match(reciprocityMessage(state({ listenCredits: 0 }), now), /3 personas/)
 })

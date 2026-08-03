@@ -1,4 +1,4 @@
-import { LISTENS_PER_POST, reciprocityMessage } from '@/lib/reciprocity'
+import { LISTENS_PER_POST } from '@/lib/reciprocity'
 import { KARMA_WEIGHTS } from '@/lib/karma'
 import { expect, omitirSinAdmin, test } from '../fixtures'
 import { HiloPage } from '../paginas/HiloPage'
@@ -38,7 +38,7 @@ test.describe('(b) El bucle de reciprocidad', () => {
     await publicar.ir()
     expect(await publicar.escuchasHechas()).toBe(0)
     await expect(
-      page.getByText(reciprocityMessage({ listenCredits: 0, postsPublished: 1 })),
+      publicar.mensajeParaEstado({ listenCredits: 0, postsPublished: 1 }),
     ).toBeVisible()
 
     const posts = await sembrarPosts(LISTENS_PER_POST)
@@ -63,9 +63,7 @@ test.describe('(b) El bucle de reciprocidad', () => {
 
     // 3/3: el botón se habilita y el copy es el de lib/reciprocity.ts.
     await expect(
-      page.getByText(
-        reciprocityMessage({ listenCredits: LISTENS_PER_POST, postsPublished: 1 }),
-      ),
+      publicar.mensajeParaEstado({ listenCredits: LISTENS_PER_POST, postsPublished: 1 }),
     ).toBeVisible()
     expect(await publicar.botonHabilitado()).toBe(true)
   })
