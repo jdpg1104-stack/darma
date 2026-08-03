@@ -156,7 +156,13 @@ jobs:
       # archivo versionado.
       - name: database.types.ts está al día
         run: |
-          recortar() { sed '/__InternalSupabase: {/,/^  }$/d' "$1"; }
+          # Se van también las dos líneas de comentario que el generador remoto
+          # pone encima del bloque, y todas las líneas en blanco: ninguna de las
+          # dos cosas dice nada del esquema, y la comparación es más robusta sin
+          # ellas.
+          recortar() {
+            sed -e '/__InternalSupabase: {/,/^  }$/d'                 -e '/Allows to automatically instantiate createClient/d'                 -e '/instead of createClient<Database/d' "$1"               | sed '/^[[:space:]]*$/d'
+          }
           supabase gen types typescript --local --schema public > /tmp/tipos.ts
           diff -u <(recortar lib/supabase/database.types.ts) <(recortar /tmp/tipos.ts) \
             || { echo "::error::database.types.ts desactualizado. Regenera con: npx supabase gen types typescript --local --schema public > lib/supabase/database.types.ts"; exit 1; }
