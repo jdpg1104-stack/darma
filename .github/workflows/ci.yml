@@ -37,7 +37,24 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      # `npm install` y no `npm ci`, y conviene saber lo que eso cuesta.
+      #
+      # `npm ci` exige que el lockfile describa EXACTAMENTE el árbol a instalar.
+      # Este proyecto se desarrolla en Windows y se construye en Linux, y npm
+      # resuelve las dependencias OPCIONALES por plataforma: las variantes wasm
+      # de `sharp` que Linux quiere (`@emnapi/*`) no son las que fija un lock
+      # generado en Windows, ni siquiera en la misma versión. Resultado: `npm ci`
+      # abortaba antes de ejecutar una sola comprobación y los CUATRO trabajos
+      # salían en rojo por un motivo que no tenía nada que ver con el código.
+      #
+      # Lo que se pierde: `npm install` puede resolver una versión más nueva que
+      # la del lock si el rango lo permite, así que la reproducibilidad exacta ya
+      # no está garantizada. Es un precio real y se paga a sabiendas: un CI que
+      # no arranca no protege nada.
+      #
+      # Cómo recuperarlo el día que haga falta: generar el lockfile en Linux
+      # (contenedor o el propio runner) y volver a `npm ci`.
+      - run: npm install --no-audit --no-fund
 
       # Los pesos del karma, el tope diario, los niveles, la regla 3:1 y la
       # fórmula del hot score existen en dos sitios (lib/*.ts y las migraciones).
@@ -65,7 +82,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
 
       # --incremental false: el .tsbuildinfo cacheado de otra rama puede dar un
       # verde falso.
@@ -105,7 +122,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
 
       - uses: supabase/setup-cli@v1
         with:
@@ -151,7 +168,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       # `--omit=optional` deja fuera a `sharp`, que Next declara como opcional para
       # optimizar imágenes. Sus avisos son CVE heredados de libvips y npm no
       # ofrece arreglo: propone «bajar Next a la versión 9». Forzarlo con
