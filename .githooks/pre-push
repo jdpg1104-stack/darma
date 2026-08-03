@@ -1,0 +1,83 @@
+#!/bin/sh
+#
+# Protección de `main` del lado del cliente.
+#
+# POR QUÉ EXISTE ESTE ARCHIVO. La protección de rama de verdad —la del
+# servidor— no está disponible: GitHub Free no la ofrece en repositorios
+# privados, y las dos formas de desbloquearla (hacer el repo público o pasar a
+# Pro) son decisiones que no toma un hook. Ver `.githooks/README.md`.
+#
+# QUÉ ES Y QUÉ NO ES. Esto detiene el ACCIDENTE: el `--force` a destiempo, el
+# push con los tests en rojo, el borrado de la rama. No detiene a nadie
+# decidido: se salta con `--no-verify` y no se aplica a quien clone el repo y no
+# lo active. Es una barandilla, no una puerta blindada, y conviene no confundir
+# las dos cosas.
+#
+# ACTIVARLO (una vez por clon):
+#   git config core.hooksPath .githooks
+#
+# SALTARLO cuando de verdad haga falta:
+#   git push --no-verify
+#
+set -e
+
+RAMA_PROTEGIDA="main"
+remoto="$1"
+
+# stdin trae una línea por referencia: <ref local> <sha local> <ref remota> <sha remoto>
+while read -r ref_local sha_local ref_remota sha_remoto; do
+  case "$ref_remota" in
+    "refs/heads/$RAMA_PROTEGIDA") ;;
+    *) continue ;;
+  esac
+
+  # Borrado de la rama: el sha local es todo ceros.
+  case "$sha_local" in
+    0000000000000000000000000000000000000000)
+      echo "✗ Se está intentando BORRAR '$RAMA_PROTEGIDA' en $remoto." >&2
+      echo "  Si de verdad es lo que quieres: git push --no-verify" >&2
+      exit 1
+      ;;
+  esac
+
+  # Reescritura de historia: el remoto tiene commits que el local no contiene.
+  if [ "$sha_remoto" != "0000000000000000000000000000000000000000" ]; then
+    if ! git merge-base --is-ancestor "$sha_remoto" "$sha_local" 2>/dev/null; then
+      echo "✗ Este push REESCRIBE la historia de '$RAMA_PROTEGIDA'." >&2
+      echo "  Lo que ya está publicado se replica en cada clon: reescribirlo no" >&2
+      echo "  lo borra de ningún sitio, solo desincroniza a todo el mundo." >&2
+      echo "  Si de verdad es lo que quieres: git push --no-verify" >&2
+      exit 1
+    fi
+  fi
+
+  echo "→ Verificando antes de publicar en '$RAMA_PROTEGIDA'…"
+
+  # El orden importa: primero lo que protege invariantes (segundos), después lo
+  # caro. Un fallo de la economía o una fuga del cliente admin no debe esperar a
+  # que termine la suite entera.
+  echo "  · invariantes de economía y del cliente admin"
+  node --test --experimental-strip-types \
+    "lib/economySync.test.ts" "scripts/security/guardClienteAdmin.test.ts" \
+    >/dev/null 2>&1 || {
+      echo "✗ Los guards de invariantes fallan. Ejecuta:" >&2
+      echo "    node --test --experimental-strip-types \"lib/economySync.test.ts\" \"scripts/security/guardClienteAdmin.test.ts\"" >&2
+      exit 1
+    }
+
+  echo "  · tipos"
+  npx tsc --noEmit --incremental false >/dev/null 2>&1 || {
+    echo "✗ Hay errores de tipos. Ejecuta: npx tsc --noEmit" >&2
+    exit 1
+  }
+
+  echo "  · pruebas"
+  npm test --silent >/dev/null 2>&1 || {
+    echo "✗ Hay pruebas en rojo. Ejecuta: npm test" >&2
+    exit 1
+  }
+
+  echo "✓ Todo en verde. Publicando."
+done
+
+exit 0
