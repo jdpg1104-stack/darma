@@ -1,0 +1,113 @@
+/* ===========================================================================
+   B13 · Estilos de la capa PWA.
+   Todo sale de las variables de app/globals.css: ni un hex escrito a mano
+   (CONTRATOS §10). Un módulo único para los tres componentes porque entre los
+   tres no llegan a cien líneas y partirlo solo añadiría archivos.
+   ======================================================================== */
+
+/* ── Aviso de sin conexión ────────────────────────────────────────────────
+   Discreto a propósito: no es una alarma. Que se te vaya la cobertura no es un
+   error tuyo y no merece un banner rojo a pantalla completa. */
+.aviso {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Sobre la barra de navegación inferior, respetando el área segura de iOS. */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+  z-index: 40;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 460px);
+  padding: 10px 14px;
+
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.enlaceAyuda {
+  color: var(--accent2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+/* ── Explicación previa del opt-in ────────────────────────────────────────
+   Es una tarjeta en el flujo, no un modal: un diálogo que tapa la pantalla
+   justo después de que a alguien le hayan escuchado por primera vez interrumpe
+   el momento que se quiere celebrar. */
+.tarjeta {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.texto {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Los dos botones cumplen el objetivo táctil mínimo de 44 px (--touch). */
+.boton {
+  min-height: var(--touch);
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--dur-fast) var(--ease);
+}
+
+.boton:hover {
+  filter: brightness(1.08);
+}
+
+.primario {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.secundario {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton {
+    transition: none;
+  }
+}

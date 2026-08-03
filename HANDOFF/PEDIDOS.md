@@ -584,3 +584,583 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       archivos. Se suma al mismo pedido que ya abrió B17 para `i18n/`. Propuesta:
       `node --test --experimental-strip-types "lib/**/*.test.ts" "i18n/*.test.ts" "app/api/**/*.test.ts"` ·
       2026-08-03
+
+## Pedidos añadidos por B13 · Push y PWA (2026-08-03)
+
+- [ ] **De B13 → F4 (bloqueante para la instalación)** · `proxy.ts` no excluye
+      `manifest.json` del matcher. La lista excluye por EXTENSIÓN
+      (`svg|png|…|txt|xml`) y **`.json` no está**, así que `/manifest.json` entra
+      en el proxy, no está en `PUBLIC_ROUTES` y un visitante **sin sesión**
+      recibe una redirección a `/entrar` en vez del manifiesto: la PWA no se
+      puede instalar desde la landing y el fallo es mudo (Chrome solo dice
+      «manifest fetch failed»). Arreglo de una palabra — añadir `manifest.json`
+      junto a `manifest.webmanifest` en el `matcher`, o `json` a la lista de
+      extensiones. `sw.js` sí está excluido y funciona · 2026-08-03
+- [ ] **De B13 → B15 / B00** · `package.json` (que B13 no toca porque lo
+      comparten cinco sesiones) necesita la dependencia **`web-push`** (^3.6).
+      Mientras tanto `lib/push/enviar.ts` la carga con `import()` de
+      especificador variable —mismo patrón que `lib/ai/cliente.ts` de B11—, de
+      modo que `tsc` pasa sin el paquete y el envío degrada a `'error'` en
+      silencio. Al instalarla, ese `import()` puede volverse estático sin que
+      cambie ningún llamante · 2026-08-03
+- [ ] **De B13 → F4** · faltan cinco variables en `.env.example`. **Ninguna
+      salvo la última lleva prefijo `NEXT_PUBLIC_`**: `VAPID_PUBLIC_KEY`,
+      `VAPID_PRIVATE_KEY` (⚠️ **SECRETA**: una privada VAPID filtrada permite a
+      un tercero enviar notificaciones que el navegador acepta como nuestras —
+      en esta app, hacer sonar el teléfono de alguien con un texto que parece de
+      su Alma Afín), `VAPID_SUBJECT` (`mailto:` o `https:`, RFC 8292),
+      `PUSH_UA_SALT` (sal del HMAC del user-agent; sin ella `user_agent_hash` se
+      guarda a `null` a propósito, porque un hash sin sal de un conjunto pequeño
+      de user-agents se revierte con un diccionario) y, opcional,
+      `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. **Cómo se generan las llaves está
+      documentado en la cabecera de `lib/push/vapid.ts`**, con y sin `web-push`.
+      ⚠️ Rotar la pareja INVALIDA todas las suscripciones existentes: hay que
+      vaciar `push_subscriptions` y volver a pedir permiso, o cada envío dará
+      403 (que no es 410, así que la limpieza automática no lo arregla) ·
+      2026-08-03
+- [ ] **De B13 → B01** · en el logout hay que avisar al service worker para que
+      borre las cachés: `avisarCierreDeSesion()` de `@/components/pwa` (un
+      `postMessage({tipo:'darma:logout'})`; el handler ya está en
+      `public/sw.js`). Sin eso, el shell cacheado de una cuenta sigue vivo
+      cuando otra persona entra en el mismo dispositivo — y compartir el móvil
+      en una app de apoyo emocional es lo normal, no la excepción · 2026-08-03
+- [ ] **De B13 → B04** · falta el disparador del aviso «te escucharon». El punto
+      de entrada está listo y es uno solo:
+      `await avisar({ destinatarioId: autorDelPost, tipo: 'te_escucharon',
+      emisorId: userId, url: '/post/' + postId })` de `@/lib/push`, justo
+      después del `UPDATE is_validated = true` de `app/api/comments/route.ts`.
+      No lanza nunca y aplica sola la política entera (bloqueo, preferencias,
+      silencio nocturno, techo, agrupación y alias del emisor). Igual para
+      `te_ayudo` en `app/api/comments/[id]/util/route.ts` · 2026-08-03
+- [ ] **De B13 → B10** · el aviso más importante del bloque necesita su
+      disparador: `avisarAlmasAfines(userId)` de `@/lib/push`, cuando alguien
+      pone `profiles.availability = 'necesito_hablar'`. Resuelve destinatarios
+      con la RPC `destinatarios_alma_afin()` de `0131` (usa
+      `idx_kindred_reverse` y ya filtra `blocks`). Y `mensaje_refugio` con
+      `avisar({..., tipo: 'mensaje_refugio', refugeId })`, que respeta
+      `refuge_members.muted` · 2026-08-03
+- [ ] **De B13 → F4** · falta la ruta `/offline` (una página estática con el
+      enlace a `/ayuda`). Está en el precache de `public/sw.js` y es la caída de
+      la navegación sin red; mientras no exista, el SW responde un 503 de texto
+      plano. También hay que montar `<RegistroServiceWorker />` y
+      `<AvisoSinConexion />` (de `@/components/pwa`) en `app/(app)/layout.tsx`,
+      que sigue sin existir: **sin el registro del service worker, `/ayuda` NO
+      funciona sin cobertura**, que es la razón por la que este bloque tiene
+      service worker · 2026-08-03
+- [ ] **De B13 → B16** · `public/icono-darma.svg` y
+      `public/icono-darma-maskable.svg` son provisionales (SVG, con los tokens
+      de `globals.css`, sin un solo hex inventado). Chrome acepta SVG en el
+      manifiesto, pero un par de PNG reales 192/512 daría mejor resultado en
+      Android. La variante *maskable* existe aparte a propósito: sin ella el
+      icono sale con marco blanco en muchos lanzadores · 2026-08-03
+- [ ] **De B13 → B00 (decisión de producto, no técnica)** · la ficha dice que
+      `decidirEnvio` «devuelve SIEMPRE `{enviar:true}`» para
+      `alma_afin_en_crisis`. La implementación se salta el techo, la agrupación
+      y las horas de silencio **sin excepción**, pero respeta UNA sola cosa: que
+      esa persona haya apagado explícitamente ese tipo en sus preferencias
+      (`prefs.alma_afin_en_crisis === false`). Sostener el literal significaría
+      mandar notificaciones de madrugada a alguien que dijo que no las quiere, y
+      es la única forma de que este bloque acabe siendo el problema en vez de la
+      solución. Quien no ha tocado nada lo tiene en ON por defecto, así que el
+      camino normal es el de la ficha. Razonado en la cabecera de
+      `lib/push/horario.ts` y fijado por la prueba `10c`. Si producto prefiere
+      el literal, es una línea · 2026-08-03
+- [ ] **De B13 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+      aplicar `0131_b13_push.sql`: hoy no contiene `push_subscriptions`,
+      `notification_prefs`, `push_dispatch_state` ni las funciones
+      `is_blocked_between()` y `destinatarios_alma_afin()`. Mientras tanto,
+      `app/api/push/prefs/route.ts` declara `FilaPrefs` a mano y
+      `lib/push/tipos.ts` declara `Suscripcion`, con el comentario que dice por
+      qué · 2026-08-03
+- [ ] **De B13 → B15** · conviene un caso en `supabase/tests/*.sql` con la
+      invariante entera de este bloque, hoy solo verificada a mano contra
+      `darma-dev`: con rol `authenticated` y un JWT real deben fallar con 42501
+      el `select p256dh, auth`, el `select endpoint`, el `insert` a nombre de
+      otra persona, el `select push_dispatch_state` y las dos RPC nuevas; y un
+      `delete from push_subscriptions` SIN `where` debe alcanzar exactamente 1
+      fila. Si alguien concede `select (p256dh, auth)` «para pintar la lista de
+      dispositivos», las claves de cifrado del navegador de toda la red pasan a
+      ser legibles vía PostgREST · 2026-08-03
+- [ ] **De B13 → B17** · toda la superficie de este bloque está en **español
+      directo, sin catálogo**: las seis plantillas de notificación
+      (`lib/push/plantillas.ts`, tres variantes cada una), el copy del opt-in
+      (`components/pwa/OptInPush.tsx`), el banner de sin conexión y los campos
+      `name`/`description` de `public/manifest.json`. Las plantillas son el caso
+      delicado: al traducirlas hay que conservar (a) que el cuerpo NUNCA lleve
+      texto de un post o de un comentario y (b) que no aparezca vocabulario de
+      enganche — hay una prueba tosca (`plantillas.test.ts`, caso 11) con la
+      lista de palabras prohibidas en español, que habrá que replicar por
+      idioma · 2026-08-03
+- [ ] **De B13 → B12 / B00** · `push_dispatch_state` (migración `0131`) guarda
+      la memoria de la agrupación y de lo diferido en horas de silencio. Crece
+      con (personas × tipos) y no la limpia nadie: hace falta un barrido
+      periódico (`delete where pendientes = 0 and last_sent_at < now() -
+      interval '30 days'`) y, sobre todo, **un cron que ENTREGUE lo diferido**
+      —`idx_push_dispatch_pendiente` es un índice parcial hecho exactamente para
+      esa consulta—. Hoy lo acumulado sale con el siguiente aviso del mismo
+      tipo; si no hay siguiente, se queda ahí · 2026-08-03
+
+### Bugs vistos fuera de B13 (no tocados)
+
+- **`app/api/privacy/eliminar/route.ts(70)` y
+  `app/api/privacy/exportar/route.ts(78)` (B20) · `tsc` roto:** dos TS2345.
+  `manejarRuta` infiere el tipo del PRIMER `sobreOk` del cuerpo y después
+  rechaza el segundo, que tiene otra forma. Se arregla anotando el genérico:
+  `manejarRuta<UnionDeLasDosFormas>(...)`. Visto por B13 mientras verificaba su
+  bloque; el resto del árbol compila · 2026-08-03
+- [ ] **De B20 → B01** · el onboarding debe (a) pedir la **fecha de nacimiento
+      declarada**, (b) llamar a `cumpleEdadMinima()` de `lib/privacy/avisos.ts`,
+      (c) **descartar la fecha en el acto** —no se almacena en ninguna columna,
+      es un identificador de más en una app que prohíbe justamente eso— y (d)
+      registrar los cuatro consentimientos obligatorios
+      (`terminos`, `privacidad`, `no_es_terapia`, `edad_minima`) con
+      `POST /api/privacy/consentimientos`. Si la edad no llega a 16, **no se
+      crea ni la fila de `profiles` ni la de `consents`** · 2026-08-03
+- [ ] **De B20 → B16 / F4** · `AVISO_NO_TERAPIA` (`lib/privacy/avisos.ts`) tiene
+      que renderizarse de forma **permanente** en el layout de `app/(app)` y en
+      la tarjeta de recursos de crisis. Es una frase, sin JS. Hoy solo aparece
+      en `/legal` y en `/legal/no-es-terapia`, que es donde menos falta hace ·
+      2026-08-03
+- [ ] **De B20 → B10** · al borrar una cuenta, `borrar_usuario()` marca los
+      `refuge_messages` propios como `removed` y saca a la persona de todas las
+      salas, pero **el `ciphertext` se conserva**: su destrucción real es asunto
+      de las CLAVES, que no controla este bloque. B10 debe destruir las claves
+      de refugio de la persona borrada. Mientras tanto, `ResultadoBorrado`
+      declara la deuda en `pendienteDeOtrosBloques` en vez de darla por hecha
+      (lección de `rgpdErase.ts`: lo que ninguna fila referencia sobrevive) ·
+      2026-08-03
+- [ ] **De B20 → B08 / B00** · falta el **cron que ejecuta los borrados
+      vencidos**. Las piezas ya están en Postgres: `borrados_vencidos(limite)`
+      devuelve los `user_id` cuyos 30 días de arrepentimiento han pasado y
+      `borrar_usuario(user)` los ejecuta. Falta un handler bajo `/api/cron/…`
+      (prefijo de B08 según CONTRATOS §7, por eso B20 no lo crea) que se
+      autentique con `CRON_SECRET` y los recorra. **Sin ese cron, ningún borrado
+      confirmado llega a ejecutarse nunca** — el art. 12.3 da un mes ·
+      2026-08-03
+- [ ] **De B20 → B08 / B00** · mismo caso para `purgar_retencion(lote)`: la
+      función existe y borra por lotes acotados, pero nadie la invoca. Sin cron,
+      `content_views`, `rate_limits`, `refuge_messages`, `moderation_flags` y
+      `crisis_events` crecen sin límite y `/legal/retencion` promete plazos que
+      no se cumplen · 2026-08-03
+- [ ] **De B20 → B00 / B15** · ⚠️ **CAMBIO DE ESQUEMA QUE MERECE REVISIÓN**: la
+      migración `0201_1_b20_privacidad.sql` **elimina la FK
+      `profiles.id → auth.users(id) on delete cascade`**. Motivo: esa cascada
+      convertía el ejercicio del derecho de supresión de UNA persona en la
+      destrucción de datos de TERCEROS (los comentarios con los que acompañó a
+      otros, y con ellos el `reply_count` de posts ajenos, que lo mantiene un
+      trigger que no se dispara en el delete) y de registros de conservación
+      obligatoria (`crystal_ledger`, 6 años; `crisis_events`, 5 años). No hay
+      forma de desactivar una cascada «solo para este delete», y `profiles.id`
+      es la PK, así que `on delete set null` no era opción. El lado del INSERT
+      —lo que la FK protegía de verdad— lo ocupa ahora el trigger
+      `trg_profiles_exige_auth_user`. Consecuencia asumida: tras el borrado, la
+      fila de `profiles` queda huérfana a propósito (es una lápida). Verificado
+      contra `darma-dev` · 2026-08-03
+- [ ] **De B20 → B00** · la ficha B20 pide la migración
+      `supabase/migrations/0020_b20_privacidad.sql`, pero el rango de B20 en
+      `PARALELO.md` §3 es `0201`–`0209` y `0020` invadiría el de los cimientos.
+      Se ha usado `0201_1_b20_privacidad.sql`. Conviene corregir la ficha
+      (misma corrección que ya pidió B02) · 2026-08-03
+- [ ] **De B20 → B00** · dos firmas del §Contrato de la ficha B20 no se pueden
+      cumplir tal cual y se han resuelto así: (a) `consentimientosVigentes`,
+      `registrarConsentimiento`, `construirExportacion` y `ejecutarBorrado`
+      existen con la firma literal (construyen el cliente admin por dentro) y
+      además en versión `…Con(supabase, …)`, que es la que usan las rutas y la
+      que permite probarlas sin base de datos; (b) **`confirmarBorrado(solicitudId,
+      token)` lanza siempre** — sin el `userId` de la sesión no hay forma de
+      comprobar de quién es la solicitud, y aceptar la confirmación sin ese
+      chequeo convertiría un id filtrado en el borrado de una cuenta ajena. La
+      real es `confirmarBorradoCon(supabase, solicitudId, userId, token)` ·
+      2026-08-03
+- [ ] **De B20 → B15** · `lib/supabase/database.types.ts` debe regenerarse
+      DESPUÉS de `0201_1_b20_privacidad.sql`: hoy no contiene `consents`,
+      `privacy_requests`, `retired_aliases`, `profiles.deleted_at` ni las nueve
+      funciones nuevas. Mientras tanto, `lib/privacy/exportar.ts` y
+      `consentimientos.ts` declaran a mano las formas de fila, con el comentario
+      que dice por qué · 2026-08-03
+- [ ] **De B20 → B17** · deuda de traducción: las páginas de `app/(legal)/**`
+      llevan el texto en **español directo**, no `t('…')`. El guard
+      `ningún archivo NUEVO de app/** o components/** trae texto sin traducir`
+      las señala (junto con `app/(app)/ranking`, `app/(app)/refugios` y
+      `components/pwa`, que no son de B20 y ya lo rompían). Matiz importante
+      para quien lo aborde: **los cuerpos de `lib/privacy/textos.ts` NO se deben
+      traducir con el sistema de mensajes** — su `sha256` es la prueba de qué
+      texto exacto se aceptó, así que cada idioma necesita su propio documento
+      con su propia versión y su propia huella, no una interpolación ·
+      2026-08-03
+- [ ] **De B20 → B19** · el centro de mando necesita una vista de solicitudes de
+      privacidad (cuántas pendientes, cuántas vencidas, cuántas fallidas) para
+      poder demostrar el cumplimiento del plazo del art. 12.3. Los datos están
+      en `privacy_requests`, que solo lee `service_role` · 2026-08-03
+- [ ] **De B20 → revisión legal externa** · dos decisiones tomadas a conciencia
+      que necesitan validación de un abogado antes de abrir al público: (a) **no
+      recoger consentimiento parental** para 16–17 años allí donde una norma
+      local lo exija en servicios de salud, restringiendo funciones en su lugar
+      (recogerlo obligaría a vincular al menor con un adulto identificable y
+      rompería el anonimato que le protege); (b) la **conservación de los
+      comentarios** tras el borrado al amparo del art. 17.3.e. Las dos están
+      escritas y razonadas en `/legal/menores` y `/legal/privacidad` ·
+      2026-08-03
+- [ ] **De B20 → quien opere `darma-dev`** · ⚠️ el proyecto `vulgobhjxkapxlgotkqg`
+      ha entrado en **modo SOLO LECTURA** (`default_transaction_read_only = on`,
+      750 MB de base) mientras otro bloque sembraba en masa. No es de B20 —los
+      datos de prueba de este bloque se sembraron y se borraron, y el recuento
+      final es 0—, pero tiene dos consecuencias: (a) hay una tabla huérfana de
+      otro bloque, `public.b09_pruebas`, **con RLS desactivada** (el linter la
+      marca como ERROR); (b) **la última línea de
+      `0201_1_b20_privacidad.sql` está en el archivo pero NO aplicada**: el
+      `revoke all on function public.profiles_exige_auth_user()`. Hay que
+      liberar espacio y ejecutarla. Sin ella, esa función `security definer`
+      queda publicada como endpoint RPC para `anon` (hoy no es explotable
+      —Postgres rechaza llamar a una función `returns trigger` fuera de un
+      trigger— pero es la misma superficie que `0003` §3 se molestó en cerrar) ·
+      2026-08-03
+
+## Pedidos añadidos por B10 · Refugios y Almas Afines (2026-08-03)
+
+- [ ] **De B10 → B00 / F2** · el comentario de `refuge_messages.ciphertext` en
+      `0002_comunidad.sql` sobre XChaCha20-Poly1305 **ya está corregido** en el
+      árbol: dice AES-256-GCM con nonce de 12 bytes y explica que WebCrypto no
+      implementa XChaCha. Se anota porque la ficha B10 lo pedía como pedido
+      abierto y conviene que B00 lo dé por cerrado en vez de volver a abrirlo ·
+      2026-08-03
+- [ ] **De B10 → B13 (BLOQUEANTE PARA B13, LEER ENTERO)** · la notificación push
+      de un mensaje de refugio **NO PUEDE LLEVAR CONTENIDO**. Ni el texto, ni un
+      preview, ni un extracto, ni el alias de quien escribe, ni el título del
+      refugio. El servidor **no puede** leer el mensaje —recibe un blob
+      AES-256-GCM y no tiene la clave—, así que técnicamente no hay de dónde
+      sacarlo; el riesgo real es que alguien «resuelva» ese hueco añadiendo un
+      campo en claro al `POST /api/refuges/[id]/mensajes` para poder rellenar la
+      push. El payload permitido es literalmente «Tienes un mensaje nuevo en un
+      refugio» más el `refuge_id` para el enlace profundo. Una push aparece en la
+      pantalla de bloqueo, que es exactamente el sitio donde alguien puede estar
+      mirando el móvil de otra persona · 2026-08-03
+- [ ] **De B10 → B11** · la moderación de refugios solo puede actuar sobre
+      reportes **con el texto aportado por quien recibe el mensaje** desde su
+      propio dispositivo: no hay ninguna vía para que el servidor lea un mensaje
+      de refugio, y no debe haberla. `moderation_flags.ref_type =
+      'refuge_message'` + `ref_bigint` ya existe en 0002 para eso · 2026-08-03
+- [ ] **De B10 → B00 / F2 (SEGURIDAD · ya corregido por 0110_1)** · las cinco
+      tablas de refugio conservaban el **INSERT íntegro** para `authenticated`:
+      el mismo agujero que `0004` documenta para `posts` y `comments`, en cinco
+      tablas más. Comprobado contra `darma-dev` antes de tocar nada. Lo que
+      permitía con un solo POST a PostgREST:
+      · `refuge_messages.created_at` falsificado — el trigger
+        `refuge_messages_sync()` lo copia a `refuges.last_message_at`, que es la
+        clave de orden de la bandeja, así que una fecha del año 2400 fija tu
+        conversación arriba del todo **para siempre** en el móvil de la otra
+        persona. Es acoso con un campo de fecha.
+      · `refuge_messages.state = 'removed'` al nacer: invisible para la política
+        de lectura pero contando en `message_count`.
+      · `refuge_members.is_host`: autoascenderse a anfitrión es el permiso de
+        invitar a terceros a una sala ajena.
+      · `refuge_members.left_at` al insertar: ocupa una plaza que nadie usa.
+      · `refuges.member_count` / `message_count` inventados: con
+        `member_count = max_members` la sala nace llena y nadie puede entrar.
+      · `blocks.created_at` / `kindred.created_at`: reescribir la cronología de
+        un bloqueo es reescribir la prueba de cuándo alguien pidió que le dejaran
+        en paz.
+      `0110_1_b10_claves.sql` §4 lo cierra enumerando las columnas escribibles.
+      **Conviene revisar con el mismo criterio toda tabla futura**: RLS decide
+      filas, solo el privilegio de columna decide columnas · 2026-08-03
+- [ ] **De B10 → B00 / F2 (SEGURIDAD · NO corregido, no es mi archivo)** · la
+      política `refuge_members_join` de `0002` permite que **cualquiera se
+      inserte a sí mismo en cualquier refugio**: `user_id = (select auth.uid())`
+      es una de las dos ramas del OR. Hoy la explotación exige conocer el uuid de
+      la sala, que solo se obtiene siendo miembro, así que no es explotable a
+      ciegas; pero un uuid filtrado por un log, una captura de pantalla o un
+      enlace compartido convierte a un tercero en miembro de una conversación
+      privada, y a partir de ahí lee todo lo que se escriba después. El
+      comentario de `0002` dice «o entras tú mismo (con invitación validada por
+      el servidor)», pero **esa validación no existe en ninguna parte del
+      repositorio**. B10 no edita `0002` y tampoco lo ha rodeado. El arreglo
+      natural es una tabla de invitaciones con token de un solo uso, o exigir en
+      esa rama que exista una invitación vigente · 2026-08-03
+- [ ] **De B10 → B00** · desviación deliberada del contrato de la ficha:
+      `envolverParaMiembro(claveRefugio, jwkDestino, privadaEmisor)` y
+      `abrirSobre(sobre, jwkEmisor, privadaReceptor)` reciben la clave privada
+      como **tercer parámetro explícito** en vez de sacarla de IndexedDB por
+      dentro. Con la firma de la ficha, `lib/crypto/index.ts` dependería de
+      IndexedDB y sería **imposible de probar con `node --test`** — justo el
+      módulo donde las pruebas importan más. Además, ver en la llamada QUÉ clave
+      se usa es lo que hace evidente un error de emisor/receptor. La firma de la
+      ficha sigue siendo asignable si se envuelve · 2026-08-03
+- [ ] **De B10 → B00** · `POST /api/refuges` recibe `sobres[]` **sin
+      `refugeId`**: el contrato de la ficha lo incluía, pero el id de la sala no
+      existe hasta que el servidor la crea, así que el cliente no puede
+      conocerlo. Lo rellena el servidor · 2026-08-03
+- [ ] **De B10 → B05 / F3 / B00** · `check_rate_limit()` sigue concedida solo a
+      `service_role` y este bloque tiene prohibido el cliente admin (mismo pedido
+      que ya abrió B05). B10 lo resuelve con `b10_limitar(p_accion text)`
+      (`security definer`, concedida a `authenticated`), que **saca el sujeto de
+      `auth.uid()` y lleva los límites dentro de la función**: el cliente elige
+      la acción, nunca el número —si el límite viniera por parámetro bastaría
+      pedir 1 000 000 para no tener límite—. Si se decide conceder
+      `check_rate_limit` a `authenticated` (defendible: cuenta, no lee datos de
+      nadie), esta función sobra. Mientras tanto es el patrón que recomiendo
+      copiar en vez de dejar un bloque en la capa de memoria · 2026-08-03
+- [ ] **De B10 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+      `0110_1_b10_claves.sql`: hoy no contiene `user_keys`,
+      `refuge_key_envelopes`, `identity_backups` ni las funciones
+      `b10_crear_refugio`, `b10_bandeja`, `b10_limitar` y
+      `b10_registrar_crisis_refugio`. Mientras tanto,
+      `app/api/refuges/_dominio/servidor.ts` declara a mano `FilaRefugio`,
+      `FilaMensaje`, `FilaClavePublica` y `FilaSobre`, con el comentario que dice
+      por qué y qué las sustituye · 2026-08-03
+- [ ] **De B10 → B15** · la suite de intrusión específica de refugios está
+      escrita y ejecutada, pero vive en el **scratchpad de la sesión**, no en
+      `scripts/security/` (que es de B15 y este bloque no edita). Son 30 casos
+      con **tres sesiones reales** —Ana, Luis e Intrusa— que afirman que un no
+      miembro no ve el refugio, ni sus mensajes, ni su pertenencia, ni los
+      sobres; que el bloqueo hace desaparecer la sala para las dos partes; y que
+      ninguna de las columnas cerradas en `0110_1` §4 se puede escribir. Merece
+      entrar en `scripts/security/` junto a `intrusion.mjs` · 2026-08-03
+- [ ] **De B10 → F4 / B00** · `app/(app)/layout.tsx` sigue sin existir, así que
+      `app/(app)/refugios/layout.tsx` monta su propio `BotonCrisis` (igual que
+      B02, B03, B04, B05 y B07). Cuando exista el del grupo hay que quitar el de
+      aquí o saldrán dos. **Ojo con el hilo**: dentro de `/refugios/[id]` el
+      acceso a los recursos va DENTRO del redactor a propósito, no flotando —un
+      elemento fijo al viewport se va detrás del teclado en móvil, que es justo
+      cuando hace falta— y ese no se debe quitar · 2026-08-03
+- [ ] **De B10 → F4** · `/refugios` y `/refugios/[id]` deben estar en las rutas
+      PRIVADAS de `proxy.ts`: exigen sesión · 2026-08-03
+- [ ] **De B10 → B17 (deuda de traducción)** · todo el copy de
+      `components/refuge/**` y `app/(app)/refugios/**` está escrito **en español
+      directamente en el JSX**, sin pasar por `messages/`. Los tres textos que
+      hay que traducir con más cuidado que el resto: (a) las **tres advertencias
+      literales** de `ADVERTENCIAS_RESPALDO` en `lib/crypto/respaldo.ts` —tienen
+      una prueba que las vigila, y suavizarlas al traducir sería perder la
+      decisión, no la traducción—; (b) el texto de `AvisoSinClave` con
+      `dispositivoNuevo`, que es lo que le explica a alguien que acaba de cambiar
+      de móvil por qué no ve su historial y por qué eso no es un fallo; (c) la
+      explicación del número de seguridad, que pide una acción concreta («leedlo
+      en voz alta los dos»). La **lista de 256 palabras de `lib/crypto/frase.ts`
+      NO se traduce jamás**: una frase escrita en un papel en 2026 tiene que
+      seguir abriendo la copia en 2030 aunque la persona cambie el idioma de la
+      app · 2026-08-03
+- [ ] **De B10 → B05 / B01** · falta el punto de entrada para ABRIR un refugio.
+      `POST /api/refuges` existe y funciona, pero nadie lo llama: hace falta un
+      botón «Hablar en privado» en el perfil ajeno (B05) que use
+      `prepararSobresDeSalaNueva()` de `components/refuge/identidad.ts` y luego
+      la ruta. Igual con «Guardar como alma afín»
+      (`POST /api/refuges/kindred`). Mientras tanto `/refugios` solo enseña lo
+      que ya exista · 2026-08-03
+- [ ] **De B10 → B01** · al **cerrar sesión** hay que llamar a
+      `olvidarDispositivo(userId)` de `lib/crypto/almacen.ts`. Sin eso, dejar la
+      cuenta cerrada en un ordenador prestado deja la clave de identidad y las de
+      cada refugio en IndexedDB: la cookie ya no vale, pero **la clave es lo que
+      abre las conversaciones, no la sesión**. Tiene que ejecutarse en el
+      navegador, porque IndexedDB solo existe allí · 2026-08-03
+- [ ] **De B10 → B20 (RGPD)** · el borrado de cuenta tiene un caso que no es
+      obvio: `refuge_messages` **no se puede descifrar para borrar contenido
+      selectivamente**, y borrar la sala entera borraría el historial de la otra
+      persona sin su consentimiento (por eso 0002 revoca el DELETE). La vía
+      correcta es `left_at` + borrado del perfil en cascada; los blobs quedan
+      ilegibles para todo el mundo en cuanto desaparecen las claves. Conviene que
+      la política de privacidad lo diga con estas palabras, y que la pantalla de
+      borrado avise de que **la copia de seguridad opt-in
+      (`identity_backups`) también se borra** y con ella la última vía de
+      recuperar el historial · 2026-08-03
+- [ ] **De B10 → B15 / B14 (INCIDENCIA DE ENTORNO, no de código)** · el proyecto
+      `darma-dev` entró en **modo solo lectura** a mitad de esta sesión por
+      superar la cuota de disco: 783 MB, con `poll_votes` (275 MB),
+      `ranking_snapshots` (167 MB) y `listen_daily` (151 MB) sembradas por otros
+      bloques y todavía sin limpiar. Con la base en solo lectura no se puede
+      ejecutar ninguna suite de intrusión con sesiones reales, que es la única
+      forma de probar RLS de verdad. Hace falta una regla operativa explícita en
+      `PARALELO.md`: **quien siembra, borra antes de cerrar**, y B14 en instancia
+      propia sí o sí · 2026-08-03
+- [ ] **De B09 → B02** · punto de inserción de la encuesta en el feed. B09 no ha
+      tocado `components/feed/**`. Lo que hay que hacer en `SlotEncuesta.tsx` es
+      sustituir **el cuerpo** conservando la prop `encuestaId`, y pintar
+      `<TarjetaEncuesta encuesta={…} />` de `@/components/polls`. La hidratación
+      NO puede añadir una consulta por tarjeta: hoy la vía correcta es llamar a
+      `siguienteEncuestaPara(supabase, { userId, posicion, idioma })` de
+      `@/lib/polls/consulta` UNA vez por página —resuelve en ≤2 consultas y
+      además aplica la cadencia—, o pedir a B09 una RPC `encuestas_por_ids(ids)`
+      si se prefiere hidratar los ids que ya trae `feed_encuestas_keyset`. Ojo:
+      `feed_encuestas_keyset` **no filtra por idioma ni excluye lo ya votado o
+      descartado**, así que sus ids pueden ser encuestas que esa persona no
+      debería volver a ver · 2026-08-03
+- [ ] **De B09 → F4** · añadir el cron a `vercel.json`:
+      `{"path":"/api/polls/reponer","schedule":"41 3 * * *"}`. Sin él, el pool de
+      encuestas activas se agota y el carril del feed se apaga en silencio. El
+      handler se autentica solo con `CRON_SECRET` (fail-closed, `timingSafeEqual`)
+      · 2026-08-03
+- [ ] **De B09 → B01** · reservar el alias `Darma` en el registro. La migración
+      `0109_1_b09_encuestas.sql` crea el perfil de sistema con id fijo
+      `0da12a00-0000-4000-8000-000000000009` y alias `Darma` (es el `author_id`
+      de las encuestas del banco). Hoy nada impide que una persona se registre
+      con ese alias… salvo el `unique` de `profiles.alias`, que le devolvería un
+      error raro. Conviene una lista de alias reservados en `crear_perfil()` ·
+      2026-08-03
+- [ ] **De B09 → F3 / B11** · `lib/crisis.ts` está escrito para el DESAHOGO, que
+      se redacta en primera persona (`es_ideation` busca «suicidarme», no
+      «suicidarse»). Una **encuesta se formula en impersonal** —«¿alguien más ha
+      pensado en suicidarse?»— y ese texto NO dispara nada hoy: verificado, hay
+      un test en `lib/polls/validacion.test.ts` que fija la limitación para que
+      falle el día que se arregle. Propuesta: añadir variantes impersonales
+      (`suicidarse`, `quitarse la vida`, `no estar`, `dejar de existir` en 3ª
+      persona) al matcher. Mientras tanto, una pregunta que sea una llamada de
+      auxilio disfrazada puede pasar sin recursos · 2026-08-03
+- [ ] **De B09 → F3** · la ficha B09 llama al helper de crisis `evaluarRiesgo()`
+      y CONTRATOS §9 también; la función que existe en `lib/crisis.ts` se llama
+      `assessCrisisRisk()`. B09 no ha renombrado nada de F3: consume la real
+      desde `lib/polls/riesgo.ts`. Conviene alinear ficha y código · 2026-08-03
+- [ ] **De B09 → B00** · **no existe ninguna ruta de creación de encuestas** en
+      el contrato de B09 (las cinco de la ficha son siguiente/voto/resultados/
+      descartar/reponer), pero la ficha exige que el texto de una encuesta con
+      `origin = 'usuario'` pase por la evaluación de crisis. B09 deja listos
+      `lib/polls/riesgo.ts` y `esquemaEncuestaNueva` en `lib/polls/validacion.ts`
+      para quien la añada (¿el composer de B03?). Hay que decidir de quién es esa
+      ruta · 2026-08-03
+- [ ] **De B09 → B00** · nombre de migración: la ficha pedía
+      `supabase/migrations/0009_b09_encuestas.sql`, pero `0009` cae en el rango
+      de cimientos (`0001`–`0099`). Se ha usado `0109_1_b09_encuestas.sql` +
+      `0109_2_b09_indice_descartes.sql`, que es el rango `0109x` que reserva
+      `PARALELO.md` §3 para B09. Mismo caso que ya reportó B02 · 2026-08-03
+- [ ] **De B09 → B00 / F2** · **tres agujeros del esquema de encuestas cerrados
+      por `0109_1`**, y los tres nacieron en `0002`/`0004`. Merecen revisión
+      porque el patrón se repite en otras tablas: (a) `0004_insert_columnas.sql`
+      enumeró las columnas insertables de `comments`, `posts`, `post_votes`,
+      `poll_votes` y `content_views` **pero se dejó `polls` y `poll_options`**,
+      que tenían INSERT abierto sobre TODAS sus columnas para `anon` y
+      `authenticated` — `total_votes` y `vote_count` incluidos; (b) `poll_votes`
+      no ataba `option_id` a `poll_id`, así que un voto podía sumar en la opción
+      de OTRA encuesta y descuadrar los contadores; (c) `poll_options.vote_count`
+      era legible con la anon key, lo que dejaba el umbral de revelación en
+      decorativo. Conviene pasar la misma revisión por `refuges`, `kindred` y
+      `content_items` · 2026-08-03
+- [ ] **De B09 → B00 / F2** · `0109_1` **reescribe tres políticas de `0002`**
+      (`poll_options_read`, `poll_options_insert_author`, `poll_votes_insert_own`)
+      para sacar las subconsultas contra `polls` a funciones `security definer`
+      (`encuesta_visible`, `soy_autor_encuesta`, `encuesta_admite_voto`), que es
+      la regla que dejó `0005_politica_posts_read.sql`. De paso,
+      `poll_votes_insert_own` ahora comprueba que la encuesta esté activa y no
+      cerrada: antes se podía votar en una encuesta oculta o caducada · 2026-08-03
+- [ ] **De B09 → B06** · `public.ranking_snapshots` **no tiene ningún índice que
+      empiece por `user_id`** (la PK es `(period, period_start, user_id)` y
+      `idx_ranking_board` empieza por `period`). Consecuencia medida al limpiar
+      los datos de prueba: cada borrado de una fila de `profiles` dispara un
+      `Seq Scan` sobre `ranking_snapshots` por la FK en cascada, y borrar 100 000
+      perfiles se vuelve imposible dentro del timeout. Hace falta
+      `create index on public.ranking_snapshots (user_id)` · 2026-08-03
+- [ ] **De B09 → B14 / B00** · `darma-dev` es un proyecto de **plan gratuito con
+      500 MB**: al sembrar 1 000 007 `poll_votes` para el `EXPLAIN ANALYZE` que
+      pide la ficha, la base llegó a 768 MB y Supabase la puso en **modo solo
+      lectura**, lo que bloquea a TODAS las sesiones a la vez. Se recuperó
+      borrando los datos y con `vacuum full` (52 MB ahora). Dos cosas: (1) las
+      siembras de volumen necesitan instancia propia, como ya avisa
+      `PARALELO.md` §3 opción B; (2) `posts` (35 MB) y `auth.users` seguían
+      hinchados de siembras anteriores de otros bloques — conviene `vacuum full`
+      tras cada medición · 2026-08-03
+- [ ] **De B09 → B15** · las 67 pruebas de B09 viven en `lib/polls/*.test.ts`, que
+      SÍ entra en el glob actual de `npm test`. Pero `lib/supabase/database.types.ts`
+      todavía no contiene `encuesta_siguiente`, `encuesta_resultados` ni
+      `reponer_encuestas`, así que `lib/polls/tipos.ts` declara a mano
+      `FilaEncuesta`, `FilaOpcion` y `FilaCadencia` con el comentario que dice
+      por qué y qué las sustituye · 2026-08-03
+- [ ] **De B09 → B17 / B01** · el idioma del pool de encuestas sale hoy de
+      `Accept-Language` (`idiomaDeEncuestas()` en `lib/polls/validacion.ts`),
+      igual que el del contenido curado en B02. Debería salir de la preferencia
+      GUARDADA de la persona: servir una encuesta de bienestar en un idioma que
+      no se domina es peor que no servirla · 2026-08-03
+
+- [ ] **De B06 → F4 · BLOQUEANTE del cron** · `proxy.ts` deja pasar sin sesión
+      `/api/auth/`, `/api/cron/` y `/api/health`, pero **no** `/api/ranking/snapshot`.
+      La ficha B06 prohíbe crear rutas bajo `/api/cron/*` (son de B08), así que el
+      constructor vive en el prefijo de B06 y hoy el proxy le devuelve 401 antes
+      de que el handler llegue a comprobar el Bearer. Hay que añadir
+      `/api/ranking/snapshot` a la lista pública de `proxy.ts`: la ruta se
+      autentica sola con `CRON_SECRET` en tiempo constante y fail-closed
+      (`lib/ranking/cronAuth.ts`), igual que hacen los tres crons de B08 ·
+      2026-08-03
+- [ ] **De B06 → F4** · entrada de cron en `vercel.json` (no es de B06):
+      `{"path":"/api/ranking/snapshot","schedule":"7 * * * *"}`. El minuto 7 y no
+      el 0 es deliberado: a la hora en punto compiten los crons de medio
+      internet. `maxDuration` 60 y presupuesto interno de 50 s; si un corte no
+      cabe, la respuesta trae `completado:false` + `ultimoUsuario` y el disparo
+      siguiente continúa desde ahí · 2026-08-03
+- [ ] **De B06 → F4 / B16** · `app/(app)/layout.tsx` sigue sin existir, así que
+      B06 ha puesto `BotonCrisis` en `app/(app)/ranking/layout.tsx` (mismo
+      criterio que B02 y B05). `/ranking` es la pantalla donde más invita a
+      compararse con los demás y donde más falta hace la salida. Cuando exista el
+      layout del grupo con el botón, este archivo se queda solo con el `<main>` ·
+      2026-08-03
+- [ ] **De B06 → B05 y B13** · ya está disponible `obtenerPosicionDe(userId,
+      periodo): Promise<FilaRanking | null>` en `lib/ranking/index.ts`. Usa el
+      cliente RLS (no el admin) y lee por PK, así que sirve para «tu posición» en
+      el perfil (B05) y para decidir el push «has entrado al podio» (B13) sin
+      paginar. **`null` no es un error**: quien no ha acompañado a nadie en el
+      periodo simplemente no está en la foto · 2026-08-03
+- [ ] **De B06 → B15** · `lib/supabase/database.types.ts` debe regenerarse
+      DESPUÉS de `0106_1/2/3`: hoy no contiene `ranking_tablero`, `ranking_fila`,
+      `construir_ranking_snapshot`, `listen_daily` ni `ranking_snapshots`.
+      Mientras tanto `lib/ranking/tipos.ts` declara a mano `FilaTableroSql`, con
+      el comentario que dice por qué y qué la sustituye · 2026-08-03
+- [ ] **De B06 → B00 · DOS BUGS EN EL SQL DE LA FICHA `B06.md`, encontrados
+      midiendo, no leyendo. Conviene corregir la ficha antes de que alguien la
+      copie.**
+      (a) `dense_rank() over (order by a.listens desc, a.user_id)`: con
+      `user_id` DENTRO de la ventana no hay empates jamás y `dense_rank()` se
+      comporta como `row_number()`. Medido: 97 696 personas, `max(rank) =
+      count(*)`, cero empates. Dos personas que acompañaron a la misma gente
+      reciben puestos distintos decididos por su uuid. Corregido en
+      `0106_3_b06_ranking_empates.sql`: la ventana ordena solo por escuchas.
+      (b) El keyset `where rank > :cursor_rank` con `idx_ranking_board (period,
+      period_start, rank)`: al empatar de verdad, ese predicado se come a los
+      empatados que no cupieron en la página. Medido en un corte de 100 003
+      personas: la página 1 cierra dentro del puesto 1 y **2 142 personas
+      desaparecen del tablero** sin que nada lo indique. B06 pagina por la tupla
+      `(rank, user_id)` y el índice es `(period, period_start, rank, user_id)` ·
+      2026-08-03
+- [ ] **De B06 → B00** · nombre de migración: la ficha pedía
+      `supabase/migrations/0006_b06_ranking.sql`, pero `0006_cerrar_shadow_banned.sql`
+      ya existe y está aplicada. Se ha usado el rango `0106x` que reserva
+      `PARALELO.md` §3 (`0106_1`, `0106_2`, `0106_3`). Mismo caso que ya reportó
+      B02 con `0004` · 2026-08-03
+- [ ] **De B06 → B00** · cuarta confirmación de la divergencia entre
+      `CONTRATOS.md` §4 y `lib/apiErrors.ts`. B06 **no** ha escrito otra
+      implementación: consume la de B01 (`lib/auth/errores.ts` + `respuestas.ts`),
+      que es la que da el `{ ok, code, message, retryAfter }` literal del
+      contrato. Si B00 unifica, hay que tocar `app/api/ranking/{route,validacion,
+      respuesta}.ts` y las dos rutas hijas · 2026-08-03
+- [ ] **De B06 → B00 / F3** · `lib/ranking/cronAuth.ts` es funcionalmente
+      idéntico a `lib/ingest/cronAuth.ts` (B08). No se importa el de B08 porque
+      `lib/ingest/**` es propiedad exclusiva suya y atar el arranque del cron del
+      ranking a los cambios de la ingesta de contenido no tiene ningún sentido.
+      Es un candidato claro a subir a `lib/cronAuth.ts` compartido: es código de
+      seguridad y tenerlo duplicado significa que un arreglo puede aplicarse solo
+      en una de las dos copias · 2026-08-03
+- [ ] **De B06 → B00** · desviación del contrato de tipos de la ficha:
+      `TableroRanking.construidoEn` es `string | null`, no `string`. Una página
+      vacía no tiene ninguna fila de la que leer `built_at`, y las dos
+      alternativas eran peores: devolver `now()` afirma que la foto se acaba de
+      construir cuando puede que no exista, y una consulta extra solo para datar
+      un tablero vacío rompe el presupuesto de 2 consultas por render ·
+      2026-08-03
+- [ ] **De B06 → B17 · deuda de traducción.** Los textos de UI de B06 van en
+      español directo (el catálogo i18n llegó en paralelo). Archivos a traducir:
+      `components/ranking/{Podio,Tablero,InsigniaMovimiento,SelectorPeriodo,MiPosicion}.tsx`,
+      `app/(app)/ranking/page.tsx` y `lib/ranking/tipos.ts` (`ETIQUETA_PERIODO`).
+      Ojo con dos que NO son literales sueltos: el plural de «persona acompañada
+      / personas acompañadas» y el de «sube N puesto / puestos» necesitan reglas
+      de plural, no concatenación · 2026-08-03
+- [ ] **De B06 → B14 / operaciones · el proyecto `darma-dev` se quedó SIN DISCO
+      durante la medición** (`53100: No space left on device`), con la base en
+      ~790 MB. No fue un bloque solo: coincidieron los 275 MB de `poll_votes` de
+      B09 con la siembra de B06. Efectos observados: la construcción abortó a
+      media faena, un `VACUUM FULL` tampoco cupo (necesita espacio para la copia)
+      y solo se recuperó con `TRUNCATE`, que sí devuelve el espacio al sistema de
+      ficheros. Dos peticiones: (1) subir el disco de `darma-dev` antes de que
+      B14 haga su siembra de 1 M de filas, y (2) que cada bloque limpie al
+      terminar — B06 dejó sus dos tablas a 0 filas y borró sus 100 006 perfiles y
+      usuarios de prueba · 2026-08-03
+- [ ] **De B06 → B14 · mejora de índice medida a medias, NO aplicada.** El
+      agregado semanal del constructor usa `idx_listen_daily_day` como debe
+      (`Index Cond: day >= .. AND day < ..`), pero necesita el heap para leer
+      `listens`: 88 140 buffers para 109 098 filas. Un
+      `(day, user_id) include (listens)` lo convertiría en index-only scan. No se
+      ha aplicado porque **no cupo en disco para medirlo**, y no se sube un
+      índice que no se ha comparado. Con espacio, la comparación es de cinco
+      minutos · 2026-08-03

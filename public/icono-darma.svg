@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Darma">
+  <!--
+    Icono provisional de la PWA. Los colores son los tokens de app/globals.css
+    (--bg #0e1116, --accent #7c5cff, --accent2 #26d0a5): no hay ningún hex
+    inventado. Es SVG y no PNG porque este bloque no puede generar binarios;
+    Chrome acepta SVG en el manifiesto, pero un par de PNG 192/512 reales
+    (dueño B16) daría mejor resultado en Android. Anotado en HANDOFF/PEDIDOS.md.
+
+    La forma es una semilla / hoja: el primer nivel de Darma se llama 'semilla'.
+    Sin letras, para que no haya que traducirlo.
+  -->
+  <rect width="512" height="512" rx="112" fill="#0e1116"/>
+  <path d="M256 96c-79 0-144 65-144 144 0 79 65 144 144 144 79 0 144-65 144-144 0-79-65-144-144-144zm0 56c48.6 0 88 39.4 88 88s-39.4 88-88 88-88-39.4-88-88 39.4-88 88-88z" fill="#7c5cff"/>
+  <path d="M256 176c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64z" fill="#26d0a5"/>
+  <rect x="244" y="352" width="24" height="72" rx="12" fill="#7c5cff"/>
+</svg>

@@ -1,0 +1,172 @@
+/* ============================================================================
+   Estilos de la tarjeta de encuesta.
+
+   Todos los colores salen de las variables de `app/globals.css` (CONTRATOS §10)
+   y son las que EXISTEN de verdad: `--line` para bordes, `--muted` para texto
+   secundario, `--radius-sm`, `--touch`. Ni un hex. No hay escala `--space-*` en
+   el proyecto, así que los espaciados van en `rem` como en `Feed.module.css`.
+
+   `--accent` se usa como RELLENO y como BORDE, nunca como texto: no llega a
+   4,5:1 sobre fondo claro (CONTRATOS §10), y por eso el porcentaje se pinta
+   fuera de la barra, con `--ink`.
+   ============================================================================ */
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pregunta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Botón de opción: un <button> de verdad. Un <div onClick> no es enfocable, no
+   responde a Enter y no lo anuncia ningún lector de pantalla. */
+.opcion {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--touch);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel2);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.opcion:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.opcion:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.opcion:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* ── Resultado ─────────────────────────────────────────────────────────────
+   La barra vive detrás de la fila y es decorativa: el porcentaje ya está en el
+   texto, y anunciarlo dos veces convierte una encuesta de 4 opciones en 8
+   anuncios para un lector de pantalla. */
+.resultado {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: var(--touch);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.barra {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: rgba(var(--accent-rgb), 0.22);
+  border-inline-end: 2px solid var(--accent);
+  pointer-events: none;
+}
+
+.etiquetaResultado,
+.porcentaje {
+  position: relative;
+  color: var(--ink);
+}
+
+.porcentaje {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* La opción que eligió esta persona. El borde REFUERZA lo que ya dice el texto
+   («· tu respuesta»): el color nunca es el único portador de información. */
+.miOpcion {
+  border-color: var(--accent);
+}
+
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* El aviso de anonimato. No es adorno: es lo que hace que la gente responda con
+   honestidad, así que se lee ANTES de votar y no se esconde después. */
+.anonimato {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.oculto {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.descartar {
+  min-height: var(--touch);
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.descartar:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.descartar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

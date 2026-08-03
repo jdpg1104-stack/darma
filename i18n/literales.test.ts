@@ -116,6 +116,31 @@ const DEUDA_LITERALES_CONOCIDA: readonly string[] = [
   'components/thread/EstadoValidacion.tsx',
   'components/thread/ListaComentarios.tsx',
   'components/video/TarjetaVideo.tsx',
+  // Ola 3 (B06, B09, B10, B13, B20). Mismo motivo que la ola 2: se escribieron
+  // en paralelo y ninguno pudo consumir el catálogo. Los de `refuge/` son los
+  // que más prisa tienen de traducirse — incluyen las advertencias de la frase
+  // de recuperación, que no se pueden entender a medias.
+  'app/(app)/ranking/page.tsx',
+  'app/(app)/refugios/page.tsx',
+  'app/(legal)/layout.tsx',
+  'app/(legal)/legal/_documento.tsx',
+  'app/(legal)/legal/page.tsx',
+  'components/polls/TarjetaEncuesta.tsx',
+  'components/pwa/AvisoSinConexion.tsx',
+  'components/pwa/OptInPush.tsx',
+  'components/ranking/InsigniaMovimiento.tsx',
+  'components/ranking/MiPosicion.tsx',
+  'components/ranking/Podio.tsx',
+  'components/ranking/SelectorPeriodo.tsx',
+  'components/ranking/Tablero.tsx',
+  'components/refuge/AvisoClaveCambiada.tsx',
+  'components/refuge/Burbuja.tsx',
+  'components/refuge/DialogoFraseRecuperacion.tsx',
+  'components/refuge/Hilo.tsx',
+  'components/refuge/MenuBloquear.tsx',
+  'components/refuge/NumeroSeguridad.tsx',
+  'components/refuge/Redactor.tsx',
+  'components/refuge/TarjetaCrisis.tsx',
 ]
 
 function relativo(absoluto: string): string {

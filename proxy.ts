@@ -43,6 +43,13 @@ const PUBLIC_ROUTES = [
   '/legal',
   '/ayuda',
   '/api/cron/',
+  // Construcción de la foto del ranking. Es un disparador programado, no una
+  // ruta de usuario: llega sin cookie y se autentica con CRON_SECRET (Bearer),
+  // igual que /api/cron/*. Vive fuera de ese prefijo porque el prefijo es de
+  // otro bloque, no porque sea distinta. Si el proxy la cortara con 401, el
+  // Bearer no llegaría nunca a comprobarse y el ranking se quedaría congelado
+  // sin que nada fallara de forma visible.
+  '/api/ranking/snapshot',
   '/api/health',
 ]
 
@@ -156,6 +163,13 @@ export const config = {
     // Se excluye la EXTENSIÓN, no el nombre del archivo: una lista de nombres
     // propios solo protege lo que alguien se acordó de escribir, y el fichero
     // que se cree mañana no estará en ella.
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff2|txt|xml)$).*)',
+    //
+    // `manifest.json` va nombrado aparte y no por su extensión: `.json` a secas
+    // dejaría fuera del gate a cualquier ruta que termine en .json, incluidas
+    // las de la API. El síntoma que corrige es concreto: sin esta exclusión el
+    // navegador pide el manifiesto SIN cookies, el proxy lo redirige a /entrar,
+    // y la PWA no se puede instalar desde la landing — que es justo desde donde
+    // se instala.
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff2|txt|xml)$).*)',
   ],
 }

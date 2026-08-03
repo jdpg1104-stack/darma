@@ -101,6 +101,20 @@ const HIGH_PATTERNS: readonly CrisisPattern[] = [
   // construcciones perfectamente normales ("llevo semanas pensando en
   // suicidarme"), y un falso negativo aquí es inaceptable.
   { id: 'es_ideation', level: 'high', re: /\b(quiero (morir|morirme|desaparecer para siempre)|me quiero morir|deseo (morir|morirme)|suicidarme|matarme|ideas suicidas|ideacion suicida|pensamientos suicidas)\b/ },
+  // FORMULACIÓN IMPERSONAL. La regla de arriba solo ve la primera persona
+  // (`suicidarme`, `matarme`), y quien está peor rara vez habla en primera
+  // persona: pregunta por «alguien», por «una persona», o en infinitivo
+  // —«¿alguien más ha pensado en suicidarse?»—. Es una forma reconocida de
+  // tantear el terreno antes de hablar de uno mismo, y con la regla anterior
+  // pasaba entera sin marcar.
+  //
+  // Sí, marca también a quien pregunta por un tercero de verdad («mi hermano
+  // ha hablado de suicidarse»). Es el resultado correcto: esa persona también
+  // necesita los recursos en pantalla, y quien acompaña a alguien en riesgo
+  // está atravesando su propia crisis. Falso positivo aceptable; falso
+  // negativo, no.
+  { id: 'es_ideation_impersonal', level: 'high', re: /\b(suicidarse|suicidio|matarse|quitarse la vida|acabar con su vida|autolesionarse|hacerse dano a proposito)\b/ },
+  { id: 'en_ideation_impersonal', level: 'high', re: /\b(suicide|killing themsel(f|ves)|kill themsel(f|ves)|taking their (own )?life|self.?harming)\b/ },
   { id: 'es_end_life', level: 'high', re: /\b(acabar con (mi vida|todo esto)|terminar con (mi vida|todo)|quitarme la vida|no quiero (seguir viviendo|vivir mas|estar aqui)|dejar de existir)\b/ },
   { id: 'es_selfharm', level: 'high', re: /\b(me (corto|he cortado|autolesiono|hago dano|hago cortes)|cortarme|autolesion(arme|es)?|quemarme a proposito)\b/ },
   { id: 'es_better_dead', level: 'high', re: /\b(estarian mejor sin mi|todos estarian mejor|no le importo a nadie y ya no|sobro en este mundo|no merezco (vivir|estar aqui))\b/ },

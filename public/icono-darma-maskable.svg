@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Darma">
+  <!--
+    Variante MASKABLE. Android recorta el icono con la forma que tenga el
+    lanzador (círculo, squircle, gota), y solo garantiza que se vea el 80 %
+    central: el contenido va dentro de una "zona segura" de 409 px de diámetro
+    centrada. Por eso esta versión repite el dibujo más pequeño y con el fondo
+    a sangre, sin esquinas redondeadas propias — quien redondea es el sistema.
+
+    Sin este archivo el icono sale con un marco blanco alrededor en muchos
+    Android, que es el defecto clásico de las PWA que solo declaran `purpose:
+    any`. Mismos tokens de color que la variante normal.
+  -->
+  <rect width="512" height="512" fill="#0e1116"/>
+  <g transform="translate(256 256) scale(0.68) translate(-256 -256)">
+    <path d="M256 96c-79 0-144 65-144 144 0 79 65 144 144 144 79 0 144-65 144-144 0-79-65-144-144-144zm0 56c48.6 0 88 39.4 88 88s-39.4 88-88 88-88-39.4-88-88 39.4-88 88-88z" fill="#7c5cff"/>
+    <path d="M256 176c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64z" fill="#26d0a5"/>
+    <rect x="244" y="352" width="24" height="72" rx="12" fill="#7c5cff"/>
+  </g>
+</svg>

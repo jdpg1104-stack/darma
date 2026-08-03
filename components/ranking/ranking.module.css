@@ -1,0 +1,168 @@
+/* ==========================================================================
+   B06 · Estilos del ranking.
+   Todo sale de las variables de app/globals.css (dueño F4). Ni un hex aquí:
+   CONTRATOS §10.
+   ========================================================================== */
+
+.selector {
+  display: flex;
+  gap: var(--space-2, 0.5rem);
+  margin-bottom: var(--space-4, 1rem);
+  flex-wrap: wrap;
+}
+
+.opcion {
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--border, currentColor);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  /* 44 px reales de objetivo táctil, como el resto del sistema (B16). */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.opcion:hover,
+.opcion:focus-visible {
+  border-color: var(--accent);
+}
+
+/* El periodo activo NO se distingue solo por color: lleva `aria-current` y un
+   borde más grueso. El color como único portador de información deja fuera al
+   8 % de los hombres con daltonismo. */
+.activa {
+  border-width: 2px;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Podio ─────────────────────────────────────────────────────────────── */
+.podio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3, 0.75rem);
+  margin-bottom: var(--space-5, 1.25rem);
+  list-style: none;
+  padding: 0;
+}
+
+.escalon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  text-align: center;
+  padding: var(--space-3, 0.75rem);
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border, currentColor);
+}
+
+/* El primero se realza con tamaño y orden, no con oro: en Darma el podio es de
+   quien más ha ESCUCHADO, y una medalla de competición desentona con eso. */
+.primero {
+  border-color: var(--accent);
+}
+
+.puesto {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.aliasPodio {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.escuchasPodio {
+  font-size: 0.875rem;
+  color: var(--ink-muted, inherit);
+}
+
+/* ── Tablero ───────────────────────────────────────────────────────────── */
+.tablero {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 2.5rem auto 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border-radius: var(--radius-md, 12px);
+}
+
+/* Tu propia fila, resaltada con borde: es la que la gente busca al entrar. */
+.filaPropia {
+  border: 2px solid var(--accent);
+}
+
+.posicion {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+
+.alias {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.escuchas {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+  color: var(--ink-muted, inherit);
+  white-space: nowrap;
+}
+
+/* ── Insignia de movimiento ────────────────────────────────────────────── */
+.movimiento {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La flecha es un carácter con `aria-hidden`; el significado va en el texto
+   accesible del `<span>` que la envuelve. */
+.flecha {
+  font-size: 0.75em;
+}
+
+.masAdelante {
+  color: var(--accent2, inherit);
+}
+
+/* Bajar no se pinta en rojo de alarma. Alguien que baja un puesto no ha hecho
+   nada mal —lo normal es que otra persona haya escuchado más—, y teñirlo de
+   peligro convierte un tablero de apoyo en una lista de fracasos. */
+.masAtras {
+  color: var(--ink-muted, inherit);
+}
+
+.nuevo {
+  color: var(--ink-muted, inherit);
+}
+
+/* ── Cargar más ────────────────────────────────────────────────────────── */
+.masAcciones {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4, 1rem);
+}
+
+.error {
+  margin-top: var(--space-3, 0.75rem);
+  text-align: center;
+  font-size: 0.9375rem;
+}

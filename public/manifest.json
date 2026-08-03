@@ -1,0 +1,35 @@
+{
+  "name": "Darma · apoyo entre pares",
+  "short_name": "Darma",
+  "description": "Un sitio anónimo donde escribir lo que no le cuentas a nadie, y donde escuchar a quien lo necesita.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "/feed",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0e1116",
+  "background_color": "#0e1116",
+  "categories": ["health", "lifestyle", "social"],
+  "icons": [
+    {
+      "src": "/icono-darma.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-darma.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-darma-maskable.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
