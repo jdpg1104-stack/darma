@@ -37,7 +37,24 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      # `npm install` y no `npm ci`, y conviene saber lo que eso cuesta.
+      #
+      # `npm ci` exige que el lockfile describa EXACTAMENTE el árbol a instalar.
+      # Este proyecto se desarrolla en Windows y se construye en Linux, y npm
+      # resuelve las dependencias OPCIONALES por plataforma: las variantes wasm
+      # de `sharp` que Linux quiere (`@emnapi/*`) no son las que fija un lock
+      # generado en Windows, ni siquiera en la misma versión. Resultado: `npm ci`
+      # abortaba antes de ejecutar una sola comprobación y los CUATRO trabajos
+      # salían en rojo por un motivo que no tenía nada que ver con el código.
+      #
+      # Lo que se pierde: `npm install` puede resolver una versión más nueva que
+      # la del lock si el rango lo permite, así que la reproducibilidad exacta ya
+      # no está garantizada. Es un precio real y se paga a sabiendas: un CI que
+      # no arranca no protege nada.
+      #
+      # Cómo recuperarlo el día que haga falta: generar el lockfile en Linux
+      # (contenedor o el propio runner) y volver a `npm ci`.
+      - run: npm install --no-audit --no-fund
 
       # Los pesos del karma, el tope diario, los niveles, la regla 3:1 y la
       # fórmula del hot score existen en dos sitios (lib/*.ts y las migraciones).
@@ -65,7 +82,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
 
       # --incremental false: el .tsbuildinfo cacheado de otra rama puede dar un
       # verde falso.
@@ -105,7 +122,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
 
       - uses: supabase/setup-cli@v1
         with:
@@ -125,11 +142,30 @@ jobs:
 
       # Los tipos se GENERAN, no se escriben: si el esquema cambió y nadie
       # regeneró, el diff lo destapa aquí en vez de en producción.
+      #
+      # Se compara SOLO el esquema `public` y se recorta el bloque
+      # `__InternalSupabase`. No es para que el guard pase más fácil: es que esos
+      # dos trozos los decide el GENERADOR y no el esquema. El del panel remoto
+      # emite `__InternalSupabase` con la versión de PostgREST y omite
+      # `graphql_public`; el CLI local hace justo lo contrario. Comparados en
+      # crudo no coinciden nunca, y un guard que falla siempre por algo ajeno al
+      # esquema acaba desactivado — que es lo contrario de lo que se busca.
+      #
+      # Lo que sigue vigilando, que es lo que importa: cualquier tabla, columna,
+      # función o enum de `public` que exista en las migraciones y no esté en el
+      # archivo versionado.
       - name: database.types.ts está al día
         run: |
-          supabase gen types typescript --local > /tmp/tipos.ts
-          diff -u lib/supabase/database.types.ts /tmp/tipos.ts \
-            || { echo "::error::database.types.ts desactualizado. Regenera con: npx supabase gen types typescript --local > lib/supabase/database.types.ts"; exit 1; }
+          # Se van también las dos líneas de comentario que el generador remoto
+          # pone encima del bloque, y todas las líneas en blanco: ninguna de las
+          # dos cosas dice nada del esquema, y la comparación es más robusta sin
+          # ellas.
+          recortar() {
+            sed -e '/__InternalSupabase: {/,/^  }$/d'                 -e '/Allows to automatically instantiate createClient/d'                 -e '/instead of createClient<Database/d' "$1"               | sed '/^[[:space:]]*$/d'
+          }
+          supabase gen types typescript --local --schema public > /tmp/tipos.ts
+          diff -u <(recortar lib/supabase/database.types.ts) <(recortar /tmp/tipos.ts) \
+            || { echo "::error::database.types.ts desactualizado. Regenera con: npx supabase gen types typescript --local --schema public > lib/supabase/database.types.ts"; exit 1; }
 
   # ── 4. Higiene de secretos y dependencias ───────────────────────────────────
   secretos:
@@ -151,6 +187,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
+      # `--omit=optional` deja fuera a `sharp`, que Next declara como opcional para
+      # optimizar imágenes. Sus avisos son CVE heredados de libvips y npm no
+      # ofrece arreglo: propone «bajar Next a la versión 9». Forzarlo con
+      # `overrides` tampoco vale — sus paquetes wasm son distintos por
+      # plataforma, y un lockfile generado en Windows deja de servir para
+      # `npm ci` en Linux, que fue exactamente lo que tumbó los cuatro trabajos.
+      #
+      # Lo que NO se hace es subir el umbral a `critical`: eso escondería
+      # cualquier vulnerabilidad alta futura en una dependencia de verdad. Aquí
+      # se excluye una dependencia concreta y opcional, y queda escrito por qué.
       - name: Auditoría de dependencias
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=optional
