@@ -152,5 +152,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      # `--omit=optional` deja fuera a `sharp`, que Next declara como opcional para
+      # optimizar imágenes. Sus avisos son CVE heredados de libvips y npm no
+      # ofrece arreglo: propone «bajar Next a la versión 9». Forzarlo con
+      # `overrides` tampoco vale — sus paquetes wasm son distintos por
+      # plataforma, y un lockfile generado en Windows deja de servir para
+      # `npm ci` en Linux, que fue exactamente lo que tumbó los cuatro trabajos.
+      #
+      # Lo que NO se hace es subir el umbral a `critical`: eso escondería
+      # cualquier vulnerabilidad alta futura en una dependencia de verdad. Aquí
+      # se excluye una dependencia concreta y opcional, y queda escrito por qué.
       - name: Auditoría de dependencias
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=optional
