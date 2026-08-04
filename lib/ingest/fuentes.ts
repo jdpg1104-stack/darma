@@ -136,6 +136,32 @@ export const FUENTES_SEMILLA: readonly SemillaFuente[] = [
       'que es lo que trajo el canal de la OPS en la primera ingesta real.',
   },
   {
+    key: 'yt:aj_historias_que_inspiran',
+    kind: 'youtube_playlist',
+    handle: 'PLWCXX8tjkPYteJASyU0yqEoGnongCN9IZ',
+    language: 'es',
+    topic: null,
+    porQue:
+      'AprendemosJuntos (BBVA) · «Historias que inspiran». Es lo más cercano al hopecore que existe EN ESPAÑOL cumpliendo ' +
+      'el criterio de admisión: producción propia con productor identificable —no recopilación de clips ajenos, que es lo ' +
+      'que descalifica al género tal y como circula—, sin cursos ni embudo de venta detrás. Y el tono es el correcto: ' +
+      '«Cómo convertir tus heridas en propósito», «Aprendizajes de vida» — personas contando lo que les pasó, que es ' +
+      'acompañar, no arengar. Se apunta a la PLAYLIST y no al canal, que también publica inteligencia artificial y ' +
+      'arqueología: la lección que dejó la primera ingesta real de los canales de la OMS.',
+  },
+  {
+    key: 'yt:aj_salud_y_bienestar',
+    kind: 'youtube_playlist',
+    handle: 'PLWCXX8tjkPYtZtKMpnSlv8K8bjedyENSs',
+    language: 'es',
+    topic: null,
+    porQue:
+      'AprendemosJuntos (BBVA) · «Salud y Bienestar». Divulgación en español con especialistas identificados, y con ' +
+      'bastante material de sueño y descanso — un tema propio de la taxonomía que hoy no tiene ni una pieza. ' +
+      '⚠️ Vigilar en la curación: la playlist mezcla salud física (cardiología, longevidad) con bienestar emocional, así ' +
+      'que NO todo lo que entre por aquí sirve para /animo.',
+  },
+  {
     key: 'yt:who_social_connection',
     kind: 'youtube_playlist',
     handle: 'PL9S6xGsoqIBUqjIzsow3VxmDXj77JrkyT',

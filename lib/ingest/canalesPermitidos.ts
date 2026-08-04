@@ -257,6 +257,29 @@ export interface CanalPermitido {
  */
 export const CANALES_PERMITIDOS: readonly CanalPermitido[] = [
   {
+    // ── El primer canal NO institucional del registro ──────────────────────
+    // Entra con el criterio ampliado el 2026-08-04 (ver la cabecera de
+    // `fuentes.ts`): autoría identificable, publica lo suyo, no vende nada.
+    //
+    // Y entra porque HIZO FALTA: al añadir sus dos playlists como fuentes, la
+    // guarda rechazó sus 30 vídeos con `canal_fuera_del_registro`. Eso es la
+    // defensa en profundidad funcionando — que una FUENTE esté permitida no
+    // basta si el canal que publica no está registrado, porque una playlist
+    // curada puede llevar material de terceros. Registrarlo es la decisión
+    // humana que la guarda estaba pidiendo, no un trámite para callarla.
+    fuenteKey: 'yt:aj_historias_que_inspiran',
+    organismo: 'AprendemosJuntos (BBVA)',
+    ambito: 'España / Hispanoamérica',
+    urlCanal: 'https://www.youtube.com/channel/UCI6QcXatdaEAaRTRjl3dc0w',
+    channelId: 'UCI6QcXatdaEAaRTRjl3dc0w',
+    verificadoPor: null,
+    verificadoEn: '2026-08-04',
+    porQue:
+      'Productora identificable (BBVA) de contenido propio en español, sin cursos ni embudo de venta. El channelId se ' +
+      'resolvió con `videos.list` sobre un vídeo real de sus playlists, no de memoria. Cubre las dos fuentes ' +
+      '`yt:aj_*`, que apuntan a playlists distintas del mismo canal.',
+  },
+  {
     fuenteKey: 'yt:who',
     organismo: 'Organización Mundial de la Salud (OMS/WHO)',
     ambito: 'Global',
