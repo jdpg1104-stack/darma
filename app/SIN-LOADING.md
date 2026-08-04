@@ -1,7 +1,14 @@
-# No añadas `loading.tsx` a este proyecto
+# No añadas `loading.tsx` — ni ningún `<Suspense>` — a este proyecto
 
-Si estás a punto de crear un `loading.tsx`, lee esto antes. Rompe la aplicación
-entera y no lo detecta nada.
+Si estás a punto de crear un `loading.tsx` **o de escribir un `<Suspense>`**,
+lee esto antes. Rompe la aplicación entera y no lo detecta nada.
+
+> `loading.tsx` no es más que el azúcar de Next para un límite de Suspense, así
+> que los dos disparan exactamente el mismo fallo. La primera versión de este
+> documento solo hablaba de `loading.tsx`, se retiraron los ocho que había, y
+> **los dos `<Suspense>` escritos a mano sobrevivieron a la limpieza**: el feed
+> siguió sin pintar un solo post y el formulario de responder siguió muerto
+> durante toda una ola de trabajo. Ver «Lo que se escapó» al final.
 
 ## Qué pasa
 
@@ -55,3 +62,42 @@ Hay que quitar el `await` del layout raíz antes. Dos caminos, ninguno gratis:
    y el proxy.
 
 Mientras ninguno esté hecho, este archivo se queda.
+
+## Lo que se escapó
+
+Retirar los `loading.tsx` no bastó. Quedaron dos `<Suspense>` escritos a mano
+que hacían exactamente lo mismo:
+
+- `app/(app)/feed/page.tsx` — alrededor de la lista de posts.
+- `app/(app)/post/[id]/page.tsx` — alrededor del hilo entero.
+
+El síntoma, medido en el navegador antes de quitarlos:
+
+```
+textarea   display=inline-block   0x0
+form                              0x0
+div.hilo   display=flex           0x0
+div  []    display=none      ←  todo el contenido, aquí dentro
+body                          1280x720
+```
+
+En el feed, `main` medía 1280x**166** —la cabecera y las pestañas— y los
+`<article>` de los posts medían **0x0**. Es decir: la pantalla principal de
+Darma no enseñaba ni una publicación, y el hilo no dejaba responder. Después de
+quitarlos: `main` 1272x**1027** y cuatro artículos de 648x206.
+
+Cómo se encontró, otra vez: **recorriendo la app a mano**. `tsc`, el lint y las
+1.233 pruebas seguían en verde. La pista fue que `/publicar` —la única de las
+tres rutas SIN `<Suspense>`— era la única que respondía a los clics.
+
+Si sospechas de esto en una ruta nueva, la comprobación es de diez segundos en
+la consola del navegador:
+
+```js
+document.querySelectorAll('article').length          // ¿hay contenido?
+document.querySelector('article').getBoundingClientRect()   // ¿mide 0x0?
+```
+
+Un elemento con texto, `visibility: visible` y tamaño cero significa que tiene
+un ancestro con `display: none`. Sube por `parentElement` hasta encontrarlo: si
+es un `div` sin clase colgando de `<body>`, es esto.

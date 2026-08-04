@@ -91,9 +91,11 @@ test('los secretos hexadecimales exigen 32 bytes exactos', () => {
 test('lo que solo degrada es AVISO, no bloqueante, y dice qué se pierde', () => {
   const h = de(revisarEntorno(sano({ MODERATION_API_KEY: '' })), 'MODERATION_API_KEY')
   assert.equal(h?.gravedad, 'aviso')
-  // El punto entero del aviso: que nadie descubra tres días después que el
-  // karma no se movía.
-  assert.match(h!.problema, /karma/)
+  // Y dice la verdad sobre QUÉ se pierde. Varios documentos del repo afirman
+  // que sin esta clave no se valida nada; verificado contra Postgres, la
+  // heurística sigue validando y pagando karma. Un aviso que exagera se acaba
+  // ignorando igual que uno que falta.
+  assert.match(h!.problema, /heurística/)
 })
 
 // ── Sombra del entorno ──────────────────────────────────────────────────────

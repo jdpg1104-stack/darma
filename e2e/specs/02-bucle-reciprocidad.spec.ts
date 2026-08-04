@@ -13,10 +13,23 @@ import { comentarioDeApoyo } from '../utils/textos'
 // `trg_comments_validated` y lo cobra `trg_posts_reciprocity`, y entre los dos
 // hay una transacción, un índice único parcial y un tope diario.
 //
-// ⚠️ Sin `MODERATION_API_KEY` el clasificador no responde y NINGÚN comentario se
-// valida solo: el sistema falla cerrado por diseño. Por eso los comentarios se
-// escriben POR LA UI (que es lo que se prueba) y se validan después desde el
-// fixture con service_role, que es lo que dispara el trigger REAL.
+// 🔴 ESTA PREMISA ES FALSA Y ESTE RECORRIDO FALLARÁ CUANDO SE EJECUTE.
+// Decía: «sin MODERATION_API_KEY el clasificador no responde y NINGÚN
+// comentario se valida solo: el sistema falla cerrado por diseño».
+//
+// Verificado contra Postgres el 2026-08-04: NO es así. `validadorPorDefecto`
+// (app/api/comments/validador.ts) es `ValidadorHeuristico`, determinista y sin
+// I/O, y está puesto como SUELO a propósito — la validación decide si alguien
+// cobra su escucha y no puede depender de que un proveedor esté en pie. Un
+// comentario sincero se valida SOLO, sin clave y sin red: medido `is_validated
+// = true`, `+10` de reputación, `+1` crédito y `reply_count = 1` en el primer
+// comentario escrito por la UI.
+//
+// Consecuencia para este spec: la aserción intermedia `creditosDe(usuario) === i`
+// —la que distingue «el bucle funciona» de «el bucle suma por escribir»— va a
+// fallar, porque el crédito ya se ha acreditado antes de llamar a
+// `validarComentario`. Hay que rehacerla: o se comenta con texto que la
+// heurística rechace, o se comprueba el efecto en vez del momento.
 // ============================================================================
 
 test.describe('(b) El bucle de reciprocidad', () => {

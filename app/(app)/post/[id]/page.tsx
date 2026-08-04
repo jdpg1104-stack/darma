@@ -22,14 +22,12 @@
 // ya es información sobre una persona.
 // ============================================================================
 
-import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
 import { createClient } from '@/lib/supabase/server'
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { getContextoSesion } from '@/lib/auth/session'
-import { Cargando } from '@/components/ui'
 import { ListaComentarios, PostCompleto, BotonApoyo } from '@/components/thread'
 import { leerHilo } from '@/app/api/comments/consulta'
 import { perfilDeAutor, type FilaAutor } from '@/app/api/comments/dominio'
@@ -120,15 +118,18 @@ async function Hilo({ postId }: { postId: string }) {
   )
 }
 
+// ⛔ NO ENVUELVAS ESTO EN <Suspense>. Ver app/SIN-LOADING.md: el layout raíz es
+// asíncrono y suspende en TODAS las peticiones, así que con un límite de
+// Suspense por debajo React nunca completa el intercambio del fallback. El
+// contenido se queda en el DOM dentro de un `div` con `display:none`, la
+// hidratación no arranca, y el formulario de responder —la acción que define
+// Darma— no envía nada. Aquí lo tuvo hasta que se recorrió la app a mano.
 export default async function PaginaPost({ params }: Props) {
   const { id } = await params
-  const t = obtenerTraductor(await resolverLocale())
 
   return (
     <main>
-      <Suspense fallback={<Cargando variante="esqueleto" filas={4} etiqueta={t('hilo.abriendo')} />}>
-        <Hilo postId={id} />
-      </Suspense>
+      <Hilo postId={id} />
     </main>
   )
 }

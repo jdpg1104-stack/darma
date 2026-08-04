@@ -78,10 +78,17 @@ const OBLIGATORIAS = [
  */
 const DEGRADAN: ReadonlyArray<{ variable: string; consecuencia: string; arreglo: string }> = [
   {
+    // OJO con lo que dice este mensaje: varios documentos del repo afirman que
+    // sin esta clave «NINGÚN comentario se valida solo». Es FALSO, y verificado
+    // contra Postgres: `validadorPorDefecto` es la heurística determinista de
+    // lib/moderation.ts, que no necesita clave ni red y sigue validando, pagando
+    // karma y acreditando escuchas. Está puesta como SUELO a propósito (ver la
+    // cabecera de app/api/comments/validador.ts). Lo que falta sin la clave es
+    // el juicio del modelo, no la validación entera.
     variable: 'MODERATION_API_KEY',
     consecuencia:
-      'el clasificador no responde, así que NINGÚN comentario se valida solo: se publica y el riesgo escala, pero nadie gana karma ni créditos de escucha',
-    arreglo: 'Ponla en .env.local para salir del modo degradado.',
+      'el clasificador del modelo no se llama. La heurística determinista sigue validando comentarios y pagando karma, pero sin el modelo se cuela relleno que él habría rechazado y la detección de crisis pierde el matiz que solo da leer el texto',
+    arreglo: 'Ponla en .env.local para que el modelo entre por encima de la heurística.',
   },
   {
     variable: 'VAPID_PRIVATE_KEY',

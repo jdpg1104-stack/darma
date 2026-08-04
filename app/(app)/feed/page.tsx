@@ -1,5 +1,5 @@
 // ============================================================================
-// /feed — la pantalla principal de Darma. Server Component con streaming.
+// /feed — la pantalla principal de Darma. Server Component.
 //
 // ── LA PRIMERA PÁGINA NO PASA POR /api/feed ────────────────────────────────
 // Se consulta directamente con el cliente RLS. Ir a la propia API desde el
@@ -8,11 +8,24 @@
 // se carga de la app. La ruta de API existe para el scroll, que sí viene del
 // navegador.
 //
-// ── STREAMING ──────────────────────────────────────────────────────────────
-// El selector de carril se envía de inmediato y la lista llega dentro de un
-// `<Suspense>`. Así el HTML empieza a pintarse sin esperar a Postgres: la
-// persona ve la estructura de la pantalla mientras se resuelve la consulta, en
-// vez de una página en blanco.
+// ── ⛔ SIN STREAMING, Y NO POR DESCUIDO ────────────────────────────────────
+// Aquí hubo un `<Suspense>` alrededor de la lista para que el selector de
+// carril se enviara de inmediato. La intención era buena y el efecto real era
+// que ESTA PANTALLA NO PINTABA NI UN POST: el layout raíz es asíncrono —espera
+// a `resolverLocale()` para el `lang` del documento— y suspende en todas las
+// peticiones, así que React nunca completaba el intercambio del fallback. La
+// lista se quedaba en el DOM dentro de un `div` con `display:none` y la
+// hidratación no arrancaba.
+//
+// Es el mismo fallo que documenta app/SIN-LOADING.md para `loading.tsx`, que no
+// era más que el azúcar de Next para exactamente este límite de Suspense. Se
+// retiraron los `loading.tsx` y estos dos boundaries escritos a mano
+// sobrevivieron a la limpieza.
+//
+// NO LO VUELVAS A AÑADIR sin arreglar antes la raíz: mientras `app/layout.tsx`
+// sea asíncrono, cualquier `<Suspense>` por debajo mata la hidratación de esa
+// rama. Y no lo ve `tsc`, ni el lint, ni las pruebas — solo un navegador de
+// verdad.
 //
 // ── force-dynamic / revalidate = 0 NO SON AJUSTES DE RENDIMIENTO ───────────
 // El feed depende de `auth.uid()` a través de RLS. Cacheado en el CDN, la
@@ -21,7 +34,6 @@
 // fuga de datos.
 // ============================================================================
 
-import { Suspense } from 'react'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -33,7 +45,6 @@ import { FeedVacio } from '@/components/feed/FeedVacio'
 import { ListaFeed } from '@/components/feed/ListaFeed'
 import { ScrollInfinito } from '@/components/feed/ScrollInfinito'
 import { SelectorCarril } from '@/components/feed/SelectorCarril'
-import { Cargando } from '@/components/ui'
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { getSesion } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
@@ -58,21 +69,17 @@ export default async function PaginaFeed({ searchParams }: PropsPagina) {
   return (
     <>
       <SelectorCarril activo={carril} />
-      {/* `key` para que cambiar de carril reinicie el límite de Suspense: sin
-          ella, React reutiliza el árbol y la lista del carril anterior se queda
-          en pantalla mientras carga la nueva. */}
-      <Suspense key={carril} fallback={<Cargando variante="esqueleto" filas={5} />}>
-        <PrimeraPagina carril={carril} />
-      </Suspense>
+      {/* `key` para que cambiar de carril reinicie el árbol: sin ella React lo
+          reutiliza y la lista del carril anterior se queda en pantalla. */}
+      <PrimeraPagina key={carril} carril={carril} />
     </>
   )
 }
 
 /**
- * El trozo que espera a Postgres. Separado en su propio componente porque solo
- * lo que está DENTRO del `<Suspense>` se suspende: si la consulta viviera en
- * `PaginaFeed`, la página entera —selector incluido— esperaría a la base de
- * datos y el streaming no serviría de nada.
+ * El trozo que espera a Postgres. Sigue separado en su propio componente aunque
+ * ya no haya `<Suspense>`: es la forma que hay que conservar para que el día que
+ * la raíz deje de ser asíncrona baste con volver a envolver esta llamada.
  */
 async function PrimeraPagina({ carril }: { carril: Carril }) {
   const sesion = await getSesion()
