@@ -28,6 +28,10 @@ Formato: `- [ ] **De B0X → B0Y** · qué necesitas · por qué · quién lo pi
       `verificadoPor`, fecha de hoy en `verificadoEn` y quitar la línea de
       `PENDIENTES_DECLARADOS`. Un número equivocado en una pantalla de crisis es
       peor que no mostrar número · 2026-08-03
+      → **La lista lista para trabajar, con la fuente oficial de cada uno y
+      agrupada por país, está en [`VERIFICACION-TELEFONOS.md`](./VERIFICACION-TELEFONOS.md).**
+      Son 11 llamadas, no 24: los otros 13 son emergencias, SMS, chat y web, que
+      se confirman leyendo la fuente · 2026-08-04
 - [ ] **De B17 → CI** · `tablaListaParaProduccion()` **no está cableada a ningún
       paso de CI**: hoy devuelve `false` y no lo comprueba nadie, así que el
       único freno al despliegue es que alguien se acuerde. Hace falta un paso

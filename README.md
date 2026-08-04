@@ -221,7 +221,7 @@ karma, y el segundo intento de publicar bloqueado.
 
 | | |
 |---|---|
-| 🔴 **Verificar los 24 teléfonos de crisis** | Se escribieron sin confirmarlos con cada organización. `tablaListaParaProduccion()` devuelve `false` y **bloquea el despliegue a propósito**. Un número muerto en esa pantalla es peor que no mostrar ninguno. |
+| 🔴 **Verificar los 24 teléfonos de crisis** | Se escribieron sin confirmarlos con cada organización. `tablaListaParaProduccion()` devuelve `false` y **detiene el build de producción** desde `prebuild`: no es una convención, el despliegue se para. Un número muerto en esa pantalla es peor que no mostrar ninguno. La lista para trabajar —con la fuente oficial de cada uno— está en [`HANDOFF/VERIFICACION-TELEFONOS.md`](./HANDOFF/VERIFICACION-TELEFONOS.md); son 11 llamadas, no 24. |
 | **Clave del clasificador** | Sin ella la app corre siempre degradada: publica y escala el riesgo, pero nadie gana karma. Coste estimado: ~485 $/día a 100.000 comentarios. |
 | **Pruebas de carga** | Escritas, sin ejecutar. Necesitan una base mayor que el plan gratuito. |
 | **Revisión legal** | Menores, retención y política de borrado. |
