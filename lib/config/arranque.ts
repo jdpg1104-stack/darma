@@ -14,6 +14,7 @@
 // ============================================================================
 
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 import {
   detectarSombra,
@@ -23,8 +24,20 @@ import {
   type Hallazgo,
 } from './comprobacion.ts'
 
-/** Ruta de `.env.local` desde `lib/config/`. */
-const ENV_LOCAL = new URL('../../.env.local', import.meta.url)
+/**
+ * Ruta de `.env.local`, resuelta EN TIEMPO DE EJECUCIÓN.
+ *
+ * ⚠️ NO uses `new URL('../../.env.local', import.meta.url)`. Turbopack lo trata
+ * como una referencia a un módulo y trata de resolverlo AL COMPILAR; como
+ * `.env.local` no se versiona, el build de CI muere con «Module not found» y en
+ * local pasa desapercibido porque el archivo sí está. Lo cazó el CI, no yo.
+ *
+ * `process.cwd()` es la raíz del proyecto cuando corre Next, y al ser una
+ * llamada no puede resolverse estáticamente.
+ */
+function rutaEnvLocal(): string {
+  return join(process.cwd(), '.env.local')
+}
 
 /**
  * Reúne los hallazgos y devuelve el informe listo para imprimir.
@@ -41,7 +54,7 @@ export async function reunirHallazgos(
   // —Vercel, un contenedor con las variables inyectadas— no hay nada con lo que
   // comparar y tampoco puede haber sombra: silencio deliberado.
   try {
-    hallazgos.push(...detectarSombra(env, await readFile(ENV_LOCAL, 'utf8')))
+    hallazgos.push(...detectarSombra(env, await readFile(rutaEnvLocal(), 'utf8')))
   } catch {
     // Sin .env.local no hay discrepancia posible.
   }
