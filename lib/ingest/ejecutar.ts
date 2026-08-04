@@ -37,6 +37,8 @@ import { parsearFeedRss, parsearFeedYoutube } from './feeds.ts'
 import { TIPOS_POR_CRON, urlDeFuente } from './fuentes.ts'
 import { normalizar } from './normalizar.ts'
 import { cribarSeguridad, MAX_LLAMADAS_MODELO, type OpcionesCribado } from './seguridad.ts'
+import { verificarCanalDeEmbed, type OpcionesVerificacion } from './canalesPermitidos.ts'
+import { resolverIdiomaAudio, type OpcionesIdiomaAudio } from './idiomaAudio.ts'
 import { sondaEmbed, type OpcionesSonda } from './embebible.ts'
 import { crearAlmacenSupabase, CLAVE_CURSOR_REVERIFICACION, type AlmacenIngesta } from './almacen.ts'
 
@@ -65,6 +67,10 @@ export interface DependenciasIngesta {
   ahora?: () => number
   cribado?: OpcionesCribado
   sonda?: OpcionesSonda
+  /** Guarda de procedencia de canal (B21 §4). Inyectable para probar sin red. */
+  canal?: OpcionesVerificacion
+  /** Guarda de idioma de audio (B21 §2). Inyectable para probar sin red. */
+  idioma?: OpcionesIdiomaAudio
 }
 
 export interface OpcionesIngesta {
@@ -81,7 +87,7 @@ function resultadoVacio(): ResultadoEjecucion {
     fuentesVistas: 0,
     insertados: 0,
     duplicados: 0,
-    rechazados: { seguridad: 0, embed: 0, calidad: 0 },
+    rechazados: { seguridad: 0, embed: 0, calidad: 0, canal: 0, idioma: 0 },
     pendientes: 0,
     errores: 0,
     msTranscurridos: 0,
@@ -317,6 +323,18 @@ async function procesarCandidato(ctx: ContextoFuente, candidato: CandidatoConten
     return
   }
 
+  // ── Procedencia e idioma (solo vídeo), ANTES que nada que cueste ──
+  //
+  // Va delante del cribado de seguridad a propósito: ese llama al modelo y
+  // consume cupo. Descartar aquí un vídeo de un canal ajeno o con audio en otro
+  // idioma ahorra esa llamada entera, y son las dos guardas más baratas del
+  // pipeline (1 unidad de cuota de YouTube cada una, y hoy ninguna se llama si
+  // falta `YOUTUBE_API_KEY`).
+  if (candidato.platform === 'youtube') {
+    const parada = await guardasDeVideo(ctx, candidato)
+    if (parada) return
+  }
+
   const clasificacion = clasificar(candidato, fuente.language)
   const item: CandidatoContenido = { ...candidato, ...clasificacion }
 
@@ -361,6 +379,79 @@ async function procesarCandidato(ctx: ContextoFuente, candidato: CandidatoConten
 }
 
 /**
+ * Las dos guardas de vídeo de B21: procedencia del canal e idioma del audio.
+ *
+ * Devuelve `true` si el candidato NO debe seguir el pipeline — porque se rechazó
+ * o porque se dejó en la cola humana.
+ *
+ * ── EL CONTRATO DE LOS ESTADOS INCIERTOS ───────────────────────────────────
+ * Las dos guardas tienen TRES salidas, no dos, y la del medio es la que importa:
+ *
+ *   · rechazo firme      → `rejected`, con su motivo propio en `ingest_log`.
+ *   · «no lo sé»         → `pending`. NUNCA rechazo, NUNCA aprobación.
+ *   · vía libre          → sigue el pipeline.
+ *
+ * Un resolutor caído, una clave ausente o un `defaultAudioLanguage` que YouTube
+ * no rellenó —lo más frecuente— caen todos en el medio. Tratar ese caso como
+ * rechazo archivaría contenido bueno en silencio cada vez que la red hipa;
+ * tratarlo como aprobación publicaría lo que nadie ha comprobado. Es la misma
+ * disciplina que ya aplica `embebible.ts` con su `desconocido`, y por la que ese
+ * tipo tiene cuatro valores y no un booleano.
+ */
+async function guardasDeVideo(ctx: ContextoFuente, candidato: CandidatoContenido): Promise<boolean> {
+  const { deps, r } = ctx
+
+  // (1) Procedencia. Sin resolutor de canal configurado, `verificarCanalDeEmbed`
+  //     devuelve `pendiente_revision` y el ítem cae a la cola humana: es
+  //     exactamente lo que debe pasar mientras no haya forma de comprobarlo.
+  const canal = await verificarCanalDeEmbed(candidato.url, { ...deps.canal })
+
+  if (canal.decision === 'rechazado') {
+    if (await guardar(ctx, candidato, 'rejected', 'rejected_channel', canal.motivo)) {
+      r.rechazados.canal++
+    }
+    return true
+  }
+  // 🔴 «NO ESTÁ CONFIGURADO» NO ES «NO PUDE COMPROBARLO», y confundirlos aquí
+  // apagaría el pipeline entero. Sin `YOUTUBE_API_KEY` no hay resolutor, así que
+  // TODOS los vídeos caerían a la cola humana y la ingesta dejaría de aprobar
+  // nada — un cambio de comportamiento enorme a cambio de cero seguridad real,
+  // porque `ingest_sources` ya es una lista curada a mano.
+  //
+  // `sin_resolutor` es un estado de CONFIGURACIÓN: se sigue como se seguía antes
+  // de que existiera esta guarda. Cualquier otro `pendiente_revision` —resolutor
+  // caído, respuesta ilegible, canal sin `UC` confirmado— sí es un «no pude», y
+  // ese sí manda el ítem a revisión.
+  //
+  // Los módulos distinguen los dos casos con motivos separados a propósito;
+  // reportan hechos y dejan la política a quien llama, que es aquí.
+  if (canal.decision === 'pendiente_revision' && canal.motivo !== 'sin_resolutor') {
+    if (await guardar(ctx, candidato, 'pending', 'inserted', canal.motivo)) r.pendientes++
+    return true
+  }
+
+  // (2) Idioma del audio. `canal.videoId` ya viene validado por la guarda
+  //     anterior, así que no se vuelve a extraer de la URL.
+  const idioma = await resolverIdiomaAudio(canal.videoId ?? candidato.externalId, { ...deps.idioma })
+
+  if (idioma.decision === 'no_es_espanol') {
+    if (await guardar(ctx, candidato, 'rejected', 'rejected_language', idioma.motivo)) {
+      r.rechazados.idioma++
+    }
+    return true
+  }
+  // Misma distinción que arriba: `sin_clave_api` es configuración, no fallo.
+  // `sin_declarar` —YouTube no rellenó ninguno de los dos campos, que es el caso
+  // más frecuente— SÍ manda a revisión: ahí sí se preguntó y no hubo respuesta.
+  if (idioma.decision === 'desconocido' && idioma.motivo !== 'sin_clave_api') {
+    if (await guardar(ctx, candidato, 'pending', 'inserted', idioma.motivo)) r.pendientes++
+    return true
+  }
+
+  return false
+}
+
+/**
  * Escribe el ítem y su decisión. Devuelve `false` si la restricción única lo
  * rechazó por duplicado —otra ejecución solapada llegó primero—, en cuyo caso
  * el contador que suma es `duplicados` y no el de la decisión.
@@ -369,7 +460,7 @@ async function guardar(
   ctx: ContextoFuente,
   item: CandidatoContenido,
   state: EstadoContenido,
-  decision: 'inserted' | 'rejected_safety' | 'rejected_embed',
+  decision: 'inserted' | 'rejected_safety' | 'rejected_embed' | 'rejected_language' | 'rejected_channel',
   motivo: string | null,
 ): Promise<boolean> {
   const insertado = await ctx.almacen.insertarContenido(item, state)

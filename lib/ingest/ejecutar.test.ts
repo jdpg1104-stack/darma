@@ -162,6 +162,21 @@ function fetchFijo(cuerpo: string, status = 200, contador?: { n: number }): type
   }) as unknown as typeof fetch
 }
 
+/**
+ * Como `fetchFijo`, pero con `json()`. `resolverIdiomaAudio` consume JSON y el
+ * helper original solo expone `text()`; se añade aparte en vez de ampliarlo
+ * porque otras veinte pruebas dependen de su forma exacta.
+ */
+function fetchJson(cuerpo: unknown, status = 200): typeof fetch {
+  return (async () =>
+    ({
+      status,
+      ok: status >= 200 && status < 300,
+      json: async () => cuerpo,
+      text: async () => JSON.stringify(cuerpo),
+    }) as unknown as Response) as unknown as typeof fetch
+}
+
 function fuenteYoutube(cursor: string | null = null): FuenteIngesta {
   return { key: 'yt:test', kind: 'youtube_channel', handle: 'UC0', language: 'es', topic: null, cursor, fallosConsecutivos: 0 }
 }
@@ -184,7 +199,7 @@ test('IDEMPOTENCIA: dos ejecuciones sobre la misma respuesta insertan una vez', 
   almacen.agregarFuente(fuenteYoutube())
   // Sin fecha de publicación a propósito: así el cursor no filtra nada y lo que
   // impide el duplicado es la restricción única, que es justo lo que se prueba.
-  const xml = feedYoutube([{ id: 'v1', titulo: 'Respiración guiada para la ansiedad' }])
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respiración guiada para la ansiedad' }])
 
   const primera = await ejecutarIngesta({ tipo: 'videos', deps: deps(almacen, fetchFijo(xml)) })
   assert.equal(primera.insertados, 1)
@@ -194,13 +209,13 @@ test('IDEMPOTENCIA: dos ejecuciones sobre la misma respuesta insertan una vez', 
   assert.equal(segunda.insertados, 0)
   assert.equal(segunda.duplicados, 1)
   assert.equal(almacen.contenido.size, 1, 'content_items no debe crecer')
-  assert.equal(almacen.log.get('youtube:v1')?.decision, 'inserted')
+  assert.equal(almacen.log.get('youtube:vid00000001')?.decision, 'inserted')
 })
 
 test('IDEMPOTENCIA: un candidato ya registrado no vuelve a pagar el modelo', async () => {
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
-  const xml = feedYoutube([{ id: 'v1', titulo: 'Respiración guiada' }])
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respiración guiada' }])
 
   let llamadasModelo = 0
   const d = deps(almacen, fetchFijo(xml), {
@@ -225,9 +240,9 @@ test('REANUDACIÓN: con presupuestoMs = 1 sale incompleta, guarda cursor y conti
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
   const xml = feedYoutube([
-    { id: 'v1', titulo: 'Uno: respiración', publicado: '2026-01-01T00:00:00Z' },
-    { id: 'v2', titulo: 'Dos: sueño', publicado: '2026-01-02T00:00:00Z' },
-    { id: 'v3', titulo: 'Tres: duelo', publicado: '2026-01-03T00:00:00Z' },
+    { id: 'vid00000001', titulo: 'Uno: respiración', publicado: '2026-01-01T00:00:00Z' },
+    { id: 'vid00000002', titulo: 'Dos: sueño', publicado: '2026-01-02T00:00:00Z' },
+    { id: 'vid00000003', titulo: 'Tres: duelo', publicado: '2026-01-03T00:00:00Z' },
   ])
 
   // Reloj artificial: cada consulta avanza 10 ms, así que el presupuesto de 1 ms
@@ -255,7 +270,7 @@ test('REANUDACIÓN: con presupuestoMs = 1 sale incompleta, guarda cursor y conti
   assert.equal(segunda.insertados, 1)
   assert.equal(segunda.duplicados, 0, 'el cursor debe evitar volver a mirar v1')
   assert.equal(almacen.contenido.size, 2)
-  assert.ok(almacen.contenido.has('youtube:v2'))
+  assert.ok(almacen.contenido.has('youtube:vid00000002'))
   assert.equal(almacen.fuentes.get('yt:test')?.fuente.cursor, '2026-01-02T00:00:00.000Z')
 })
 
@@ -263,8 +278,8 @@ test('con presupuesto de sobra, una fuente pequeña se completa de una pasada', 
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
   const xml = feedYoutube([
-    { id: 'v1', titulo: 'Uno', publicado: '2026-01-01T00:00:00Z' },
-    { id: 'v2', titulo: 'Dos', publicado: '2026-01-02T00:00:00Z' },
+    { id: 'vid00000001', titulo: 'Uno', publicado: '2026-01-01T00:00:00Z' },
+    { id: 'vid00000002', titulo: 'Dos', publicado: '2026-01-02T00:00:00Z' },
   ])
   const r = await ejecutarIngesta({ tipo: 'videos', deps: deps(almacen, fetchFijo(xml)) })
   assert.equal(r.completado, true)
@@ -325,7 +340,7 @@ test('una fuente rota no impide que las demás se ingieran', async () => {
   almacen.agregarFuente({ ...fuenteYoutube(), key: 'yt:rota', handle: 'ROTA' })
   almacen.agregarFuente({ ...fuenteYoutube(), key: 'yt:buena', handle: 'BUENA' })
 
-  const xml = feedYoutube([{ id: 'v9', titulo: 'Respiración guiada' }])
+  const xml = feedYoutube([{ id: 'vid00000009', titulo: 'Respiración guiada' }])
   const fetchSelectivo = (async (url: string) => {
     if (String(url).includes('ROTA')) return { status: 500, text: async () => '' } as unknown as Response
     return { status: 200, text: async () => xml } as unknown as Response
@@ -341,17 +356,17 @@ test('una fuente rota no impide que las demás se ingieran', async () => {
 test('«approved» exige cribado seguro Y embed embebible', async () => {
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
-  const xml = feedYoutube([{ id: 'v1', titulo: 'Respiración guiada para la ansiedad' }])
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respiración guiada para la ansiedad' }])
 
   await ejecutarIngesta({ tipo: 'videos', deps: deps(almacen, fetchFijo(xml)) })
-  assert.equal(almacen.contenido.get('youtube:v1')?.state, 'approved')
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'approved')
 })
 
 test('embed «desconocido» deja el ítem PENDING, no rejected', async () => {
   // Trampa nº 2: confundir «no sé» con «no» archivaría contenido bueno en silencio.
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
-  const xml = feedYoutube([{ id: 'v1', titulo: 'Respiración guiada' }])
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respiración guiada' }])
 
   const r = await ejecutarIngesta({
     tipo: 'videos',
@@ -359,38 +374,38 @@ test('embed «desconocido» deja el ítem PENDING, no rejected', async () => {
   })
   assert.equal(r.pendientes, 1)
   assert.equal(r.rechazados.embed, 0)
-  assert.equal(almacen.contenido.get('youtube:v1')?.state, 'pending')
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'pending')
 })
 
 test('embed 401 rechaza el ítem por embed, no por seguridad', async () => {
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
-  const xml = feedYoutube([{ id: 'v1', titulo: 'Respiración guiada' }])
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respiración guiada' }])
 
   const r = await ejecutarIngesta({
     tipo: 'videos',
     deps: deps(almacen, fetchFijo(xml), { sonda: { fetchImpl: fetchFijo('', 401), esperarImpl: async () => {} } }),
   })
   assert.equal(r.rechazados.embed, 1)
-  assert.equal(almacen.contenido.get('youtube:v1')?.state, 'rejected')
-  assert.equal(almacen.log.get('youtube:v1')?.decision, 'rejected_embed')
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'rejected')
+  assert.equal(almacen.log.get('youtube:vid00000001')?.decision, 'rejected_embed')
 })
 
 test('el filtro de seguridad rechaza y lo deja registrado como rejected_safety', async () => {
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
-  const xml = feedYoutube([{ id: 'v1', titulo: 'Cura tu depresion en 7 dias sin medicacion' }])
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Cura tu depresion en 7 dias sin medicacion' }])
 
   const r = await ejecutarIngesta({ tipo: 'videos', deps: deps(almacen, fetchFijo(xml)) })
   assert.equal(r.rechazados.seguridad, 1)
-  assert.equal(almacen.contenido.get('youtube:v1')?.state, 'rejected')
-  assert.equal(almacen.log.get('youtube:v1')?.decision, 'rejected_safety')
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'rejected')
+  assert.equal(almacen.log.get('youtube:vid00000001')?.decision, 'rejected_safety')
 })
 
 test('SIN clave de moderación no se aprueba NADA: todo va a la cola humana', async () => {
   const almacen = new AlmacenFalso()
   almacen.agregarFuente(fuenteYoutube())
-  const xml = feedYoutube([{ id: 'v1', titulo: 'Respiración guiada para la ansiedad' }])
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respiración guiada para la ansiedad' }])
 
   const r = await ejecutarIngesta({
     tipo: 'videos',
@@ -398,7 +413,7 @@ test('SIN clave de moderación no se aprueba NADA: todo va a la cola humana', as
   })
   assert.equal(r.insertados, 0)
   assert.equal(r.pendientes, 1)
-  assert.equal(almacen.contenido.get('youtube:v1')?.state, 'pending')
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'pending')
 })
 
 test('el default nunca es approved: un feed vacío no publica nada', async () => {
@@ -424,8 +439,8 @@ test('el tope de ítems por ejecución se respeta', async () => {
 
 test('REVERIFICACIÓN: un approved cuyo oEmbed pasa a 401 queda rejected', async () => {
   const almacen = new AlmacenFalso()
-  almacen.aprobados = [{ id: 'uuid-1', platform: 'youtube', externalId: 'v1' }]
-  almacen.contenido.set('youtube:v1', {
+  almacen.aprobados = [{ id: 'uuid-1', platform: 'youtube', externalId: 'vid00000001' }]
+  almacen.contenido.set('youtube:vid00000001', {
     item: { externalId: 'uuid-1' } as CandidatoContenido,
     state: 'approved',
   })
@@ -435,7 +450,7 @@ test('REVERIFICACIÓN: un approved cuyo oEmbed pasa a 401 queda rejected', async
     deps: { almacen, sonda: { fetchImpl: fetchFijo('', 401), esperarImpl: async () => {} } },
   })
   assert.equal(r.rechazados.embed, 1)
-  assert.equal(almacen.contenido.get('youtube:v1')?.state, 'rejected')
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'rejected')
   assert.equal(almacen.estado.get(CLAVE_CURSOR_REVERIFICACION) ?? null, null, 'página incompleta: el cursor se reinicia')
 })
 
@@ -443,8 +458,8 @@ test('REVERIFICACIÓN: un timeout NO retira nada — el ítem sigue approved', a
   // Si «desconocido» retirase contenido, cada hipo de red vaciaría un poco más
   // el feed y la degradación sería invisible.
   const almacen = new AlmacenFalso()
-  almacen.aprobados = [{ id: 'uuid-1', platform: 'youtube', externalId: 'v1' }]
-  almacen.contenido.set('youtube:v1', {
+  almacen.aprobados = [{ id: 'uuid-1', platform: 'youtube', externalId: 'vid00000001' }]
+  almacen.contenido.set('youtube:vid00000001', {
     item: { externalId: 'uuid-1' } as CandidatoContenido,
     state: 'approved',
   })
@@ -458,11 +473,142 @@ test('REVERIFICACIÓN: un timeout NO retira nada — el ítem sigue approved', a
     deps: { almacen, sonda: { fetchImpl: queLanza, esperarImpl: async () => {} } },
   })
   assert.equal(r.rechazados.embed, 0)
-  assert.equal(almacen.contenido.get('youtube:v1')?.state, 'approved')
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'approved')
 })
 
 test('REVERIFICACIÓN: purga el log en el mismo paso', async () => {
   const almacen = new AlmacenFalso()
   await ejecutarIngesta({ tipo: 'reverificar', deps: { almacen } })
   assert.equal(almacen.purgadas, 1)
+})
+
+// ── Cableado de las guardas de B21 ──────────────────────────────────────────
+//
+// Lo que se protege aquí NO es que las guardas funcionen —eso lo prueban
+// canalesPermitidos.test.ts e idiomaAudio.test.ts— sino la POLÍTICA del
+// orquestador: qué estado recibe cada veredicto. Es donde un descuido convierte
+// «no lo sé» en «rechazado» y archiva contenido bueno en silencio.
+
+const RESOLUTOR_OMS = async (): Promise<string> => 'UC07-dOwgza1IguKA86jqxNA'
+
+test('🔴 «no está configurado» NO apaga el pipeline', async () => {
+  // Sin YOUTUBE_API_KEY no hay resolutor ni consulta de idioma. Si eso mandara
+  // todo a la cola humana, añadir las guardas habría dejado la ingesta sin
+  // aprobar nada — a cambio de cero seguridad, porque ingest_sources ya es una
+  // lista curada a mano. Es el caso REAL de Darma hoy.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respirar hondo', publicado: '2026-01-02T00:00:00Z' }])
+
+  const r = await ejecutarIngesta({ tipo: 'videos', deps: deps(almacen, fetchFijo(xml)) })
+
+  assert.equal(r.insertados, 1)
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'approved')
+})
+
+test('🔴 un vídeo de un canal AJENO se rechaza como rejected_channel', async () => {
+  // El caso que de verdad importa: las playlists curadas (yt:ops_mirar_al_futuro,
+  // yt:who_social_connection) PUEDEN llevar material de terceros. Sin esta guarda
+  // entraría en el feed como si fuera de la OMS.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'De otro canal', publicado: '2026-01-02T00:00:00Z' }])
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), { canal: { resolutor: async () => 'UCAjenoAjenoAjenoAjeno12' } }),
+  })
+
+  assert.equal(r.rechazados.canal, 1)
+  assert.equal(r.insertados, 0)
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'rejected')
+  assert.equal(almacen.log.get('youtube:vid00000001')?.decision, 'rejected_channel')
+})
+
+test('🔴 un resolutor CAÍDO deja el ítem pending, nunca rechazado', async () => {
+  // La diferencia con la prueba de arriba es la única que importa: allí se
+  // preguntó y la respuesta fue «no»; aquí no hubo respuesta. Confundirlas
+  // archivaría contenido bueno cada vez que la red hipa.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Red caída', publicado: '2026-01-02T00:00:00Z' }])
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      canal: { resolutor: async () => { throw new Error('ECONNRESET') } },
+    }),
+  })
+
+  assert.equal(r.pendientes, 1)
+  assert.equal(r.rechazados.canal, 0)
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'pending')
+})
+
+test('🔴 audio declarado en inglés → rejected_language, no rejected_quality', async () => {
+  // El incidente real de DataLaps: título traducido, audio en inglés. Registrarlo
+  // como rejected_quality mentiría sobre la causa, que es justo lo que se
+  // consultará cuando alguien pregunte por qué no entra nada de una fuente.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: "Benny's Story", publicado: '2026-01-02T00:00:00Z' }])
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      canal: { resolutor: RESOLUTOR_OMS },
+      idioma: {
+        apiKey: 'clave-de-prueba',
+        fetchImpl: fetchJson({ items: [{ snippet: { defaultAudioLanguage: 'en-US' } }] }),
+      },
+    }),
+  })
+
+  assert.equal(r.rechazados.idioma, 1)
+  assert.equal(almacen.log.get('youtube:vid00000001')?.decision, 'rejected_language')
+})
+
+test('audio declarado en español pasa las dos guardas y llega a approved', async () => {
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Mirar al Futuro', publicado: '2026-01-02T00:00:00Z' }])
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      canal: { resolutor: RESOLUTOR_OMS },
+      idioma: {
+        apiKey: 'clave-de-prueba',
+        fetchImpl: fetchJson({ items: [{ snippet: { defaultAudioLanguage: 'es-419' } }] }),
+      },
+    }),
+  })
+
+  assert.equal(r.insertados, 1)
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'approved')
+})
+
+test('las guardas corren ANTES del modelo: un canal ajeno no paga cribado', async () => {
+  // Si el orden se invirtiera, cada vídeo descartable gastaría una llamada al
+  // modelo — y el cupo diario es el recurso más caro del pipeline.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Ajeno', publicado: '2026-01-02T00:00:00Z' }])
+  let llamadasAlModelo = 0
+
+  await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      canal: { resolutor: async () => 'UCAjenoAjenoAjenoAjeno12' },
+      cribado: {
+        apiKey: 'clave-de-prueba',
+        proveedor: async () => {
+          llamadasAlModelo++
+          return { seguro: true, confianza: 0.99 }
+        },
+      },
+    }),
+  })
+
+  assert.equal(llamadasAlModelo, 0, 'no se debe pagar al modelo por algo ya descartado')
 })
