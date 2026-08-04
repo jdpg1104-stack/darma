@@ -113,11 +113,18 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
   se queda con la detección (`assessCrisisRisk`, `escalate`) y reexporta
   `recursosParaPais` de `@/i18n`, o simplemente borra su tabla. B17 no lo toca
   porque `lib/` es de F3 · 2026-08-03
-- **`components/ui/index.ts` (B16) · `tsc` roto en `main`:** importa
+- ~~**`components/ui/index.ts` (B16) · `tsc` roto en `main`:** importa
   `./BotonCrisis.tsx`, que no existe (2 errores TS2307). Visto por B17 mientras
-  verificaba su bloque · 2026-08-03
-- **`lib/ingest/fuentes.ts` (B08) · `tsc` roto en `main`:** 5 errores TS2741,
-  falta `fallosConsecutivos` en las semillas de fuente. Visto por B17 · 2026-08-03
+  verificaba su bloque · 2026-08-03~~
+  ✅ **CERRADO 2026-08-04.** `BotonCrisis` existe y se importa desde
+  `app/(app)/layout.tsx`; `tsc` limpio. Igual que la de abajo: se arregló y nadie
+  cerró la nota.
+- ~~**`lib/ingest/fuentes.ts` (B08) · `tsc` roto en `main`:** 5 errores TS2741,
+  falta `fallosConsecutivos` en las semillas de fuente. Visto por B17 · 2026-08-03~~
+  ✅ **CERRADO 2026-08-04.** `npx tsc --noEmit --incremental false` sale limpio en
+  todo el repo, y `fuentes.ts` se editó ese día para añadir dos playlists sin un
+  solo error. Se arregló en algún punto entre B17 y hoy sin que nadie cerrara la
+  nota; se comprueba ejecutándolo, no leyendo.
 
 ## Pedidos añadidos por B01 (2026-08-03)
 
@@ -1563,3 +1570,24 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       dejaría `/animo` vacía si el catálogo no tiene vídeos en inglés. Hace falta
       decidir el fallback (¿inglés y si no hay, español?) antes de conectarlo ·
       2026-08-03
+
+## Pedidos añadidos el 2026-08-04 (feed de vídeo)
+
+- [ ] **De `/animo` → producto** · **`HANDOFF/B21.md` es la ficha del port desde
+      DataLaps.** `/animo` funciona y está vacío: la primera ingesta real trajo 80
+      piezas y ninguna era de salud mental. `C:\DataLaps\Pod_PilotSimulator` ya
+      resolvió descubrimiento por Data API, clasificación por IA, allowlist de
+      canal y feed vertical con autoplay. B21 dice qué se porta, **qué NO** (el
+      cribado de PII y la puerta de MP4 no aplican: Darma incrusta, no aloja) y en
+      qué orden. Los tres primeros pasos no necesitan ninguna clave nueva.
+- [ ] **De B21 → B08** · las fuentes de canal y playlist deben leerse con
+      `playlistItems.list` (**1 unidad** de cuota), nunca con `search.list` (**100
+      unidades**). DataLaps agotó sus 10.000 diarias haciendo lo segundo, con 429
+      confirmado en producción el 2026-07-29.
+- [ ] **De B21 → B08** · guarda de idioma de AUDIO antes de clasificar
+      (`snippet.defaultAudioLanguage` vía `videos.list`). Ya hay un vídeo que la
+      dispara: `yt:who_social_connection` es inglés con títulos que parecen
+      universales. En DataLaps esto fue un incidente real con un vídeo publicado.
+- [ ] **De B21 → B11** · sin `MODERATION_API_KEY`, abrir `search.list` es apuntar
+      una manguera a una cola sin filtro. El clasificador por IA va DESPUÉS de la
+      clave, no antes.
