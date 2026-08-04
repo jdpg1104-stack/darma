@@ -91,6 +91,12 @@ const DEGRADAN: ReadonlyArray<{ variable: string; consecuencia: string; arreglo:
     arreglo: 'Ponla en .env.local para que el modelo entre por encima de la heurística.',
   },
   {
+    variable: 'YOUTUBE_API_KEY',
+    consecuencia:
+      'el descubrimiento por Data API no corre: la ingesta se queda con los ~15 últimos ítems que da el feed Atom de cada fuente, sin guarda de idioma de audio y sin verificación de identidad de canal',
+    arreglo: 'Ponla en .env.local. Cuota: 10.000 unidades/día — search.list cuesta 100, playlistItems.list solo 1.',
+  },
+  {
     variable: 'VAPID_PRIVATE_KEY',
     consecuencia: 'las notificaciones push están apagadas enteras y sin avisar',
     arreglo: 'Genera el par VAPID y pon VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY y NEXT_PUBLIC_VAPID_PUBLIC_KEY.',

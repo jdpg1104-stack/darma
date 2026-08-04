@@ -48,6 +48,24 @@ export interface Visibilidad {
   id: string
   /** 0–1. Fracción del alto de la tarjeta que está en pantalla. */
   razon: number
+  /**
+   * Superficie visible REAL en px². Opcional: sin ella se desempata por `razon`,
+   * que es lo que se hacía antes.
+   *
+   * ── POR QUÉ NO BASTA `razon` ───────────────────────────────────────────────
+   * `razon` es una fracción del alto de CADA tarjeta, así que compara peras con
+   * manzanas en cuanto dos tarjetas miden distinto: una tarjeta corta vista
+   * ENTERA (razon 1,0) le gana a una de pantalla completa vista al 80 %
+   * (razon 0,8), aunque la segunda ocupe cinco veces más pantalla y sea
+   * evidentemente la que la persona está mirando.
+   *
+   * Hoy es latente: todas las tarjetas de `/animo` son `100dvh` y las dos
+   * medidas coinciden. Se añade ahora porque el día que se intercale una tarjeta
+   * de otra altura —un aviso, una encuesta, un separador— la elección empezaría
+   * a fallar EN SILENCIO, sin error y sin prueba roja. Encontrado al portar
+   * desde DataLaps (HANDOFF/B21.md §3).
+   */
+  superficie?: number
 }
 
 /**
@@ -68,13 +86,30 @@ export function elegirActivo(
 
   let mejor: Visibilidad | null = null
   for (const v of visibilidades) {
+    // El UMBRAL se sigue evaluando sobre `razon`: «¿se ve lo bastante de ESTA
+    // tarjeta?» es una pregunta sobre la tarjeta, no sobre la pantalla.
     if (v.razon < umbral) continue
-    if (mejor === null || v.razon > mejor.razon || (v.razon === mejor.razon && v.id < mejor.id)) {
-      mejor = v
-    }
+    if (mejor === null || ganaA(v, mejor)) mejor = v
   }
 
   return mejor?.id ?? null
+}
+
+/**
+ * Desempate entre dos candidatas que ya pasaron el umbral.
+ *
+ * Orden: superficie visible → razón → id. El id último y siempre presente hace
+ * la elección DETERMINISTA: sin él, dos tarjetas empatadas podrían alternarse
+ * entre recálculos y el vídeo parpadearía de una a otra.
+ */
+function ganaA(candidata: Visibilidad, actual: Visibilidad): boolean {
+  const sa = candidata.superficie
+  const sb = actual.superficie
+  // Solo se compara por superficie si AMBAS la traen: mezclar px² con fracciones
+  // daría una comparación sin sentido y ganaría siempre quien la declare.
+  if (sa !== undefined && sb !== undefined && sa !== sb) return sa > sb
+  if (candidata.razon !== actual.razon) return candidata.razon > actual.razon
+  return candidata.id < actual.id
 }
 
 /**
