@@ -41,8 +41,9 @@ test.describe('Frontera pública sin sesión', () => {
     // Un redirect a HTML aquí es el bug clásico: el cliente hace res.json() y
     // revienta con un error que no dice nada del problema real.
     expect(respuesta.headers()['content-type']).toContain('application/json')
-    const cuerpo = (await respuesta.json()) as { error?: string; code?: string }
-    expect(cuerpo.error ?? cuerpo.code).toBe('no_autenticado')
+    const cuerpo = (await respuesta.json()) as { ok?: boolean; code?: string }
+    expect(cuerpo.ok).toBe(false)
+    expect(cuerpo.code).toBe('no_autenticado')
   })
 
   test('publicar sin sesión no llega ni al gate de reciprocidad', async ({ request }) => {

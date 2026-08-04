@@ -14,22 +14,25 @@
 // Aprovecha el paso para purgar `ingest_log` a 90 días, acotado a 5 000 filas.
 // ============================================================================
 
-import { NextResponse, type NextRequest } from 'next/server'
-import { apiError, withApiErrorHandling } from '@/lib/apiErrors.ts'
+import type { NextRequest } from 'next/server'
+import { ErrorApi } from '@/lib/auth/errores.ts'
+import { manejarRuta } from '@/lib/auth/http.ts'
+import { sobreOk } from '@/lib/auth/respuestas.ts'
 import { esCronAutorizado, secretoCron } from '@/lib/ingest/cronAuth.ts'
 import { ejecutarIngesta } from '@/lib/ingest/ejecutar.ts'
+import { logger } from '@/lib/logger.ts'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
-  if (!esCronAutorizado(req.headers.get('authorization'), secretoCron())) {
-    return apiError('unauthorized', undefined, { logContext: { ruta: 'cron:content:reverificar' } })
-  }
+export async function GET(req: NextRequest) {
+  return manejarRuta(async () => {
+    if (!esCronAutorizado(req.headers.get('authorization'), secretoCron())) {
+      logger.info('cron_no_autorizado', { ruta: 'cron:content:reverificar' })
+      throw new ErrorApi('no_autenticado')
+    }
 
-  return withApiErrorHandling(async () => {
-    const data = await ejecutarIngesta({ tipo: 'reverificar' })
-    return NextResponse.json({ ok: true, data })
-  }, { ruta: 'cron:content:reverificar' })
+    return sobreOk(await ejecutarIngesta({ tipo: 'reverificar' }))
+  })
 }

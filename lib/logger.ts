@@ -160,7 +160,7 @@ export const logger = {
 
   /**
    * Registra un error capturado sin filtrar el stack al cliente (eso lo
-   * garantiza lib/apiErrors.ts; aquí solo se registra).
+   * garantiza lib/auth/respuestas.ts; aquí solo se registra).
    *
    * El `stack` se incluye SOLO fuera de producción: en producción los stacks
    * revelan rutas del sistema de archivos y estructura interna, y quien depura

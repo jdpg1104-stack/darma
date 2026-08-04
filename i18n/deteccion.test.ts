@@ -158,14 +158,19 @@ test('una clave inexistente se devuelve tal cual: nada de fallback silencioso', 
 test('la palabra "crédito" no aparece en el copy de reciprocidad, en ningún idioma', () => {
   const es = obtenerTraductor('es')
   const en = obtenerTraductor('en')
+  // Las cinco claves que puede devolver `reciprocityMessage()` más la del
+  // rechazo del servidor. Si se añade una sexta y no se añade aquí, el copy
+  // deja de estar vigilado sin que nada se queje.
   const textos = [
     es('publicar.faltan', { n: 2 }),
     es('publicar.primeraVez'),
     es('publicar.listo'),
+    es('publicar.enPausa'),
     es('publicar.rechazoServidor'),
     en('publicar.faltan', { n: 2 }),
     en('publicar.primeraVez'),
     en('publicar.listo'),
+    en('publicar.enPausa'),
     en('publicar.rechazoServidor'),
   ]
   for (const texto of textos) {

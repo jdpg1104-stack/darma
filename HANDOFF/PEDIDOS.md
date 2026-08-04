@@ -12,11 +12,6 @@ Formato: `- [ ] **De B0X → B0Y** · qué necesitas · por qué · quién lo pi
       de escritura en `content_views`: la migración `0002` ya no concede UPDATE
       al cliente ni deja insertar filas con `completed = true`. Sin esa RPC, el
       karma de `content_completed` no se otorga nunca · 2026-08-03
-- [ ] **De B01 → B00** · `/api/me` debe leer los campos privados con la función
-      `mi_perfil_privado()` de `0001_core.sql`, no con un `select` sobre
-      `profiles`: `authenticated` ya no tiene privilegio de columna sobre
-      `karma_spendable`, `crystals` ni `listen_credits`, ni siquiera sobre su
-      propia fila · 2026-08-03
 - [ ] **De B11 → B19** · nadie escribe `crisis_events.human_reviewed` todavía;
       la métrica de cobertura del 100 % del panel depende de que B11 lo marque
       al cerrar cada caso · 2026-08-03
@@ -33,71 +28,11 @@ Formato: `- [ ] **De B0X → B0Y** · qué necesitas · por qué · quién lo pi
       `verificadoPor`, fecha de hoy en `verificadoEn` y quitar la línea de
       `PENDIENTES_DECLARADOS`. Un número equivocado en una pantalla de crisis es
       peor que no mostrar número · 2026-08-03
-- [ ] **De B17 → F4** · envolver `next.config.ts` con el plugin de next-intl.
-      Diff exacto (dos líneas, sin tocar nada más):
-      ```diff
-      +import createNextIntlPlugin from 'next-intl/plugin'
-       import type { NextConfig } from 'next'
-       ...
-      -export default nextConfig
-      +export default createNextIntlPlugin('./i18n/request.ts')(nextConfig)
-      ```
-      Mientras no llegue, B17 cierra en verde con `obtenerTraductor()` de
-      `i18n/index.ts` · 2026-08-03
-- [ ] **De B17 → F4** · `app/layout.tsx`: (a) el `lang` del `<html>` está
-      **fijado a `"es"`**, así que un usuario en inglés recibe HTML mal
-      etiquetado (afecta a lectores de pantalla y a la traducción automática);
-      (b) falta el provider. Diff propuesto:
-      ```diff
-      +import { NextIntlClientProvider } from 'next-intl'
-      +import { resolverLocale } from '@/i18n'
-      +import { configuracionDePeticionParcial } from '@/i18n/request'
-      ...
-      -export default function RootLayout({ children }: ...) {
-      -  return (
-      -    <html lang="es" suppressHydrationWarning>
-      -      <body>
-      +export default async function RootLayout({ children }: ...) {
-      +  const { locale, messages } = await configuracionDePeticionParcial(['comun', 'crisis', 'errores'])
-      +  return (
-      +    <html lang={locale} suppressHydrationWarning>
-      +      <body>
-      +        <NextIntlClientProvider locale={locale} messages={messages}>
-       ...
-      +        </NextIntlClientProvider>
-      ```
-      Cada ruta amplía el subárbol con `subarbolDeMensajes(locale, [...])`:
-      mandar el catálogo entero al cliente se come el presupuesto de 120 KB de
-      CONTRATOS §11 él solo · 2026-08-03
-- [ ] **De B17 → B15** · `package.json` (que B17 no toca porque lo comparten seis
-      sesiones): (a) añadir la dependencia `next-intl` (^4); (b) ampliar el glob
-      del script `test`, que hoy es `"lib/**/*.test.ts"` y **no ejecuta las
-      pruebas de `i18n/`** — propuesta:
-      `node --test --experimental-strip-types "lib/**/*.test.ts" "i18n/*.test.ts"`;
-      (c) opcional pero recomendado: un paso de CI que falle el despliegue a
-      producción si `tablaListaParaProduccion()` devuelve `false` · 2026-08-03
-- [ ] **De B17 → F3** · `lib/reciprocity.ts`: `reciprocityMessage()` devuelve una
-      **frase en español ya resuelta** (incluido el plural), así que la UI no
-      puede traducirla. Debería devolver **clave + parámetros**, p. ej.
-      `{ clave: 'publicar.faltan', params: { n } }`. Las cuatro claves ya existen
-      en los dos idiomas: `publicar.faltan` (plural ICU), `publicar.primeraVez`,
-      `publicar.listo`, `publicar.enPausa` y `publicar.rechazoServidor`. La
-      palabra «crédito»/«credit» no aparece en ninguna de las dos versiones y hay
-      una prueba que lo vigila · 2026-08-03
-- [ ] **De B17 → B00 / F3** · **los `ErrorCode` de CONTRATOS §4 y los de
-      `lib/apiErrors.ts` no son los mismos**. El contrato dice
-      `no_autenticado | sin_permiso | reciprocidad | no_encontrado |
-      entrada_invalida | demasiadas_peticiones | contenido_bloqueado |
-      saldo_insuficiente | error_interno` (9, en español); el código exporta
-      `ApiErrorCode` con 12 valores en inglés (`unauthorized`, `pii_detected`,
-      `crisis_intervention`…). `messages/*.json` sigue **el contrato**, así que
-      hoy la UI no puede traducir lo que devuelve el servidor. Hace falta decidir
-      cuál manda y alinear el otro; B17 adapta `messages/errores.*` en cuanto se
-      decida · 2026-08-03
-- [ ] **De B17 → B00** · extensión de contrato: `RecursoCrisis` lleva un campo
-      más que el de la ficha B17, `verificadoPor: string | null`. Sin él,
-      `verificadoEn` miente (una fecha reciente se lee como una verificación
-      reciente, y no lo es). Es aditivo y no rompe a nadie · 2026-08-03
+- [ ] **De B17 → CI** · `tablaListaParaProduccion()` **no está cableada a ningún
+      paso de CI**: hoy devuelve `false` y no lo comprueba nadie, así que el
+      único freno al despliegue es que alguien se acuerde. Hace falta un paso
+      que falle el despliegue a producción mientras siga en `false`. Verificado
+      el 2026-08-04: cero apariciones en `.github/**` y en `scripts/**` · 2026-08-04
 - [ ] **De B17 → F4 / B01 / B16** · seis archivos tienen copy escrito a pelo y no
       se puede traducir: `app/layout.tsx`, `app/page.tsx`,
       `components/auth/AsistenteOnboarding.tsx`, `components/auth/AvatarSemilla.tsx`,
@@ -110,6 +45,45 @@ Formato: `- [ ] **De B0X → B0Y** · qué necesitas · por qué · quién lo pi
 
 - [x] **B00** · Definir contratos compartidos antes de abrir las olas · sin esto
       dos bloques declaran el mismo tipo con formas distintas · 2026-08-03
+
+### Cierre de integración · 2026-08-04
+
+Varios pedidos de i18n se habían quedado descritos como abiertos cuando ya no lo
+estaban. Se verificaron uno a uno contra el código antes de moverlos aquí.
+
+- [x] **B01 → B00** · `/api/me` lee los privados con `mi_perfil_privado()` ·
+      ya estaba hecho: `app/api/me/route.ts` llama a la RPC, no a un `select`
+- [x] **B17 → F4** · `app/layout.tsx`: `lang` del `<html>` y provider · hecho ·
+      el `lang` sale de `resolverLocale()` y `ProveedorIdioma` envuelve el árbol
+- [x] **B17 → B00** · `RecursoCrisis.verificadoPor` · hecho, el campo existe
+- [x] **B17 → B15** · glob del script `test` · hecho: ya cubre `i18n/*.test.ts`,
+      `components/**`, `app/**` y `scripts/**`
+- [x] **B17 → F3** · `reciprocityMessage()` devuelve **clave + params**
+      (`MensajeReciprocidad`) en vez de una frase en español ya resuelta, y
+      `RECIPROCITY_SERVER_REJECTION` pasa a ser `CLAVE_RECHAZO_SERVIDOR`. El
+      copy vive ahora solo en `messages/*.json`, que es donde lo vigila el guard
+      de la palabra «crédito» —ampliado para cubrir también `publicar.enPausa`,
+      que se le escapaba— · 2026-08-04
+- [x] **B17 → B00 / F3** · divergencia de `ErrorCode` · **resuelta borrando
+      `lib/apiErrors.ts`**. El inventario mostró que el sistema del contrato ya
+      había ganado de facto (64 de 76 rutas y **todo** el cliente), y que el de
+      los códigos en inglés era un residuo de 4 importadores, todos en el
+      subárbol de crons, sin un solo test ni un solo consumidor de navegador —
+      con dos de sus seis exportaciones muertas. Migradas esas 4 a `ErrorApi` /
+      `manejarRuta`. Para que no pueda volver a abrirse, `CODIGOS_DE_ERROR` de
+      `i18n/traductor.ts` ya no redeclara la lista: es un `Record` sobre el
+      `CodigoError` del contrato, así que un código nuevo que no esté en los dos
+      sitios no compila · 2026-08-04
+
+**Descartado, no pendiente:**
+
+- [x] **B17 → F4** · el plugin de `next-intl` en `next.config.ts` · **se decidió
+      NO instalar next-intl**. El catálogo ya viaja en el bundle como JSON
+      importado estáticamente, así que su provider solo habría añadido mandarlo
+      otra vez por el cable contra el presupuesto de 120 KB por ruta de
+      CONTRATOS §11. En su lugar está `i18n/Proveedor.tsx`, que publica solo el
+      locale —una cadena de dos letras— y deja que `obtenerTraductor()` resuelva.
+      El razonamiento largo está en ese archivo · 2026-08-04
 
 ---
 

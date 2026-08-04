@@ -1,17 +1,26 @@
 // ============================================================================
 // ErrorApi — el error que cruza fronteras de bloque
 //
-// POR QUÉ EXISTE ESTE ARCHIVO Y NO REUTILIZA lib/apiErrors.ts TAL CUAL:
-// `lib/apiErrors.ts` (dueño F3) construye directamente un `NextResponse`, y
-// además su enum de códigos está en inglés (`unauthorized`, `forbidden`…),
-// mientras que CONTRATOS §4 —el documento que leen los otros diecinueve
-// bloques— fija los códigos en español (`no_autenticado`, `sin_permiso`…) y la
-// forma `{ ok, code, message, retryAfter }`.
+// REGLA ÚNICA: el cliente recibe un CÓDIGO estable y un mensaje escrito por
+// nosotros. Jamás un mensaje de Postgres, ni un stack, ni el `error.message` de
+// la librería de turno. El detalle interno se registra entero y no sale de aquí.
 //
-// B01 no puede editar ninguno de los dos, así que hace lo único que no rompe a
-// nadie: implementa CONTRATOS §4 al pie de la letra en su propio directorio y
-// anota la divergencia en HANDOFF/PEDIDOS.md para que B00 la resuelva. Si algún
-// día los códigos se unifican, solo cambia este archivo.
+// POR QUÉ IMPORTA MÁS DE LO QUE PARECE:
+//   · Un mensaje de Postgres filtra nombres de tablas, de columnas y de
+//     restricciones. `duplicate key value violates unique constraint
+//     "uq_comments_one_listen_per_post"` le cuenta a un atacante el esquema, la
+//     mecánica antifarmeo y el nombre del índice, gratis.
+//   · Los mensajes de error son también producto: quien recibe «reciprocidad:
+//     necesitas escuchar a 3 personas» en crudo está leyendo una excepción de
+//     plpgsql escrita para un desarrollador. La versión de cara a la persona
+//     está en lib/reciprocity.ts y tiene otro tono a propósito.
+//
+// Los códigos son los de CONTRATOS §4, en español, y son el ÚNICO juego que
+// existe en el repositorio: hubo un segundo (`lib/apiErrors.ts`, con el enum en
+// inglés y la forma `{error, message, traceId}`) que sobrevivió a las cuatro
+// olas en el subárbol de crons y se retiró al unificar. Si hace falta un código
+// nuevo, se añade aquí y en `messages/*.json` a la vez — el guard de paridad de
+// `i18n/claves.test.ts` no deja que se quede a medias.
 //
 // `requireSesion()` LANZA en vez de devolver un error porque es el helper más
 // llamado del repositorio: un `if (!sesion)` olvidado en cualquiera de las
