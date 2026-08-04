@@ -108,3 +108,54 @@ test('sin activa (autoplay apagado) se monta la primera, no cero', () => {
   assert.deepEqual([...ventanaDeIframes(['a', 'b', 'c'], null)].sort(), ['a', 'b'])
   assert.equal(ventanaDeIframes([], null).size, 0)
 })
+
+// ── Desempate por superficie visible (portado de DataLaps, B21 §3) ──────────
+
+test('🔴 una tarjeta corta vista entera NO le gana a una alta que ocupa más pantalla', () => {
+  // El fallo que esto evita es latente hoy —todas las tarjetas son 100dvh— y
+  // silencioso mañana: sin superficie, la de razon 1,0 gana aunque ocupe cinco
+  // veces menos pantalla, y no hay error ni prueba roja que lo delate.
+  const permitido: PreferenciasReproduccion = { movimientoReducido: false, ahorroDatos: false }
+  const elegida = elegirActivo(
+    [
+      { id: 'corta', razon: 1.0, superficie: 200 * 150 },
+      { id: 'alta', razon: 0.8, superficie: 400 * 700 },
+    ],
+    permitido,
+  )
+  assert.equal(elegida, 'alta')
+})
+
+test('sin superficie se desempata por razón, como antes', () => {
+  const permitido: PreferenciasReproduccion = { movimientoReducido: false, ahorroDatos: false }
+  assert.equal(
+    elegirActivo([{ id: 'a', razon: 0.7 }, { id: 'b', razon: 0.9 }], permitido),
+    'b',
+  )
+})
+
+test('mezclar tarjetas con y sin superficie no deja ganar a quien la declara', () => {
+  // Comparar px² contra una fracción no tiene sentido; si solo una la trae, se
+  // cae al criterio común (razón) en vez de inventar una comparación.
+  const permitido: PreferenciasReproduccion = { movimientoReducido: false, ahorroDatos: false }
+  assert.equal(
+    elegirActivo([{ id: 'a', razon: 0.9, superficie: 10 }, { id: 'b', razon: 0.6 }], permitido),
+    'a',
+  )
+})
+
+test('el umbral se sigue midiendo sobre la razón, no sobre la superficie', () => {
+  // Una tarjeta enorme apenas asomando NO debe reproducir: se ve poco DE ELLA.
+  const permitido: PreferenciasReproduccion = { movimientoReducido: false, ahorroDatos: false }
+  assert.equal(
+    elegirActivo([{ id: 'gigante', razon: 0.2, superficie: 999_999 }], permitido),
+    null,
+  )
+})
+
+test('el empate total se resuelve por id, para que no parpadee', () => {
+  const permitido: PreferenciasReproduccion = { movimientoReducido: false, ahorroDatos: false }
+  const args = [{ id: 'b', razon: 0.9, superficie: 100 }, { id: 'a', razon: 0.9, superficie: 100 }]
+  assert.equal(elegirActivo(args, permitido), 'a')
+  assert.equal(elegirActivo([...args].reverse(), permitido), 'a')
+})

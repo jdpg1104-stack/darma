@@ -1591,3 +1591,45 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 - [ ] **De B21 → B11** · sin `MODERATION_API_KEY`, abrir `search.list` es apuntar
       una manguera a una cola sin filtro. El clasificador por IA va DESPUÉS de la
       clave, no antes.
+
+## Pedidos de la integración de B21 §1–§4 (2026-08-04)
+
+Los cuatro módulos están en `main` y **no los llama nadie todavía**. Cablearlos
+toca archivos de B08 y exige una migración; queda aquí porque cada sesión lo
+reportó desde su worktree y ninguna podía aplicarlo.
+
+- [ ] **De B21 → B08 · una migración, dos motivos.** `ingest_log.decision` tiene
+      un CHECK cerrado y **no hay valor** para «rechazado por idioma» ni para
+      «canal no permitido». **Dos sesiones aisladas chocaron con el mismo hueco
+      por caminos distintos**, que es la mejor señal de que existe. Sin él, los
+      rechazos se registran como `rejected_quality` o `rejected_embed`, que
+      MIENTEN sobre la causa — y la causa es justo lo que se querrá consultar.
+- [ ] **De B21 → B08 · `ejecutar.ts` es quien cablea.** Orden: sonda de embed →
+      `verificarCanalDeEmbed()` → `resolverIdiomaAudio()` → `clasificar()`.
+      Contrato: `no_es_espanol` y `rechazado` → rechazo; **`desconocido` y
+      `pendiente_revision` → `pending`, nunca aprobación**. Y crear UN
+      `crearContadorCuota()` por corrida, pasarlo a todas las fuentes y emitir
+      `cuota.resumen()` con `ingesta_ejecutada`: los `cortes` son la alarma
+      temprana de que la cuota se está agotando.
+- [ ] **De B21 → B08 · una sola llamada para dos guardas.** El resolutor de canal
+      (§4) y la guarda de idioma (§2) necesitan el MISMO `videos.list?part=snippet`.
+      Resueltas juntas cuestan **1 unidad en vez de 2**. Lo vio §4 mirando el
+      trabajo de §2; ninguna de las dos podía verlo sola.
+- [ ] **De B21 → B08 · `channelId` no sobrevive a `normalizar()`.** `EntradaCruda`
+      y `CandidatoContenido` no lo llevan, así que la allowlist debe correr ANTES
+      de normalizar, o los dos tipos necesitan `channelId?: string | null`.
+- [ ] **De B21 → B08 · cupo diario persistente.** El presupuesto de `cuota.ts` vive
+      en memoria: no sobrevive a un reinicio ni a dos instancias. Falta el
+      equivalente a `ingest_consume_model_budget` en Postgres. Se dejó fuera a
+      propósito: un round-trip por unidad cuesta más de lo que ahorra.
+- [ ] **De B21 → B07 · decidir sobre `components/animo/`.** La rama `b21-3-autoplay`
+      NO se fusionó: B07 ya había entregado `components/video/{useAutoplayEnVista,
+      desbloqueoAudio}.ts` y `lib/video/{autoplay,audio}.ts`, y la ficha B21 §3 los
+      daba por nuevos. Se portaron **solo las dos mejoras reales** a
+      `lib/video/autoplay.ts` (desempate por superficie y su prueba). La rama sigue
+      viva por si se quiere rescatar algo más: tiene una prueba que lee el propio
+      archivo y falla si aparece `sessionStorage`/`localStorage`, que merece
+      copiarse a `components/video/desbloqueoAudio.ts`.
+- [ ] **De B21 → B00 · corregir `HANDOFF/B21.md` §3**, que lista como nuevos dos
+      archivos que ya existían con otro directorio. Error de quien escribió la
+      ficha (2026-08-04) por no mirar `components/video/` antes.

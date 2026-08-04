@@ -14,6 +14,13 @@ const eslintConfig = [
       'build/**',
       'next-env.d.ts',
       'supabase/**',
+      // Los worktrees de sesiones en paralelo (HANDOFF/PARALELO.md §1) son
+      // COPIAS COMPLETAS del repo. Sin esta línea, eslint las recorre y cada
+      // sesión abierta multiplica los avisos: con cuatro worktrees vivos, los 16
+      // avisos conocidos del proyecto salían 48. Un recuento que crece con el
+      // número de sesiones abiertas no informa de nada y entrena a ignorarlo.
+      // Git no tiene este problema porque conoce sus propios worktrees.
+      '.claude/worktrees/**',
     ],
   },
 
