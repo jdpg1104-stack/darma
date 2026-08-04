@@ -299,19 +299,41 @@ test('validarRegistro detecta lo que tiene que detectar', () => {
 })
 
 test('EL REGISTRO NO ES MÁS ANCHO QUE EL CATÁLOGO DE FUENTES', () => {
-  // Esta es la prueba que impide sembrar «de memoria». Todo canal permitido
-  // tiene que existir ya en fuentes.ts, con el MISMO handle. Si alguien añade
-  // aquí un UC que no consta allí, se pone roja.
-  const canalesDeFuentes = new Map(
+  // Esta es la prueba que impide sembrar «de memoria»: todo canal permitido
+  // tiene que apoyarse en una fuente que YA pasó por criterio humano.
+  //
+  // ── POR QUÉ TAMBIÉN VALE UNA PLAYLIST (relajado el 2026-08-04) ────────────
+  // La primera versión exigía una fuente `youtube_channel`. Se relajó al añadir
+  // AprendemosJuntos, y el motivo importa: sus dos fuentes son PLAYLISTS, que es
+  // la forma MÁS ESTRECHA de apuntar a un canal. Exigir una fuente de canal
+  // habría obligado a dar de alta el canal entero —que publica inteligencia
+  // artificial y arqueología— solo para poder registrar el UC. La regla habría
+  // forzado precisamente lo que la ingesta de la OMS enseñó a evitar.
+  //
+  // La intención se conserva intacta: sin fuente humana detrás, no hay entrada.
+  // Lo que cambia es que la fuente puede ser más específica que un canal, nunca
+  // más ancha.
+  const fuentesYoutube = FUENTES_SEMILLA.filter(
+    (f) => f.kind === 'youtube_channel' || f.kind === 'youtube_playlist',
+  )
+  const claves = new Set(fuentesYoutube.map((f) => f.key))
+  const handlesDeCanal = new Map(
     FUENTES_SEMILLA.filter((f) => f.kind === 'youtube_channel').map((f) => [f.key, f.handle]),
   )
 
   for (const c of CANALES_PERMITIDOS) {
-    const handle = canalesDeFuentes.get(c.fuenteKey)
-    assert.ok(handle, `${c.fuenteKey} no existe como fuente youtube_channel en fuentes.ts`)
-    assert.equal(c.channelId, handle, `el channelId de ${c.fuenteKey} no coincide con su fuente`)
+    assert.ok(claves.has(c.fuenteKey), `${c.fuenteKey} no existe como fuente de YouTube en fuentes.ts`)
+
+    // Cuando la fuente SÍ es un canal, el UC debe coincidir exactamente: ahí no
+    // hay excusa para que difieran. Con una playlist no se puede comparar —un PL
+    // no contiene el UC— y el channelId se resolvió con `videos.list`.
+    const handle = handlesDeCanal.get(c.fuenteKey)
+    if (handle) assert.equal(c.channelId, handle, `el channelId de ${c.fuenteKey} no coincide con su fuente`)
   }
-  assert.equal(CANALES_PERMITIDOS.length, 3, 'OMS, CDC y OPS. Ni uno más sin verificar')
+
+  // Cable trampa: crecer el registro tiene que ser un acto consciente. Si esta
+  // línea se actualiza sin pensar, el guard entero deja de servir para nada.
+  assert.equal(CANALES_PERMITIDOS.length, 4, 'OMS, CDC, OPS y AprendemosJuntos. Ni uno más sin decidirlo')
 })
 
 test('las playlists NO tienen entrada propia: un PL no es un UC', () => {
@@ -324,12 +346,16 @@ test('las playlists NO tienen entrada propia: un PL no es un UC', () => {
   }
 })
 
-test('los tres canales están declarados como PENDIENTES de verificación humana', () => {
+test('TODOS los canales están declarados como PENDIENTES de verificación humana', () => {
   // Igual que los 24 teléfonos: la fecha de revisión no es una verificación.
   // Cuando alguien con nombre confirme un UC contra su fuente, este test cambia
   // de forma — y ese cambio es exactamente el registro de que se hizo.
+  //
+  // Se afirma sobre la LONGITUD DEL REGISTRO y no sobre un número escrito a
+  // mano: así, añadir un canal ya verificado no pone la prueba roja por sorpresa
+  // — la pondría roja el cable trampa del test de arriba, que es su sitio.
   const pendientes = canalesPendientesDeVerificacion()
-  assert.equal(pendientes.length, 3)
+  assert.equal(pendientes.length, CANALES_PERMITIDOS.length)
   for (const c of CANALES_PERMITIDOS) {
     assert.equal(c.verificadoPor, null, c.fuenteKey)
   }
