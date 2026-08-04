@@ -1633,3 +1633,23 @@ reportó desde su worktree y ninguna podía aplicarlo.
 - [ ] **De B21 → B00 · corregir `HANDOFF/B21.md` §3**, que lista como nuevos dos
       archivos que ya existían con otro directorio. Error de quien escribió la
       ficha (2026-08-04) por no mirar `components/video/` antes.
+
+## Pedido abierto por la primera corrida con guardas (2026-08-04)
+
+- [ ] **De B21 → producto · ¿admite `/animo` contenido en inglés?** La guarda de
+      idioma funciona y su primera corrida real rechazó **30 vídeos por
+      `audio_declarado_no_espanol`**, entre ellos **las 13 historias de «The
+      Social Connection Series» de la OMS** — que se habían añadido ese mismo día
+      como el mejor contenido encontrado en 58 playlists. La guarda tiene razón:
+      son en inglés y Darma nace en español.
+      Sobrevivieron 10 piezas, las de `yt:ops_mirar_al_futuro`, en español.
+      La decisión NO es técnica: si `/animo` puede tener contenido en inglés para
+      quien navegue en inglés, esas 13 son recuperables filtrando por idioma en
+      el feed en vez de en la ingesta. Si no, se quedan fuera y hay que buscar
+      catálogo en español por otra vía (contenido propio, ver B21).
+- [ ] **De B21 → operación · la cuota de YouTube es COMPARTIDA con DataLaps.**
+      Hoy `YOUTUBE_API_KEY` es la misma clave. Son 10.000 unidades/día POR CLAVE,
+      y DataLaps ya se las agotó una vez (429 real, 2026-07-29). El consumo de
+      Darma es pequeño —la corrida completa gastó ~44 unidades— pero si alguna de
+      las dos apps crece, la otra se queda sin descubrimiento sin avisar. Una
+      clave propia por proyecto lo separa.
