@@ -7,13 +7,61 @@
 // cuando haya que explicar por qué apareció un vídeo concreto, y el campo
 // obligatorio del tipo es lo que hace que la pregunta se conteste ANTES.
 //
-// CRITERIO DE ADMISIÓN aplicado a las cinco de abajo:
-//   1. Organismo de salud pública o su oficina regional. Institución
-//      identificable y responsable de lo que publica.
-//   2. Licencia y derecho de incrustación claros: son canales pensados para ser
-//      difundidos, no material de terceros resubido.
-//   3. Sin monetización de la angustia: nada de coaching, «terapias
-//      alternativas», suplementos ni cursos.
+// ── CRITERIO DE ADMISIÓN (revisado el 2026-08-04) ─────────────────────────
+//
+// La versión anterior exigía «organismo de salud pública». Se abrió a petición
+// de producto: `/animo` debe poder ofrecer contenido que levante el ánimo, y
+// medido contra la realidad ese contenido no existe en canales institucionales
+// (ver «Lo que se buscó» abajo). Lo que NO se abre es nada de lo que protege a
+// la persona que está mirando ni al proyecto.
+//
+//   1. AUTORÍA IDENTIFICABLE. Organismo, ONG, medio o creador con nombre y
+//      responsable detrás. Un canal anónimo no entra: si mañana hay que
+//      explicar por qué apareció un vídeo, tiene que haber a quién preguntar.
+//
+//   2. ⛔ EL CANAL PUBLICA LO SUYO. NO NEGOCIABLE, y no es una cuestión de
+//      gusto: las recopilaciones de clips ajenos —el formato habitual del
+//      «hopecore»— son material de terceros resubido. Incrustarlas expone a
+//      Darma a una reclamación de derechos, y este es un proyecto que ya carga
+//      con `identity_vault` y con una pantalla de teléfonos de crisis. El
+//      primer aviso de copyright llegaría a un producto cuya promesa entera es
+//      el cuidado.
+//
+//   3. SIN MONETIZAR LA ANGUSTIA. Nada de coaching, «terapias alternativas»,
+//      suplementos, cursos ni embudos de venta. Un canal que termina sus vídeos
+//      mandándote a un enlace de pago no entra, por muy bien que se sienta uno
+//      al verlo.
+//
+//   4. ACOMPAÑAR, NO ARENGAR. El criterio nuevo, y el que más cuesta aplicar.
+//      `/animo` es el nivel de entrada: gente que todavía no se atreve a
+//      escribir, muchas veces de madrugada. A quien está en un episodio
+//      depresivo, el motivacional insistente —«todo depende de tu actitud»,
+//      «solo tienes que quererlo»— no le levanta el ánimo: le añade la culpa de
+//      no ser capaz. Entra lo que dice «esto que te pasa le pasa a más gente y
+//      se puede sostener»; no entra lo que dice «si no sales de esto es por ti».
+//
+//   5. La curación humana sigue siendo obligatoria. Nada llega al feed sin
+//      `state = 'approved'` puesto por una persona. Ampliar quién puede ser
+//      fuente amplía lo que se revisa, no lo que se publica a ciegas.
+//
+// ── LO QUE SE BUSCÓ, PARA QUE NADIE LO REPITA ──────────────────────────────
+// Se resolvieron las 58 playlists de OMS y OPS contra su feed RSS real:
+//   · OMS  — 30 playlists, CERO de salud mental. Lo más cercano es
+//            «The Social Connection Series» (PL9S6xGsoqIBUqjIzsow3VxmDXj77JrkyT),
+//            13 historias personales sobre soledad. En inglés.
+//   · OPS  — 28 playlists, casi todas formación técnica (CIE-11, comités). Su
+//            podcast en formato corto va sobre la rabia y las mordeduras de
+//            perro. Lo único aprovechable: «Mirar al Futuro»
+//            (PL6hS8Moik7ku0qViOb3LIYWrjqUelnt5c), que abre con salud mental
+//            y está en español.
+//   · Confederación SALUD MENTAL ESPAÑA (UC8GDMGailENHNdbUyWKatdw, feed 200):
+//            institucional — congresos, campañas, audiencias. No sirve para
+//            `/animo`.
+//
+// CONCLUSIÓN: no se encontró ninguna fuente que sea a la vez motivadora, en
+// español, limpia de derechos y sin vender nada. El criterio ya no lo impide;
+// lo impide que no exista. La salida realista es contenido PROPIO, producido
+// para Darma, o curación vídeo a vídeo en vez de por feed. Anotado en PEDIDOS.
 //
 // Las cinco se comprobaron en vivo (HTTP 200 sobre el feed real) al escribir
 // este archivo. `scripts/ingest/sembrar-fuentes.ts --verificar` repite esa
@@ -74,6 +122,30 @@ export const FUENTES_SEMILLA: readonly SemillaFuente[] = [
     porQue:
       'PAHO TV — Organización Panamericana de la Salud, oficina regional de la OMS para las Américas. Es la fuente ' +
       'institucional EN ESPAÑOL del catálogo de vídeo. Sin ella, el feed en español dependería de traducciones.',
+  },
+  {
+    key: 'yt:ops_mirar_al_futuro',
+    kind: 'youtube_playlist',
+    handle: 'PL6hS8Moik7ku0qViOb3LIYWrjqUelnt5c',
+    language: 'es',
+    topic: null,
+    porQue:
+      'OPS · «Mirar al Futuro». La ÚNICA playlist en español con respaldo institucional que se encontró abriendo ' +
+      'las 58 de OMS y OPS una por una: su primer vídeo es literalmente «Mirar al Futuro: Salud mental». Apuntar a ' +
+      'la playlist y no al canal entero es lo que impide que vuelvan a colarse la rabia y las mordeduras de perro, ' +
+      'que es lo que trajo el canal de la OPS en la primera ingesta real.',
+  },
+  {
+    key: 'yt:who_social_connection',
+    kind: 'youtube_playlist',
+    handle: 'PL9S6xGsoqIBUqjIzsow3VxmDXj77JrkyT',
+    language: 'en',
+    topic: null,
+    porQue:
+      'OMS · «The Social Connection Series», de la Comisión sobre Conexión Social: 13 historias contadas en primera ' +
+      'persona (Benny, Dave, Macy, Polina, María, Julio…) sobre soledad y aislamiento. Es lo más cercano al tono que ' +
+      'necesita /animo que existe con respaldo institucional — personas contando lo que les pasó, no divulgación. ' +
+      'Está en inglés y eso es una limitación real, no un descuido.',
   },
   {
     key: 'rss:who_en',
