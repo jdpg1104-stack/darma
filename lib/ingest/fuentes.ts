@@ -28,6 +28,22 @@
 import type { SemillaFuente, FuenteIngesta, TipoFuente } from './tipos.ts'
 import { urlFeedCanal, urlFeedPlaylist } from './feeds.ts'
 
+// ⚠️ ESTAS FUENTES SON INSTITUCIONALMENTE IMPECABLES Y TOPICALMENTE DEMASIADO
+// ANCHAS. Medido, no supuesto: la primera ingesta real trajo 80 piezas y CERO
+// eran de salud mental. Lo que llegó fue seguridad vial, prevención de
+// ahogamientos, seguridad del agua en Ghana, acuerdos de financiación y
+// ceremonias de firma — porque la OMS y el CDC publican salud pública ENTERA,
+// no salud mental, y aquí se apunta al canal completo con `topic: null`.
+//
+// `/animo` es la pantalla de quien dice «solo quiero ver contenido que me siente
+// bien, sin escribir nada todavía»: el nivel de entrada, la gente que aún no se
+// atreve a hablar. Un vídeo sobre ahogamientos ahí no es ruido, es daño.
+//
+// LO QUE FALTA, y es una decisión humana: apuntar a PLAYLISTS de salud mental en
+// vez de a canales enteros. `urlFeedPlaylist()` existe en feeds.ts y no la usa
+// nadie todavía. Elegir los IDs exige entrar en cada canal y mirarlos; un modelo
+// que se los invente de memoria reproduce el problema de los teléfonos de crisis.
+// Anotado en HANDOFF/PEDIDOS.md.
 export const FUENTES_SEMILLA: readonly SemillaFuente[] = [
   {
     key: 'yt:who',
