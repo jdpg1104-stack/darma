@@ -26,6 +26,18 @@ export type DecisionRegistrada =
   | 'rejected_safety'
   | 'rejected_embed'
   | 'rejected_quality'
+  // Los dos de abajo llegaron con B21 y su CHECK está en 0211_1_b21_ingesta.sql.
+  //
+  // POR QUÉ NO SE REAPROVECHÓ `rejected_embed` NI `rejected_quality`: porque este
+  // campo es exactamente lo que se consultará cuando alguien pregunte «¿por qué
+  // no entra nada de esta fuente?». Registrar un rechazo por idioma como
+  // `rejected_quality` no es una imprecisión: es contestar mal a la única
+  // pregunta que se le va a hacer a la tabla. Dos sesiones en paralelo (B21 §2 y
+  // §4) llegaron a esta misma conclusión por separado.
+  /** El audio declarado del vídeo no es español. Ver `idiomaAudio.ts`. */
+  | 'rejected_language'
+  /** El vídeo no pertenece a un canal del registro. Ver `canalesPermitidos.ts`. */
+  | 'rejected_channel'
   | 'error'
 
 /** Estados de `content_items.state` (enum public.content_state de 0002). */
@@ -86,7 +98,12 @@ export interface ResultadoEjecucion {
   fuentesVistas: number
   insertados: number
   duplicados: number
-  rechazados: { seguridad: number; embed: number; calidad: number }
+  /**
+   * Desglose por CAUSA, no un total. Es lo que convierte «no entra nada» en un
+   * diagnóstico: `canal` alto significa una fuente que trae material de
+   * terceros; `idioma` alto, una fuente que no es del idioma que declara.
+   */
+  rechazados: { seguridad: number; embed: number; calidad: number; canal: number; idioma: number }
   pendientes: number
   errores: number
   msTranscurridos: number
