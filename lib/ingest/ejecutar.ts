@@ -38,7 +38,13 @@ import { TIPOS_POR_CRON, urlDeFuente } from './fuentes.ts'
 import { normalizar } from './normalizar.ts'
 import { cribarSeguridad, MAX_LLAMADAS_MODELO, type OpcionesCribado } from './seguridad.ts'
 import { verificarCanalDeEmbed, type OpcionesVerificacion } from './canalesPermitidos.ts'
-import { resolverIdiomaAudio, type OpcionesIdiomaAudio } from './idiomaAudio.ts'
+import {
+  clasificarCodigoIdioma,
+  resolverIdiomaAudio,
+  type OpcionesIdiomaAudio,
+  type VeredictoIdiomaAudio,
+} from './idiomaAudio.ts'
+import { crearConsultaMetadatos, type ConsultaMetadatos, type MetadatosVideo, type OpcionesMetadatos } from './metadatosVideo.ts'
 import { sondaEmbed, type OpcionesSonda } from './embebible.ts'
 import { crearAlmacenSupabase, CLAVE_CURSOR_REVERIFICACION, type AlmacenIngesta } from './almacen.ts'
 
@@ -71,6 +77,8 @@ export interface DependenciasIngesta {
   canal?: OpcionesVerificacion
   /** Guarda de idioma de audio (B21 §2). Inyectable para probar sin red. */
   idioma?: OpcionesIdiomaAudio
+  /** La consulta compartida a `videos.list` (B21). Inyectable para probar sin red. */
+  metadatos?: OpcionesMetadatos
 }
 
 export interface OpcionesIngesta {
@@ -138,6 +146,9 @@ export async function ejecutarIngesta(opciones: OpcionesIngesta): Promise<Result
     return almacen.consumirCupoModelo()
   }
 
+  // UNA por corrida: su caché evita que dos fuentes con el mismo vídeo paguen dos veces.
+  const consultaMetadatos = crearConsultaMetadatos(deps.metadatos)
+
   let itemsProcesados = 0
 
   for (const fuente of fuentes) {
@@ -151,6 +162,7 @@ export async function ejecutarIngesta(opciones: OpcionesIngesta): Promise<Result
       agotado,
       consumirCupo,
       restantes: () => maxItems - itemsProcesados,
+      consultaMetadatos,
     })
     itemsProcesados += resultado.procesados
 
@@ -191,6 +203,8 @@ interface ContextoFuente {
   agotado: () => boolean
   consumirCupo: () => Promise<boolean>
   restantes: () => number
+  /** Memoizada POR CORRIDA: dos guardas, una sola unidad de cuota. */
+  consultaMetadatos?: ConsultaMetadatos
 }
 
 async function procesarFuente(ctx: ContextoFuente): Promise<{ completa: boolean; procesados: number }> {
@@ -379,6 +393,39 @@ async function procesarCandidato(ctx: ContextoFuente, candidato: CandidatoConten
 }
 
 /**
+ * Traduce los campos crudos de `videos.list` al veredicto de idioma, sin volver
+ * a la red. Replica la política de `idiomaAudio.ts` —`defaultAudioLanguage`
+ * primero, `defaultLanguage` como respaldo— y conserva sus MOTIVOS separados,
+ * que es lo que permite medir en `ingest_log` cuántos rechazos dependen del
+ * respaldo. Ese respaldo está en revisión: DataLaps lo retiró porque
+ * `defaultLanguage` describe el título, no el audio (ver B21 §2).
+ */
+function veredictoDeMetadatos(meta: MetadatosVideo): VeredictoIdiomaAudio {
+  const porAudio = clasificarCodigoIdioma(meta.defaultAudioLanguage)
+  if (porAudio !== 'desconocido') {
+    return {
+      decision: porAudio,
+      motivo: porAudio === 'es_espanol' ? 'audio_declarado_espanol' : 'audio_declarado_no_espanol',
+      codigoDeclarado: meta.defaultAudioLanguage,
+      campo: 'defaultAudioLanguage',
+    }
+  }
+
+  const porMetadato = clasificarCodigoIdioma(meta.defaultLanguage)
+  if (porMetadato !== 'desconocido') {
+    return {
+      decision: porMetadato,
+      motivo: porMetadato === 'es_espanol' ? 'metadato_espanol' : 'metadato_no_espanol',
+      codigoDeclarado: meta.defaultLanguage,
+      campo: 'defaultLanguage',
+    }
+  }
+
+  // El caso más frecuente con diferencia: YouTube no rellena ninguno de los dos.
+  return { decision: 'desconocido', motivo: 'sin_declarar', codigoDeclarado: null, campo: null }
+}
+
+/**
  * Las dos guardas de vídeo de B21: procedencia del canal e idioma del audio.
  *
  * Devuelve `true` si el candidato NO debe seguir el pipeline — porque se rechazó
@@ -401,10 +448,22 @@ async function procesarCandidato(ctx: ContextoFuente, candidato: CandidatoConten
 async function guardasDeVideo(ctx: ContextoFuente, candidato: CandidatoContenido): Promise<boolean> {
   const { deps, r } = ctx
 
-  // (1) Procedencia. Sin resolutor de canal configurado, `verificarCanalDeEmbed`
-  //     devuelve `pendiente_revision` y el ítem cae a la cola humana: es
-  //     exactamente lo que debe pasar mientras no haya forma de comprobarlo.
-  const canal = await verificarCanalDeEmbed(candidato.url, { ...deps.canal })
+  // UNA sola consulta a `videos.list` para las dos guardas: `channelId` y los
+  // dos campos de idioma viven en el mismo `snippet`. Pedirlos por separado
+  // costaría 2 unidades de cuota para traer exactamente lo mismo.
+  const meta = ctx.consultaMetadatos ? await ctx.consultaMetadatos(candidato.externalId) : null
+
+  // (1) Procedencia.
+  //
+  // El resolutor SOLO se pasa si hay de dónde sacar la respuesta. Pasar uno que
+  // siempre devuelve `null` sería mentir: el módulo lo leería como «pregunté y
+  // no hubo respuesta» —«no pude»— y mandaría todo a la cola humana. Sin él, el
+  // veredicto es `sin_resolutor`, que es la verdad: no hay forma de comprobarlo.
+  const resolutor = meta !== null ? async (): Promise<string | null> => meta.channelId : undefined
+  const canal = await verificarCanalDeEmbed(candidato.url, {
+    ...(resolutor ? { resolutor } : {}),
+    ...deps.canal,
+  })
 
   if (canal.decision === 'rechazado') {
     if (await guardar(ctx, candidato, 'rejected', 'rejected_channel', canal.motivo)) {
@@ -430,9 +489,15 @@ async function guardasDeVideo(ctx: ContextoFuente, candidato: CandidatoContenido
     return true
   }
 
-  // (2) Idioma del audio. `canal.videoId` ya viene validado por la guarda
-  //     anterior, así que no se vuelve a extraer de la URL.
-  const idioma = await resolverIdiomaAudio(canal.videoId ?? candidato.externalId, { ...deps.idioma })
+  // (2) Idioma del audio.
+  //
+  // Si la consulta de arriba trajo datos, se reutilizan: `resolverIdiomaAudio`
+  // haría su propia llamada para leer los mismos dos campos. Solo se cae a la
+  // consulta independiente cuando un test inyecta `deps.idioma` a propósito.
+  const idioma =
+    meta !== null && deps.idioma === undefined
+      ? veredictoDeMetadatos(meta)
+      : await resolverIdiomaAudio(canal.videoId ?? candidato.externalId, { ...deps.idioma })
 
   if (idioma.decision === 'no_es_espanol') {
     if (await guardar(ctx, candidato, 'rejected', 'rejected_language', idioma.motivo)) {
