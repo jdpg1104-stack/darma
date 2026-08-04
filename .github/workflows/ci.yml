@@ -72,6 +72,20 @@ jobs:
       - name: Guards de seguridad restantes
         run: node --test --experimental-strip-types "scripts/security/*.test.ts"
 
+      # INFORMATIVO A PROPÓSITO, y conviene entender por qué no falla.
+      #
+      # Los 24 teléfonos van a estar sin verificar durante semanas: confirmarlos
+      # exige hablar con cada organización. Un job que fallara dejaría `main` en
+      # rojo permanente, y un CI siempre rojo enseña a fusionar por encima de él
+      # — el día que se rompa algo de verdad, nadie lo mira.
+      #
+      # El freno REAL está en `prebuild`, que corre antes de `next build`: Vercel
+      # construye con `npm run build` y solo despliega `main`, así que el
+      # despliegue a producción se detiene ahí mientras quede un número sin
+      # confirmar. Aquí solo se deja el recuento a la vista en cada PR.
+      - name: Teléfonos de crisis · cuántos faltan
+        run: node --experimental-strip-types scripts/security/gateTelefonos.ts
+
   # ── 2. Calidad estática ─────────────────────────────────────────────────────
   calidad:
     name: Tipos, lint y pruebas
