@@ -64,10 +64,86 @@ export function recortarIdioma(bruto: string | null | undefined): string | null 
 }
 
 /**
+ * Vocabulario que decide si un texto habla de salud mental SIQUIERA.
+ *
+ * ── POR QUÉ HIZO FALTA ESTO ────────────────────────────────────────────────
+ * `TERMINOS` no puede hacer de filtro de relevancia, y durante un tiempo fue lo
+ * único que había. La primera ingesta real contra las fuentes semilla (OMS, CDC,
+ * OPS) trajo 80 piezas y etiquetó estas:
+ *
+ *   'trabajo' ← «Road safety is everyone's JOB»
+ *   'trabajo' ← «WHO's extended 13th General Programme of WORK»
+ *   'trabajo' ← «Ireland and WHO WORK together on assistive technology»
+ *   'duelo'   ← «Llamado urgente de la OMS ante la previsión de que los casos
+ *                de cáncer se dupliquen de aquí a 2050»
+ *
+ * Ninguna es un error de las guardas de palabra: `job` y `work` son palabras
+ * enteras ahí. El fallo es de categoría — se estaba usando «¿contiene una
+ * palabra de la lista?» para responder «¿es esto contenido de salud mental?».
+ *
+ * Y no es un problema estético. Estas piezas son las MÁS peligrosas de las 80,
+ * precisamente porque llevan tema: son las únicas que pasarían el filtro de
+ * chips y aparecerían ante alguien que pulsó «duelo» porque se le ha muerto
+ * alguien. Un artículo de proyecciones de cáncer no es contenido irrelevante en
+ * ese sitio, es contenido hiriente.
+ *
+ * ── QUÉ NO ARREGLA ─────────────────────────────────────────────────────────
+ * Esto hace honestas las etiquetas; NO arregla el catálogo. Las fuentes semilla
+ * son canales institucionales COMPLETOS —la OMS publica seguridad vial y
+ * ahogamientos, no solo salud mental— y acotarlas exige elegir playlists reales,
+ * que es una decisión humana. Anotado en HANDOFF/PEDIDOS.md.
+ */
+const SENALES_SALUD_MENTAL: readonly string[] = Object.freeze([
+  // Español
+  // 'emocional' A SECAS NO ESTÁ, y es deliberado: aparece en cualquier prosa
+  // institucional («el impacto físico, emocional y económico del cáncer») y era
+  // lo único que dejaba pasar el peor falso positivo de la primera ingesta —un
+  // informe de mortalidad por cáncer etiquetado como 'duelo'—. Las locuciones sí
+  // señalan; el adjetivo suelto no.
+  'salud mental', 'salud emocional', 'bienestar emocional', 'emociones', 'ansiedad', 'ansioso', 'ansiosa',
+  'depresion', 'deprimido', 'deprimida', 'angustia', 'panico', 'estres', 'burnout', 'desgaste',
+  'duelo', 'luto', 'soledad', 'aislamiento', 'autoestima', 'autocompasion', 'terapia', 'psicologia',
+  'psicologico', 'psicologica', 'psiquiatrico', 'suicidio', 'suicida', 'insomnio', 'mindfulness',
+  'meditacion', 'relajacion', 'respiracion', 'autocuidado', 'apoyo emocional',
+  // Sueño y descanso: son tema propio de la taxonomía, no un añadido.
+  'sueno', 'dormir', 'descanso', 'pesadillas',
+  // Vínculos. Va 'relaciones'/'pareja'/'limites' pero NO 'familia' a secas: una
+  // nota de prensa institucional habla de familias constantemente y volveríamos
+  // a abrir justo el agujero que esta puerta cierra.
+  'relaciones', 'pareja', 'limites', 'vinculos',
+  // Inglés
+  'mental health', 'emotional', 'wellbeing', 'well being', 'anxiety', 'anxious', 'depression',
+  'depressed', 'grief', 'bereavement', 'loneliness', 'lonely', 'self esteem', 'self compassion',
+  'self care', 'therapy', 'psychological', 'psychiatric', 'suicide', 'suicidal', 'insomnia',
+  'burnout', 'mindfulness', 'meditation', 'relaxation', 'stress',
+  'sleep', 'bedtime', 'rest', 'relationships', 'boundaries',
+])
+
+/**
+ * ¿El texto habla de salud mental, aunque sea de lejos?
+ *
+ * Es deliberadamente PERMISIVO: basta una señal. No decide si el contenido es
+ * bueno —eso es la curación humana— sino si tiene sentido siquiera mirarlo. Ser
+ * estricto aquí descartaría material legítimo antes de que un humano lo viera,
+ * y el coste de un falso negativo lo paga el catálogo entero.
+ */
+export function tieneSenalDeSaludMental(texto: string): boolean {
+  const normalizado = normalizarTexto(texto)
+  return SENALES_SALUD_MENTAL.some((s) => contienePalabra(normalizado, s))
+}
+
+/**
  * Detecta el tema por coincidencia de términos sobre título + resumen + tags.
  * Devuelve `null` si nada casa: NO se inventa un tema.
+ *
+ * Exige ANTES una señal de salud mental. `TERMINOS` contiene palabras que en
+ * prosa general no dicen nada del tema —'work', 'job', 'family', 'solo'— y sin
+ * esta puerta cualquier nota de prensa institucional salía clasificada. Ver
+ * `SENALES_SALUD_MENTAL`.
  */
 export function detectarTema(texto: string): TemaContenido | null {
+  if (!tieneSenalDeSaludMental(texto)) return null
+
   const normalizado = normalizarTexto(texto)
   // Búsqueda por subcadena con guardas de palabra a los lados: sin ellas,
   // «solo» casaría dentro de «consolo» y medio catálogo acabaría en 'soledad'.

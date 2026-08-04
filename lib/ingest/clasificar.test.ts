@@ -101,3 +101,62 @@ test('las etiquetas se normalizan, se deduplican y se acotan', () => {
   assert.deepEqual(normalizarTags([1, 'ok']), ['ok'])
   assert.ok(normalizarTags(Array.from({ length: 50 }, (_, i) => `t${i}`)).length <= 10)
 })
+
+// ── La puerta de relevancia ─────────────────────────────────────────────────
+//
+// Los cuatro títulos de abajo NO son inventados: son los que salieron de la
+// primera ingesta real contra las fuentes semilla (OMS, CDC, OPS) y los que se
+// guardaron con tema en `content_items`. Si esta sección se pone en verde con
+// la puerta quitada, es que la puerta no hace nada.
+
+test('🔴 la prosa institucional ya NO se lleva un tema por una palabra suelta', () => {
+  const reales = [
+    'Road safety is everyone’s job',
+    "Governments agree to continue their steady progress on proposed pandemic agreement",
+    'Ireland and WHO work together to improve access to assistive technology globally',
+    'India commits US$ 85 million to WHO Global Traditional Medicine Centre',
+    'Seven strategies to prevent drowning - technical package for policy-makers',
+    'Making waters safer in Ghana',
+  ]
+  for (const titulo of reales) {
+    assert.equal(detectarTema(titulo), null, `«${titulo}» no debería llevar tema`)
+  }
+})
+
+test('🔴 el peor caso real: proyecciones de cáncer NO son «duelo»', () => {
+  // El que más daño haría: fue el único etiquetado como duelo, o sea el único
+  // que aparecería ante alguien que acaba de perder a una persona.
+  const titulo =
+    'Llamado urgente a la acción de la OMS ante la previsión de que el número de ' +
+    'nuevos casos de cáncer prácticamente se duplicará de aquí a 2050'
+  assert.equal(detectarTema(titulo), null)
+
+  // Y con su resumen REAL, que es como se clasifica de verdad. Sobrevivió a la
+  // primera versión de la puerta por una sola palabra: «impacto físico,
+  // EMOCIONAL y económico». Por eso 'emocional' a secas no es una señal.
+  const resumen =
+    'Millones de personas se enfrentan al impacto físico, emocional y económico del ' +
+    'cáncer, una enfermedad que se cobra más de 26 000 vidas cada día, según un informe ' +
+    'publicado hoy por la Organización Mundial de la Salud (OMS). Con unas cifras ' +
+    'anuales estimadas de 20,6 millones de nuevos casos y cerca de 10 millones de defunciones'
+  assert.equal(detectarTema(`${titulo} ${resumen}`), null)
+})
+
+test('el contenido que SÍ es de salud mental conserva su tema', () => {
+  // La puerta es permisiva a propósito: basta una señal. Si esto se rompiera,
+  // habríamos cambiado un catálogo con ruido por un catálogo vacío.
+  assert.equal(detectarTema('Cómo manejar la ansiedad en el trabajo'), 'ansiedad')
+  assert.equal(detectarTema('Burnout: cuando el desgaste laboral te supera'), 'trabajo')
+  assert.equal(detectarTema('Coping with grief after the loss of a parent'), 'duelo')
+  assert.equal(detectarTema('Mental health and loneliness in older adults'), 'soledad')
+  // Sin «sleep»: 'sueño' va antes que 'respiración' en la taxonomía y ganaría.
+  assert.equal(detectarTema('Guided breathing for relaxation'), 'respiración')
+})
+
+test('«solo» como «únicamente» no convierte un texto español en soledad', () => {
+  // 'solo' está en TERMINOS de soledad y en español es la palabra para
+  // «únicamente». Sin la puerta, media web en español entra como soledad.
+  assert.equal(detectarTema('Solo se puede acceder con cita previa'), null)
+  // Pero con contexto de salud mental sí, que es lo que se quiere.
+  assert.equal(detectarTema('Me siento solo: la soledad y la salud mental'), 'soledad')
+})
