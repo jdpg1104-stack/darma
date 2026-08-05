@@ -176,3 +176,82 @@ en verde, producción está desbloqueada.
 bloquear el despliegue aunque `verificadoPor` esté puesto. No es burocracia: las
 líneas de ayuda cambian de número, de horario y de financiación, y un teléfono
 confirmado hace dos años es tan peligroso como uno sin confirmar.
+
+---
+
+# Lo que dicen las fuentes HOY (comprobado el 2026-08-05)
+
+Esto **no sustituye a las llamadas**. Es reconocimiento previo: sirve para llegar
+a cada llamada sabiendo qué esperas oír, y para que las discrepancias salten
+antes de marcar. Sigue haciendo falta que alguien marque y que alguien firme
+`verificadoPor`.
+
+## 🔴 Tres fuentes están rotas
+
+Una fuente que no responde no puede verificar nada, y estas tres son las que
+`sembrar-fuentes.ts --verificar` no mira porque no son feeds:
+
+| Fuente | Estado |
+|---|---|
+| `https://www.argentina.gob.ar/salud/mental` | **404** |
+| `https://www.gov.uk/call-999` | **404** |
+| `https://www.112.es` | **no responde** (sin DNS o caído) |
+
+Hay que encontrarles URL nueva antes de poder verificar esos tres recursos.
+
+## ✅ Cuatro confirmadas contra su web oficial
+
+| Recurso | Lo que dice la fuente |
+|---|---|
+| **ES · Línea 024** | «gratuito, confidencial y disponible las 24 horas del día, los 365 días del año». Coincide con lo que tenemos. Ofrece además chat y videointerpretación en lengua de signos, que hoy no enseñamos. |
+| **US · 988** | «The 988 Lifeline is available 24/7/365», «free and confidential», y confirma servicios en español. Coincide. |
+| **GB · Samaritans** | «Call 116 123 for free», «24 hours a day, 365 days a year». Coincide. |
+| **US · Crisis Text Line** | «text HOME **or HOLA** to 741741». Coincide el número. |
+
+## ⚠️ Dos discrepancias que la llamada debe resolver
+
+**AR · Centro de Asistencia al Suicida.** Su web da TRES números:
+
+> «Línea de prevención del suicida: tel:135 (línea gratuita)» · «(011)5275-1135» · **«0800 345 1435 desde todo el país»**
+
+Tenemos solo el `135`. El propio sitio distingue el 135 del «desde todo el
+país», lo que sugiere que el 135 NO tiene alcance nacional. **Pregunta concreta
+para la llamada: ¿desde dónde funciona el 135?** Si la respuesta es «solo CABA y
+GBA», hay que añadir el 0800 o cambiarlo.
+
+**US y GB · la palabra clave del SMS.** Crisis Text Line confirma que hay que
+enviar `HOME` (o `HOLA` en español), y Shout usa `SHOUT`. **La app hoy enseña el
+número pero no la palabra**, así que quien mande un SMS en blanco no recibe
+respuesta. Esto no es un problema de verificación: es un fallo de producto que
+hay que arreglar en `TarjetaCrisis` aunque los números sean correctos.
+
+## 🤖 Cuatro fuentes bloquean la lectura automática
+
+Responden 403 a cualquier cliente que no sea un navegador de verdad. Hay que
+abrirlas a mano:
+
+`saludcapital.gov.co` · `gob.cl/hablemosdetodo` · `minsal.cl` · `911.gov`
+
+---
+
+# Guion de llamada · 30 segundos
+
+Para las 11 líneas de ayuda. Las de emergencias NO se llaman.
+
+> «Buenos días. Llamo desde una aplicación de apoyo emocional que enseña
+> teléfonos de ayuda. Quería confirmar cuatro datos para no publicar nada
+> incorrecto:
+>
+> 1. ¿Este número es el correcto para atención en crisis?
+> 2. ¿Atienden las 24 horas todos los días?
+> 3. ¿La llamada es gratuita desde móvil y desde fijo?
+> 4. ¿En qué idiomas atienden?
+>
+> Nada más, y gracias por lo que hacéis.»
+
+Si preguntan por qué: es una app anónima de apoyo entre iguales que muestra
+recursos de crisis y quiere que los datos estén confirmados con la fuente.
+
+**Anota también la hora a la que llamaste.** Una línea que dice ser 24/7 y no
+contesta a las 23:00 es exactamente lo que hay que descubrir antes de publicar,
+no después.
