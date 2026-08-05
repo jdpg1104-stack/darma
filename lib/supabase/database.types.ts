@@ -869,6 +869,21 @@ export type Database = {
         }
         Relationships: []
       }
+      ingest_youtube_quota: {
+        Row: {
+          day: string
+          units: number
+        }
+        Insert: {
+          day: string
+          units?: number
+        }
+        Update: {
+          day?: string
+          units?: number
+        }
+        Relationships: []
+      }
       karma_events: {
         Row: {
           created_at: string
@@ -2098,6 +2113,10 @@ export type Database = {
         Returns: undefined
       }
       barrer_sesiones_contenido: { Args: { p_max?: number }; Returns: number }
+      barrer_solicitudes_caducadas: {
+        Args: { p_limite?: number }
+        Returns: number
+      }
       boost_vivo: {
         Args: { p_post: string }
         Returns: {
@@ -2348,6 +2367,14 @@ export type Database = {
         }[]
       }
       ingest_consume_model_budget: { Args: { p_max: number }; Returns: boolean }
+      ingest_devolver_cuota_youtube: {
+        Args: { p_unidades: number }
+        Returns: undefined
+      }
+      ingest_reservar_cuota_youtube: {
+        Args: { p_tope: number; p_unidades: number }
+        Returns: number
+      }
       is_blocked_between: {
         Args: { p_a: string; p_b: string }
         Returns: boolean
