@@ -7,9 +7,9 @@ import {
   refDeProyecto,
 } from '../utils/admin'
 
-import { CONTRASENA_E2E, idRun } from '../utils/idRun'
+import { idRun } from '../utils/idRun'
 import { limpiarPorPrefijo } from '../utils/limpieza'
-import { inyectarSesion, iniciarSesion } from '../utils/sesion'
+import { inyectarSesion } from '../utils/sesion'
 import {
   agotarEscuchas,
   borrarVideo,
@@ -19,7 +19,12 @@ import {
   sembrarVideo,
   validarComentario,
 } from './datos.fixture'
-import { borrarUsuario, crearUsuario, type UsuarioE2E } from './usuario.fixture'
+import {
+  borrarUsuario,
+  crearUsuario,
+  type CuentaSembrada,
+  type UsuarioE2E,
+} from './usuario.fixture'
 
 export type { UsuarioE2E }
 
@@ -100,8 +105,10 @@ export const test = base.extend<FixturesDarma>({
 
   usuario: async ({ context, baseURL }, usar) => {
     const u = await crearUsuario()
-    const sesion = await iniciarSesion(u.email, CONTRASENA_E2E)
-    await inyectarSesion(context, sesion, baseURL!)
+    // La MISMA sesión que abrió crearUsuario(): un segundo grant de contraseña
+    // aquí no verificaba nada y duplicaba la presión sobre el límite por IP
+    // del Auth — la mitad de los 429 al correr la suite entera de una tacada.
+    await inyectarSesion(context, u.sesion, baseURL!)
     await usar(u)
     await borrarUsuario(u)
   },
@@ -116,15 +123,14 @@ export const test = base.extend<FixturesDarma>({
     // Contexto propio: compartir el del usuario principal mezclaría las dos
     // cookies de sesión y la prueba de privacidad daría un verde falso.
     const contexto: BrowserContext = await browser.newContext({ baseURL })
-    const sesion = await iniciarSesion(otroUsuario.email, CONTRASENA_E2E)
-    await inyectarSesion(contexto, sesion, baseURL!)
+    await inyectarSesion(contexto, otroUsuario.sesion, baseURL!)
     const pagina = await contexto.newPage()
     await usar(pagina)
     await contexto.close()
   },
 
   sembrarPosts: async ({}, usar) => {
-    const creados: UsuarioE2E[] = []
+    const creados: CuentaSembrada[] = []
     await usar(async (n: number) => {
       const { ids, autores } = await sembrarPosts(n)
       creados.push(...autores)

@@ -300,6 +300,29 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 
 ### B03 · Publicar y gate de reciprocidad
 
+- [ ] **De B18 → B01 / B03 · el alta ANÓNIMA no deja país, y la tarjeta de
+      crisis lo notaba.** `paisParaRecursos()` lee `identity_vault.country_code`,
+      pero **`POST /api/auth/anonimo` no escribe ninguna fila en
+      `identity_vault`**: solo la escribe el flujo con correo
+      (`app/api/auth/callback/route.ts`, que ahí sí guarda `country_code`). Como
+      el alta anónima es la población POR DEFECTO de Darma, el camino normal
+      era: persona anónima escribe un texto de crisis → `paisParaRecursos()`
+      devuelve null → `helpResourcesFor(null)` → **directorio internacional, sin
+      un solo teléfono marcable**, que es justo lo que CONTRATOS §9 no quiere en
+      ese momento. Lo destapó el recorrido (d) al ejecutarse de verdad por
+      primera vez · 2026-08-05
+      → **Mitigado el mismo día en el sitio donde dolía**: las dos rutas de
+      posts leen ahora `paisParaRecursos() ?? paisDePeticion(request)` — el
+      vault manda y la cabecera del borde rellena el hueco, exactamente la
+      misma fuente en la que ya confiaba `app/api/comments/route.ts`. **Queda
+      abierto para B01/B03 decidir la solución de fondo**: si el alta anónima
+      debe persistir `country_code` en `identity_vault` (con lo que eso implica
+      en privacidad — es la tabla más sensible de la app, y guardar el país de
+      quien no ha dado ni un correo es una decisión de producto, no técnica) o
+      si la cabecera del borde es la fuente correcta y `paisParaRecursos()`
+      debería recibirla siempre como respaldo, también en los demás
+      consumidores
+
 - [ ] **De B03 → F3 (crítico, afecta a B02/B04/B05)** · la política `posts_read`
       de `0001_core.sql` consulta `profiles.shadow_banned`, y ese mismo archivo
       revoca el `select` sobre `profiles` y lo reconcede sin esa columna. Las

@@ -53,6 +53,17 @@ primera vez que se visita, y ese retardo variable es *flakiness* pura.
 | `SUPABASE_SERVICE_ROLE_KEY` | **crear/borrar usuarios, sembrar y validar comentarios.** Sin ella la mayoría de la suite queda en `test.fixme()`. |
 | `E2E_SUPABASE_PROJECT_REF` | **obligatoria contra una base remota.** El ref del proyecto de PRUEBAS. Sin ella el fusible corta. |
 | `E2E_PORT` / `E2E_BASE_URL` | puerto y URL base (por defecto 3018). |
+| `NEXT_PUBLIC_E2E_STUB_PLAYER` | la declara **solo** el `webServer` del config; ver «El reproductor en headless». |
+
+## El país lo pone el borde, y aquí lo emulamos
+
+`use.extraHTTPHeaders` manda `x-vercel-ip-country: ES` en toda la suite. No es
+maquillaje: en producción esa cabecera la inyecta **siempre** el borde de
+Vercel, y el único entorno donde falta es este. Sin ella, `paisDePeticion()`
+devuelve `null`, la tarjeta de crisis cae al directorio internacional —que **no
+lleva teléfono a propósito**: dar el número de otro país sería inútil o
+peligroso— y el recorrido (d) no puede afirmar el `tel:` marcable que exige
+CONTRATOS §9. Emular el borde es probar la verdad de producción.
 
 `e2e/utils/entorno.ts` carga `.env.local` en el proceso de Playwright (que no es
 el de Next). **Nunca sobrescribe** lo que ya venga del entorno: en CI mandan los
@@ -66,10 +77,13 @@ secretos del runner.
   propaga el veredicto a los workers por `E2E_ADMIN_OK`: si un día deja de
   servir, los recorridos que la necesitan vuelven solos a `test.fixme()` con el
   motivo visible en el informe, sin tocar una línea.
-- **El Auth de Supabase limita los logins POR IP.** Cada test crea y loguea su
-  usuario; varias pasadas de la suite completa seguidas agotan el límite y los
-  fixtures fallan con `429 over_request_rate_limit` ANTES de tocar la app. No
-  es un fallo de nada: espera unos minutos. (Y no subas los workers: ver
+- **El Auth de Supabase limita los logins POR IP** (~30 grants de contraseña
+  por 5 min). Cada test loguea a su usuario; por eso el fixture inicia sesión
+  UNA vez por usuario (la misma sesión se inyecta en el navegador) y los
+  autores sembrados se crean SIN sesión (`crearCuenta`). Aun así, varias
+  pasadas seguidas de la suite completa agotan la ventana y los fixtures
+  fallan con `429 over_request_rate_limit` ANTES de tocar la app. No es un
+  fallo de nada: espera unos minutos. (Y no subas los workers: ver
   «Paralelismo y rate limiting».)
 - **No hay `MODERATION_API_KEY`**, así que el clasificador corre siempre
   degradado y **ningún comentario se valida solo**. Es diseño: el sistema falla

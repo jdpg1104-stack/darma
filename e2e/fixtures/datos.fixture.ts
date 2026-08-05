@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { clienteAdminE2E } from '../utils/admin'
 import { postSembrado, TEXTO_NEUTRO } from '../utils/textos'
-import { crearUsuario, type UsuarioE2E } from './usuario.fixture'
+import { crearCuenta, type CuentaSembrada, type UsuarioE2E } from './usuario.fixture'
 
 /**
  * Siembra N posts de N autores DISTINTOS y devuelve sus ids.
@@ -15,12 +15,16 @@ import { crearUsuario, type UsuarioE2E } from './usuario.fixture'
  * Va por service_role en un solo `insert` con array, no por la UI: crear tres
  * posts navegando cuesta ~15 s por test y no prueba nada que no pruebe ya el
  * recorrido (c).
+ *
+ * Los autores se crean SIN sesión (`crearCuenta`): sus posts los inserta
+ * service_role y nadie navega con ellos. Cada login de más cuenta contra el
+ * límite por IP del Auth, que es el presupuesto más escaso de la suite.
  */
-export async function sembrarPosts(n: number): Promise<{ ids: string[]; autores: UsuarioE2E[] }> {
+export async function sembrarPosts(n: number): Promise<{ ids: string[]; autores: CuentaSembrada[] }> {
   const admin = clienteAdminE2E()
 
-  const autores: UsuarioE2E[] = []
-  for (let i = 0; i < n; i += 1) autores.push(await crearUsuario(`autor${i + 1}`))
+  const autores: CuentaSembrada[] = []
+  for (let i = 0; i < n; i += 1) autores.push(await crearCuenta(`autor${i + 1}`))
 
   // Los autores han de poder publicar: el primer post es gratis
   // (`posts_published = 0`), así que un solo post por autor pasa el trigger sin

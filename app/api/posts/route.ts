@@ -52,6 +52,7 @@ import {
   mensajeDeValidacion,
   nombresDeRecursos,
 } from './_dominio/publicar.ts'
+import { paisDePeticion } from '@/lib/auth/peticion'
 import { adminOFallar, limitarB03, limitarPorIp, paisParaRecursos } from './_dominio/servidor.ts'
 
 export const runtime = 'nodejs'
@@ -115,7 +116,16 @@ export async function POST(request: Request) {
 
     // El país solo se consulta si de verdad va a haber tarjeta: es el dato más
     // sensible de la app y no se toca en el camino normal.
-    const pais = riesgo.requiereIntervencion ? await paisParaRecursos(admin, sesion.userId) : null
+    //
+    // El vault manda; la cabecera del borde RELLENA EL HUECO. El alta anónima
+    // —la población por defecto— no escribe fila en identity_vault (solo el
+    // flujo con correo lo hace, en auth/callback), así que sin este respaldo
+    // una persona anónima en crisis recibía el directorio internacional SIN
+    // teléfono marcable aunque el borde supiera el país. Es la misma fuente en
+    // la que ya confía la ruta de comentarios (app/api/comments/route.ts).
+    const pais = riesgo.requiereIntervencion
+      ? ((await paisParaRecursos(admin, sesion.userId)) ?? paisDePeticion(request))
+      : null
     const tarjeta = construirTarjetaRecursos(riesgo.nivel, pais)
 
     // 6 · El INSERT. Post + risk + crisis_events, una transacción.

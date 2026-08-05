@@ -57,6 +57,15 @@ export default defineConfig({
     navigationTimeout: 30_000,
     locale: 'es-ES',
     timezoneId: 'Europe/Madrid',
+    extraHTTPHeaders: {
+      // El borde de Vercel inyecta SIEMPRE el país; el único entorno sin la
+      // cabecera es este. Sin ella, `paisDePeticion()` devuelve null y la
+      // tarjeta de crisis cae al directorio internacional — que no lleva
+      // teléfono A PROPÓSITO (lib/crisis.ts: dar el número de otro país sería
+      // peligroso) — y el recorrido (d) no puede afirmar el `tel:` marcable.
+      // Emular el borde es probar la verdad de producción, no maquillarla.
+      'x-vercel-ip-country': 'ES',
+    },
   },
 
   projects: [
