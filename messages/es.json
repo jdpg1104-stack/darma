@@ -215,7 +215,7 @@
       "errorEnvio": "No hemos podido enviarlo. Comprueba tu conexión y vuelve a intentarlo.",
       "etiquetaCorreo": "¿Ya tenías cuenta y cambiaste de móvil? Te enviamos un enlace.",
       "marcadorCorreo": "tu@correo.com",
-      "notaCorreo": "Tu correo sirve solo para reconocerte si vuelves. No se guarda junto a tu perfil ni aparece en ninguna pantalla.",
+      "notaCorreo": "Vincular tu correo es opcional y solo sirve para recuperar la cuenta si cambias de dispositivo. Debes saber una cosa antes: ese correo queda guardado de forma legible en el sistema de acceso, asociado a tu cuenta. No lo ve nadie de la comunidad ni aparece en ninguna pantalla, pero quien administra la infraestructura sí puede verlo. Si lo que quieres es anonimato frente a todo el mundo, no lo vincules: entras igual.",
       "subtitulo": "No pedimos nombre, ni correo, ni teléfono. Eliges un seudónimo y ya estás dentro.",
       "titulo": "Entra sin decir quién eres"
     },

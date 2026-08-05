@@ -1653,3 +1653,26 @@ reportó desde su worktree y ninguna podía aplicarlo.
       Darma es pequeño —la corrida completa gastó ~44 unidades— pero si alguna de
       las dos apps crece, la otra se queda sin descubrimiento sin avisar. Una
       clave propia por proyecto lo separa.
+
+## El anonimato: promesa corregida, agujero abierto (2026-08-05)
+
+- [ ] **🔴 El correo de recuperación es legible y está atado al seudónimo.**
+      `/api/auth/magic-link` llama a `updateUser({ email })`, que guarda el
+      correo EN CLARO en `auth.users`. Y `profiles.id` es
+      `uuid primary key references auth.users(id)` — la misma clave. Un `join`
+      de una línea devuelve alias → correo de todo el que haya vinculado.
+      `identity_vault` guarda un HMAC irreversible y está muy bien diseñado;
+      queda anulado para esas personas.
+      **Lo que YA se hizo (esta sesión):** corregir la promesa. Términos y
+      privacidad suben a `v2-2026-08` declarando el dato; el copy de `/entrar`
+      lo dice en el sitio donde se pide el correo; y el comentario de
+      `lib/anonymity.ts` —que afirmaba lo contrario— está corregido.
+      **Lo que NO:** cerrarlo. Dos caminos, los dos de arquitectura:
+        (a) proyecto de auth separado, sin vínculo por id con `profiles`;
+        (b) alias opaco por correo: que `auth.users` no comparta clave con
+            `profiles` y el puente viva solo en `identity_vault`.
+      Mientras no se haga, la app NO debe prometer anonimato absoluto en
+      marketing, tienda de apps ni landing.
+- [ ] **Al subir a v2, quien aceptó la v1 volverá a ver el consentimiento.** Es
+      el comportamiento correcto —`cubreVersionActual()` devuelve false— y hay
+      que contarlo antes de desplegar, o parecerá un fallo.

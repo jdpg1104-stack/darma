@@ -27,10 +27,29 @@
 //     día que se filtre .env, el mapeo completo es recomputable — hacia atrás,
 //     sobre todo lo escrito históricamente. Y una pimienta no se puede rotar
 //     sin cambiarle el alias a todo el mundo.
-//   · Con semilla aleatoria no hay nada que recomputar. El vínculo
-//     alias→persona existe en UN solo sitio: identity_vault, la tabla sin
-//     políticas RLS. Filtrar el código, o las variables de entorno, o la tabla
-//     profiles entera, no des-anonimiza a nadie.
+//   · Con semilla aleatoria no hay nada que recomputar. Filtrar el código, o
+//     las variables de entorno, o la tabla profiles entera, no des-anonimiza a
+//     nadie.
+//
+// ⚠️ CORREGIDO 2026-08-05. Este bloque decía que «el vínculo alias→persona
+// existe en UN solo sitio: identity_vault». ES FALSO, y conviene que quien lea
+// este archivo no se lo crea:
+//
+//   `/api/auth/magic-link` llama a `updateUser({ email })` para que alguien
+//   pueda recuperar su cuenta al cambiar de móvil. Eso guarda el correo EN
+//   CLARO en `auth.users`. Y `profiles.id` es `uuid primary key references
+//   auth.users(id)`, o sea LA MISMA CLAVE. Un `join` de una línea devuelve
+//   alias → correo de todo el que haya vinculado.
+//
+// Lo que este archivo garantiza sigue siendo cierto y sigue siendo mucho: el
+// alias no es derivable del contacto, la semilla no guarda relación con la
+// identidad, e `identity_vault` solo tiene un HMAC irreversible. Lo que NO
+// garantiza —y decía garantizar— es el anonimato frente a quien administra la
+// infraestructura, para quien vinculó correo.
+//
+// El texto legal y el copy de /entrar se corrigieron para decirlo (términos y
+// privacidad v2-2026-08). Cerrar el agujero de verdad exige separar el proyecto
+// de auth o usar un alias opaco por correo; anotado en HANDOFF/PEDIDOS.md.
 //
 // Las funciones de este archivo son deterministas RESPECTO A LA SEMILLA (para
 // poder testearlas y para que el avatar no cambie entre renders), pero la
