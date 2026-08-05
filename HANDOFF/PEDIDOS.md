@@ -335,22 +335,37 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       reimplementa ni una regla. Igual con `assertNoPii`, que la ficha B03 sitúa
       en `lib/moderation.ts` y en realidad vive en `lib/anonymity.ts` ·
       2026-08-03
-- [ ] **De B03 → F3** · `RATE_LIMITS.createPost` de `lib/rateLimit.ts` fija 10/h;
+- [x] **De B03 → F3** · `RATE_LIMITS.createPost` de `lib/rateLimit.ts` fija 10/h;
       la ficha B03 exige 5/h y su prueba nº 7 comprueba la sexta publicación.
       B03 usa sus propios números en `app/api/posts/_dominio/servidor.ts`. Hay
       que unificar el valor en un solo sitio · 2026-08-03
-- [ ] **De B03 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+      → CERRADO 2026-08-05: no había nada que unificar. `RATE_LIMITS` no lo
+      llamaba NINGUNA ruta —solo se citaba en dos comentarios— así que el 10/h
+      no estuvo nunca en vigor. Borrada la tabla y el atajo `limitAction()`;
+      en su sitio queda un índice de dónde vive la tabla de cada bloque, con
+      `lib/rateLimit.test.ts` obligándolo a estar completo. Manda 5/h.
+- [x] **De B03 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       `0103_1_b03_publicar.sql`: hoy no contiene `b03_publicar_post`,
       `b03_editar_post` ni `b03_retirar_post`. Mientras tanto las rutas declaran
       a mano la fila que devuelven, con el comentario que dice por qué ·
       2026-08-03
-- [ ] **De B03 → F4** · `SUPABASE_SERVICE_ROLE_KEY` está VACÍA en `.env.local`.
+      → CERRADO 2026-08-05: comprobado en `lib/supabase/database.types.ts`,
+      están las tres (`b03_publicar_post`, `b03_editar_post`,
+      `b03_retirar_post`). Las rutas pueden dejar de declarar la fila a mano.
+- [x] **De B03 → F4** · `SUPABASE_SERVICE_ROLE_KEY` está VACÍA en `.env.local`.
       `POST/PATCH/DELETE /api/posts` la necesitan (igual que `/api/me` de B01):
       sin ella las rutas devuelven `error_interno`. Se copia a mano desde el
       panel de Supabase · 2026-08-03
-- [ ] **De B03 → F4** · `/publicar` debe estar en las rutas privadas de
+      → CERRADO 2026-08-05: la clave está puesta (y es la ROTADA tras la fuga
+      de la sesión del 04; la anterior devuelve 401). Comprobado por longitud,
+      sin imprimir el valor.
+- [x] **De B03 → F4** · `/publicar` debe estar en las rutas privadas de
       `proxy.ts` (exige sesión) y `/ayuda` en las públicas, que es a donde apunta
       la acción inmediata de la tarjeta de recursos · 2026-08-03
+      → CERRADO 2026-08-05: `proxy.ts` es privado POR DEFECTO —solo
+      `PUBLIC_ROUTES` se libra— así que `/publicar` ya exige sesión sin
+      necesidad de listarla. `/ayuda` sí está en la lista pública, con el
+      porqué escrito al lado.
 - [ ] **De B04 → B11** · el punto de extensión está listo: `ValidadorComentario`
       en `app/api/comments/tipos.ts` y la implementación por defecto
       (`ValidadorHeuristico`, sobre `lib/moderation.ts`) en
@@ -362,17 +377,22 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       pueden calcular mirando solo el texto. Una implementación con la firma
       exacta de la ficha sigue siendo asignable, así que B11 puede ignorarlo ·
       2026-08-03
-- [ ] **De B04 → B00 / F3** · dos límites para la misma acción:
+- [x] **De B04 → B00 / F3** · dos límites para la misma acción:
       `RATE_LIMITS.createComment` de `lib/rateLimit.ts` dice 30/h y la ficha B04
       dice 20/h. Manda `app/api/comments/limites.ts` (20/h) para las rutas de
       este bloque. Hay que decidir cuál es el bueno y dejar uno solo ·
       2026-08-03
-- [ ] **De B04 → B00** · misma discrepancia que ya anotó B08 entre CONTRATOS §4
+      → CERRADO 2026-08-05: nunca fueron dos. El preset de 30/h era código
+      muerto (ver el apunte de B03 → F3, del mismo día). Manda 20/h, que es lo
+      que ya estaba en vigor.
+- [x] **De B04 → B00** · misma discrepancia que ya anotó B08 entre CONTRATOS §4
       (`{ ok, code, message }`, códigos en español) y `lib/apiErrors.ts`
       (`{ error, message, traceId }`, códigos en inglés). B04 usa los helpers de
       B01 (`lib/auth/http.ts` + `lib/auth/respuestas.ts`), que implementan §4 al
       pie de la letra, para que el hilo hable el mismo idioma que `/api/me` ·
       2026-08-03
+      → CERRADO 2026-08-05: `lib/apiErrors.ts` ya no existe. Manda CONTRATOS
+      §4 y los helpers de B01, que es lo que B04 ya usaba.
 - [ ] **De B04 → cimientos (F1)** · `posts.reply_count` no baja nunca. El
       trigger `comments_on_validated()` solo suma al validar y no hay ninguno
       para el borrado blando, así que `DELETE /api/comments/[id]`
@@ -386,14 +406,17 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       documenta para el INSERT, en el otro sentido). Verificado contra la base:
       el autor edita su fila, un tercero edita 0 filas. Conviene un caso en
       `supabase/tests/*.sql` · 2026-08-03
-- [ ] **De B04 → B15** · `lib/supabase/database.types.ts` sigue sin la función
+- [x] **De B04 → B15** · `lib/supabase/database.types.ts` sigue sin la función
       `marcar_comentario_util()` de `0104_2_marcar_util.sql`. Mientras tanto,
       `app/api/comments/[id]/util/route.ts` declara a mano la fila que devuelve
       (`FilaMarca`) · 2026-08-03
-- [ ] **De B04 → B07** · `npx tsc --noEmit` falla hoy en
+      → CERRADO 2026-08-05: `marcar_comentario_util` ya está en
+      `lib/supabase/database.types.ts`.
+- [x] **De B04 → B07** · `npx tsc --noEmit` falla hoy en
       `components/video/TarjetaVideo.tsx(73,36)`: `ItemVideo` no es asignable a
       `CandidatoEmbed` (le faltan `platform` y `external_id`). No es de B04 y no
       se ha tocado; el resto del árbol compila · 2026-08-03
+      → CERRADO 2026-08-05: `npx tsc --noEmit` pasa limpio en todo el árbol.
 - [ ] **De B05 → B00 / F1** · `authenticated` no tiene privilegio de SELECT
       sobre `profiles.listens_given` ni `profiles.posts_published`, así que el
       **perfil ajeno no puede mostrarlos** (comprobado contra `darma-dev` con
@@ -420,13 +443,17 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       configurado. Hace falta una vía de rate limiting que no obligue a
       `service_role` — conceder la RPC a `authenticated` es defendible, porque
       cuenta y no lee datos de nadie · 2026-08-03
-- [ ] **De B05 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+- [x] **De B05 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       `0105_1_b05_perfil.sql`: hoy no contiene `profiles.streak_days`,
       `profiles.streak_last_date`, `mi_resumen_karma()` ni
       `mi_historial_karma()`. Mientras tanto `components/perfil/tipos.ts`
       declara a mano `FilaPerfilPublica`, `FilaPerfilPrivada`, `FilaResumenKarma`
       y `FilaEventoKarma`, con el comentario que dice por qué y qué las
       sustituye · 2026-08-03
+      → CERRADO 2026-08-05: están las cuatro en
+      `lib/supabase/database.types.ts` (`streak_days`, `streak_last_date`,
+      `mi_resumen_karma`, `mi_historial_karma`). `components/perfil/tipos.ts`
+      puede dejar de declarar sus cuatro filas a mano.
 - [ ] **De B05 → B00** · los módulos puros de `components/perfil/` importan
       `../../lib/karma.ts` con ruta relativa de dos niveles, que CONTRATOS §1
       desaconseja. Es obligado: `node --test` no resuelve el alias `@/` del
@@ -618,13 +645,16 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       camino normal es el de la ficha. Razonado en la cabecera de
       `lib/push/horario.ts` y fijado por la prueba `10c`. Si producto prefiere
       el literal, es una línea · 2026-08-03
-- [ ] **De B13 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+- [x] **De B13 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       aplicar `0131_b13_push.sql`: hoy no contiene `push_subscriptions`,
       `notification_prefs`, `push_dispatch_state` ni las funciones
       `is_blocked_between()` y `destinatarios_alma_afin()`. Mientras tanto,
       `app/api/push/prefs/route.ts` declara `FilaPrefs` a mano y
       `lib/push/tipos.ts` declara `Suscripcion`, con el comentario que dice por
       qué · 2026-08-03
+      → CERRADO 2026-08-05: están las tres tablas y las dos funciones.
+      `app/api/push/prefs/route.ts` y `lib/push/tipos.ts` pueden dejar de
+      declarar `FilaPrefs` y `Suscripcion` a mano.
 - [ ] **De B13 → B15** · conviene un caso en `supabase/tests/*.sql` con la
       invariante entera de este bloque, hoy solo verificada a mano contra
       `darma-dev`: con rol `authenticated` y un JWT real deben fallar con 42501
@@ -852,7 +882,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `check_rate_limit` a `authenticated` (defendible: cuenta, no lee datos de
       nadie), esta función sobra. Mientras tanto es el patrón que recomiendo
       copiar en vez de dejar un bloque en la capa de memoria · 2026-08-03
-- [ ] **De B10 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+- [x] **De B10 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       `0110_1_b10_claves.sql`: hoy no contiene `user_keys`,
       `refuge_key_envelopes`, `identity_backups` ni las funciones
       `b10_crear_refugio`, `b10_bandeja`, `b10_limitar` y
@@ -860,6 +890,9 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `app/api/refuges/_dominio/servidor.ts` declara a mano `FilaRefugio`,
       `FilaMensaje`, `FilaClavePublica` y `FilaSobre`, con el comentario que dice
       por qué y qué las sustituye · 2026-08-03
+      → CERRADO 2026-08-05: están las tres tablas y las cuatro funciones.
+      `app/api/refuges/_dominio/servidor.ts` puede dejar de declarar sus
+      cuatro filas a mano.
 - [ ] **De B10 → B15** · la suite de intrusión específica de refugios está
       escrita y ejecutada, pero vive en el **scratchpad de la sesión**, no en
       `scripts/security/` (que es de B15 y este bloque no edita). Son 30 casos
