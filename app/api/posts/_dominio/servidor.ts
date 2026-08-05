@@ -12,7 +12,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { ErrorApi } from '@/lib/auth/errores'
 import { rateLimit } from '@/lib/rateLimit'
 import { logger } from '@/lib/logger'
-import { claveDeIp, ipDeCabeceras } from './publicar.ts'
+import { claveDeIp } from './publicar.ts'
+import { origenDePeticion } from '@/lib/auth/peticion'
 
 /**
  * Límites de B03. Los números salen de la ficha del bloque, no de
@@ -82,10 +83,10 @@ export async function limitarPorIp(
   request: Request,
   admin: SupabaseClient,
 ): Promise<void> {
-  const ip = ipDeCabeceras(
-    request.headers.get('x-forwarded-for'),
-    request.headers.get('x-real-ip'),
-  )
+  // Una sola fuente para toda la app: `origenDePeticion()` elige la cabecera
+  // que sella el borde, descarta la cadena que dicta el cliente y agrega IPv6
+  // a /64. Antes esto tenía su propia lectura de cabeceras y su propio criterio.
+  const ip = origenDePeticion(request).ip
   // Sin IP (llamada interna, entorno local) no hay nada que limitar por IP; el
   // límite por usuario sigue puesto. Fallar aquí bloquearía el desarrollo local
   // sin proteger nada.

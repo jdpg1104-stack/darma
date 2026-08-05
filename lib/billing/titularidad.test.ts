@@ -19,6 +19,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import {
   clasificarRestauracion,
@@ -213,4 +214,49 @@ test('FALLO · sin configuración de Apple no hay historial que restaurar', asyn
   const recibo = await verificarRecibo('2000000123456789', null)
   assert.equal(recibo.valido, false)
   assert.equal(recibo.cuentaApp, null)
+})
+
+// ── El mismo criterio en /verify, no uno propio ─────────────────────────────
+//
+// `restore` y `verify` cierran la misma puerta —un recibo auténtico no es un
+// recibo TUYO— y la cierran con la MISMA función. Estas pruebas fijan que el
+// criterio no se bifurque: el día que alguien ajuste `comprobarTitular()` para
+// una de las dos rutas, la otra se entera.
+
+test('🔴 las dos rutas comparten decisión: no hay un criterio por ruta', () => {
+  // Si alguien escribe una comparación a mano en `verify` en vez de llamar aquí,
+  // esta prueba no lo caza — pero el guard de abajo sí.
+  const usuario = '11111111-1111-4111-8111-111111111111'
+  const otro = '22222222-2222-4222-8222-222222222222'
+
+  assert.equal(comprobarTitular(usuario, usuario), 'coincide')
+  assert.equal(comprobarTitular(otro, usuario), 'ajeno')
+  assert.equal(comprobarTitular(null, usuario), 'ausente')
+})
+
+test('🔴 las DOS rutas que acreditan comprueban titularidad', () => {
+  // Lo que este guard vigila es que ninguna de las dos vías de acreditación se
+  // quede sin la comprobación: `verify` (compra recién hecha) y `restore`
+  // (historial). Verificar que un recibo es AUTÉNTICO no es verificar que es DE
+  // QUIEN LO PRESENTA, y esa distinción tiene que estar en las dos.
+  //
+  // Aquí hubo además un intento de vigilar que ninguna comparase el titular «a
+  // mano» en vez de llamar a `comprobarTitular()`. Se retiró: el regex daba
+  // falsos positivos con una simple comprobación de nulidad, y un guard que
+  // salta con su propio caso permitido enseña a desactivarlo — que es peor que
+  // no tenerlo. Lo que quedaría por vigilar es de estilo, no de seguridad.
+  for (const ruta of ['../../app/api/billing/verify/route.ts', '../../app/api/billing/restore/route.ts']) {
+    const fuente = readFileSync(new URL(ruta, import.meta.url), 'utf8')
+    assert.match(fuente, /comprobarTitular\(/, `${ruta} no comprueba titularidad`)
+  }
+})
+
+test('la asimetría entre las dos rutas ante el titular AUSENTE es deliberada', () => {
+  // `restore` no acredita lo ausente; `verify` sí. No es un descuido: en
+  // `restore` se piden compras VIEJAS —el caso en que el token pudo no existir—
+  // y en `verify` se acaba de pagar en un cliente que ya lo envía. Rechazar lo
+  // ausente en `verify` rompería la compra recién hecha de quien use una versión
+  // antigua. Si alguien unifica las dos, que sea a sabiendas.
+  const verify = readFileSync(new URL('../../app/api/billing/verify/route.ts', import.meta.url), 'utf8')
+  assert.match(verify, /verify_sin_titular/, 'verify debe REGISTRAR lo ausente aunque lo acredite')
 })

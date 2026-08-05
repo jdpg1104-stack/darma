@@ -37,7 +37,7 @@ import { ErrorApi } from '@/lib/auth/errores'
 import { manejarRuta } from '@/lib/auth/http'
 import { sobreOk } from '@/lib/auth/respuestas'
 import { requirePerfil } from '@/lib/auth/session'
-import { verificarRecibo as verificarApple } from '@/lib/billing/apple'
+import { comprobarTitular, huellaTitular, verificarRecibo as verificarApple } from '@/lib/billing/apple'
 import { resolverPaquete } from '@/lib/billing/catalogo'
 import { confirmarCompra, verificarRecibo as verificarGoogle } from '@/lib/billing/google'
 import { acreditarCompra, origenDePlataforma } from '@/lib/billing/ledger'
@@ -75,8 +75,12 @@ export async function POST(request: NextRequest) {
 
     const { plataforma, token } = parsear(esquemaVerificar, await leerCuerpo(request))
 
-    const recibo =
-      plataforma === 'apple' ? await verificarApple(token) : await verificarGoogle(token)
+    // Se guardan por separado además de unificados: solo el recibo de Apple
+    // trae `cuentaApp`, y estrechar aquí evita un cast más abajo — un `as` en el
+    // camino que decide si una compra se acredita a alguien es justo donde no
+    // se quiere estar afirmando cosas que el compilador no puede comprobar.
+    const reciboApple = plataforma === 'apple' ? await verificarApple(token) : null
+    const recibo = reciboApple ?? (await verificarGoogle(token))
 
     if (!recibo.valido || !recibo.externalId) {
       // El motivo describe nuestra validación (bundleId ajeno, entorno de
@@ -97,6 +101,50 @@ export async function POST(request: NextRequest) {
         { plataforma, user_id: sesion.userId },
       )
       throw new ErrorApi('entrada_invalida')
+    }
+
+    // ── El recibo tiene que ser TUYO ──────────────────────────────────────
+    //
+    // Misma puerta que cerró `/api/billing/restore`, y por el mismo motivo:
+    // verificar que un recibo es AUTÉNTICO no es verificar que es DE QUIEN LO
+    // PRESENTA. Sin esto, quien consiga un `transactionId` ajeno se lleva esa
+    // compra a su cuenta, y el `unique(external_id)` del ledger no lo impide —
+    // impide cobrarla dos veces, no acreditársela a quien no la hizo.
+    //
+    // Es menos agudo que en `restore` (un `transactionId` es más fresco y menos
+    // publicado que un `originalTransactionId`), pero es la misma puerta y se
+    // cierra con el mismo criterio, no con uno propio: `comprobarTitular()` es
+    // la única función que decide esto en todo el repositorio.
+    //
+    // ⚠️ Solo Apple. Google no expone aquí su `obfuscatedExternalAccountId`;
+    // queda anotado igual que en `restore`.
+    if (reciboApple !== null) {
+      const cuentaApp = reciboApple.cuentaApp
+      const titular = comprobarTitular(cuentaApp, sesion.userId)
+
+      if (titular === 'ajeno') {
+        // Huellas, nunca identificadores: el token ajeno es el `profiles.id` de
+        // otra persona y atarlo a esta sesión sería el cruce que CONTRATOS §2
+        // declara inexistente.
+        logger.warn('billing:verify_titular_ajeno', {
+          user_id: sesion.userId,
+          // `ajeno` implica que venía algo, pero el compilador no lo deduce y
+          // no se lo afirmamos con un `!`: si alguna vez dejara de ser cierto,
+          // preferimos un log sin huella a una excepción en el camino del pago.
+          huella_titular: cuentaApp === null ? null : huellaTitular(cuentaApp),
+        })
+        throw new ErrorApi('sin_permiso')
+      }
+
+      // `ausente` NO se rechaza aquí, y la asimetría con `restore` es
+      // deliberada: en `restore` la persona pide recuperar compras VIEJAS —el
+      // caso en el que el token pudo no existir— mientras que aquí acaba de
+      // pagar en un cliente que ya lo envía. Rechazar lo ausente en este camino
+      // rompería la compra recién hecha de quien use una versión antigua de la
+      // app, así que se registra para poder medirlo y se acredita.
+      if (titular === 'ausente') {
+        logger.warn('billing:verify_sin_titular', { user_id: sesion.userId })
+      }
     }
 
     const resultado = await acreditarCompra(admin, {

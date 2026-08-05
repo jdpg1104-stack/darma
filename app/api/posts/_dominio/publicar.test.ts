@@ -20,7 +20,6 @@ import {
   esquemaCrearPost,
   esquemaEditarPost,
   evaluarRiesgo,
-  ipDeCabeceras,
   claveDeIp,
   mensajeDeValidacion,
   nombresDeRecursos,
@@ -29,6 +28,7 @@ import {
 import { CUERPO_MAX, CUERPO_MIN, TEMAS } from '../../../../components/composer/temas.ts'
 import { obtenerTraductor } from '../../../../i18n/traductor.ts'
 import { CLAVE_RECHAZO_SERVIDOR } from '../../../../lib/reciprocity.ts'
+import { origenDePeticion } from '../../../../lib/auth/peticion.ts'
 
 /** El error tal cual lo devuelve PostgREST cuando el trigger levanta la
  *  excepción de 0001_core.sql. Copiado de una ejecución real contra darma-dev. */
@@ -290,13 +290,37 @@ describe('rate limit por IP · la IP nunca se persiste en claro', () => {
     )
   })
 
-  test('de x-forwarded-for se toma la PRIMERA, que es la del cliente', () => {
-    assert.equal(ipDeCabeceras('203.0.113.42, 70.41.3.18, 150.172.238.178', null), '203.0.113.42')
-  })
+  // ⛔ AQUÍ HUBO DOS PRUEBAS QUE FIJABAN UN BUG COMO CORRECTO.
+  //
+  // Afirmaban que «de x-forwarded-for se toma la PRIMERA, que es la del
+  // cliente». La descripción era cierta y la conclusión al revés: la primera la
+  // ESCRIBE el cliente, así que mandar una cadena distinta en cada petición
+  // estrenaba cubo cada vez y el límite de 20 publicaciones/hora no limitaba.
+  //
+  // Una prueba verde sobre un comportamiento equivocado es peor que no tenerla:
+  // convierte el bug en un contrato, y quien lo detecte dudará de sí mismo antes
+  // que del test. Se sustituyen por la que comprueba lo que de verdad importa —
+  // que la cadena falsificada NO consigue cubos distintos— y vive con el resto
+  // en `lib/auth/peticion.test.ts`, junto a la función que ahora decide.
+  //
+  // `ipDeCabeceras` ya no existe: ver el bloque que la sustituye en publicar.ts.
 
-  test('sin x-forwarded-for se cae a x-real-ip, y sin ninguna de las dos, null', () => {
-    assert.equal(ipDeCabeceras(null, '198.51.100.7'), '198.51.100.7')
-    assert.equal(ipDeCabeceras(null, null), null)
-    assert.equal(ipDeCabeceras('', ''), null)
+  test('🔴 dos cadenas x-forwarded-for falsificadas NO dan dos cubos distintos', () => {
+    // La regresión concreta que reabriría el agujero: si alguien vuelve a leer
+    // la cabecera por su cuenta en este bloque, esta prueba se pone roja.
+    const pedir = (cadena: string): string => {
+      const origen = origenDePeticion(
+        new Request('https://darma.app/api/posts', {
+          headers: { 'x-vercel-forwarded-for': '203.0.113.42', 'x-forwarded-for': cadena },
+        }),
+      )
+      return claveDeIp(origen.ip ?? '', 'pimienta', sha256Falso)
+    }
+
+    assert.equal(
+      pedir('1.2.3.4, 203.0.113.42'),
+      pedir('9.9.9.9, 203.0.113.42'),
+      'lo que dicte el cliente no puede cambiar el cubo',
+    )
   })
 })
