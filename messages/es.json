@@ -317,15 +317,31 @@
   "comun": {
     "aceptar": "Aceptar",
     "anterior": "Anterior",
+    "atajoAyuda": {
+      "enlace": "Necesito ayuda ahora",
+      "pie": "Si lo estás pasando mal, ahí tienes teléfonos de escucha. Esa pantalla funciona aunque el resto de la aplicación no."
+    },
     "avatarGenerado": "Avatar generado",
     "cancelar": "Cancelar",
     "cargando": "Cargando…",
     "cerrar": "Cerrar",
+    "errorGrave": {
+      "descripcion": "Ha sido cosa nuestra, no tuya, y no se ha perdido nada de lo que hayas escrito. Vuelve a intentarlo; si sigue igual, prueba dentro de un rato.",
+      "recargar": "Volver a intentarlo",
+      "referencia": "Referencia: {digest}",
+      "titulo": "Darma no ha podido arrancar"
+    },
+    "errorPantalla": {
+      "descripcion": "Ha sido cosa nuestra, no tuya. Vuelve a intentarlo; si sigue igual, prueba dentro de un rato.",
+      "referencia": "Referencia: {digest}",
+      "titulo": "No hemos podido cargar esta pantalla"
+    },
     "guardar": "Guardar",
     "hola": "Hola",
     "idioma": "Idioma",
     "idiomaEspanol": "Español",
     "idiomaIngles": "Inglés",
+    "irAlInicio": "Ir al inicio",
     "mesCorto": {
       "1": "ene",
       "10": "oct",
@@ -339,6 +355,10 @@
       "7": "jul",
       "8": "ago",
       "9": "sep"
+    },
+    "noEncontrado": {
+      "descripcion": "Puede que se haya retirado, o que el enlace lleve a algo que ya no existe. No has hecho nada mal.",
+      "titulo": "Esto ya no está aquí"
     },
     "og": {
       "descripcion": "Red social anónima de crecimiento emocional basada en reciprocidad. Acompañas a tres personas y desbloqueas tu turno de contar lo tuyo.",
