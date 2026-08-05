@@ -287,5 +287,67 @@ end
 $$;
 select * from prueba_reply_count();
 
+-- ── Retirar tu propio comentario ya no borra su rastro antiplantilla ───────
+-- El ciclo que esto cierra: pegas la plantilla, se valida y cobra karma, la
+-- RETIRAS (0104 concede `update (body, state)` al autor), su texto desaparece
+-- de `comments_read` —`using (state = 'active')`— y la vuelves a pegar en otro
+-- post sin nada con lo que compararla. El karma no vuelve (0217, a propósito),
+-- así que el ciclo era puro beneficio y repetible sin límite.
+--
+-- Se prueba con el ROL y el JWT de una sesión de verdad, no como `postgres`:
+-- toda la seguridad de `previos_del_autor()` está en que el autor sale de
+-- `auth.uid()`, y como superusuario ese valor es nulo y la prueba pasaría en
+-- vacío. Ver 0222_1_b04_previos_del_autor.sql.
+create or replace function prueba_previos_del_autor() returns setof text language plpgsql as $$
+declare
+  v_autor    uuid;
+  v_otro     uuid;
+  v_post     uuid;
+  v_mios     text[];
+  v_ajenos   text[];
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'prev_autor@darma.test') returning id into v_autor;
+  insert into public.profiles (id, alias) values (v_autor, 'regresion_prev_autor');
+  insert into auth.users (id, email) values (gen_random_uuid(), 'prev_otro@darma.test') returning id into v_otro;
+  insert into public.profiles (id, alias) values (v_otro, 'regresion_prev_otro');
+
+  insert into public.posts (author_id, body)
+  values (v_otro, 'Post para la prueba del historial antiplantilla, con longitud suficiente.')
+  returning id into v_post;
+
+  -- Nace ya validado: el trigger de karma es `after update of is_validated`, no
+  -- de insert, así que esto no mueve la economia y la prueba mide una sola cosa.
+  insert into public.comments (post_id, author_id, body, is_validated)
+  values (v_post, v_autor, 'La plantilla que se pega en todas partes y luego se retira sin devolver nada.', true);
+
+  -- El paso del farmeo.
+  update public.comments set state = 'removed' where author_id = v_autor;
+
+  set local role authenticated;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_autor)::text, true);
+  select array_agg(t) into v_mios from public.previos_del_autor(now() - interval '30 days') t;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_otro)::text, true);
+  select array_agg(t) into v_ajenos from public.previos_del_autor(now() - interval '30 days') t;
+
+  -- Fuera del rol ANTES de emitir el TAP: pgTAP se ejecuta como el dueno.
+  reset role;
+  perform set_config('request.jwt.claims', null, true);
+
+  return next is(
+    coalesce(array_length(v_mios, 1), 0),
+    1,
+    'previos_del_autor · el comentario RETIRADO sigue contando: este era el agujero'
+  );
+  return next is(
+    coalesce(array_length(v_ajenos, 1), 0),
+    0,
+    'previos_del_autor · el historial de otra persona no se ve jamas'
+  );
+end
+$$;
+select * from prueba_previos_del_autor();
+
 select * from finish();
 rollback;
