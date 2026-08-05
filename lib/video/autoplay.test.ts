@@ -17,7 +17,6 @@ import {
   autoplayPermitido,
   elegirActivo,
   ventanaDeIframes,
-  type PreferenciasReproduccion,
 } from './autoplay.ts'
 
 // ── 7 · exactamente una ─────────────────────────────────────────────────────

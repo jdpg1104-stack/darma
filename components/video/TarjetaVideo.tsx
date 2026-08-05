@@ -119,7 +119,10 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
       // vídeo sonando de fondo.
       enviarComando(ventana, 'pauseVideo')
       reproduciendo.current = false
-      setReproduciendoUi(false)
+      // El espejo de UI se adelanta en microtarea, no en el cuerpo del efecto
+      // (regla react-compiler: un setState síncrono aquí dispara renders en
+      // cascada). El PAUSADO del reproductor lo confirmará por mensaje igual.
+      queueMicrotask(() => setReproduciendoUi(false))
       return
     }
 
