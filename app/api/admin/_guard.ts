@@ -55,6 +55,14 @@ export const LIMITES_ADMIN = {
   /** Cambios de rol. Bajo a propósito: son raros y cada uno debería doler un
    *  poco antes de hacerse. */
   roles: { limite: 20, ventanaSegundos: 3600 },
+  /**
+   * Curar un ítem de contenido. Generoso porque vaciar una cola de 40 es
+   * exactamente el uso previsto, y un límite bajo empujaría a la gente de vuelta
+   * al SQL a mano — que es el atajo que la pantalla de curación viene a cerrar.
+   * Sigue habiendo techo: 200/hora no lo alcanza nadie mirando vídeos, pero sí
+   * un script.
+   */
+  curacion: { limite: 200, ventanaSegundos: 3600 },
 } as const
 
 export type AccionAdminLimitada = keyof typeof LIMITES_ADMIN

@@ -19,6 +19,26 @@
       "revisadosPorPersona": "Revisados por una persona",
       "titulo": "Cobertura de revisión de crisis"
     },
+    "curacion": {
+      "abrir": "Ver el vídeo",
+      "aprobado": "Aprobado. Ya está en Ánimo.",
+      "aprobar": "Aprobar",
+      "aviso": "Aprobar significa que alguien lo verá en su peor noche. Míralo antes.",
+      "error": "No se ha podido guardar la decisión. Inténtalo otra vez.",
+      "intro": "Contenido esperando una decisión humana. Ábrelo, míralo, y decide. Nada llega a Ánimo sin pasar por aquí.",
+      "mostrando": "Se muestran las {n} más antiguas primero.",
+      "motivo": "Por qué se descarta",
+      "motivoObligatorio": "Escribe por qué lo descartas. Un descarte sin motivo no se puede revisar después.",
+      "motivoPlaceholder": "Ej.: no es salud mental, tono equivocado, promete resultados…",
+      "quedan": "{n, plural, =1 {Queda 1 por decidir} other {Quedan # por decidir}}",
+      "rechazado": "Descartado.",
+      "rechazar": "Descartar",
+      "sinTema": "sin tema",
+      "titulo": "Cola de curación",
+      "vacia": "No queda nada por curar.",
+      "vaciaDetalle": "La cola está vacía. Cuando la ingesta traiga contenido nuevo, aparecerá aquí.",
+      "yaDecidido": "Otra persona ya decidió sobre esto. Recarga la cola."
+    },
     "economia": {
       "arppu": "ARPPU",
       "avisoEstimadoFuerte": "Ingreso parcialmente estimado.",
@@ -94,6 +114,7 @@
     "nav": {
       "activacion": "Activación",
       "crisis": "Crisis",
+      "curacion": "Curación",
       "economia": "Economía",
       "encuestas": "Encuestas",
       "moderacion": "Moderación",
