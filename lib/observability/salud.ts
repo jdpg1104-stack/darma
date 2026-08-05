@@ -118,36 +118,23 @@ export function construirSaludProfunda(
 }
 
 // ── Autenticación de las rutas de máquina ───────────────────────────────────
-
-/**
- * Compara un `Authorization: Bearer …` con un secreto de entorno.
- *
- * Comparación de LONGITUD CONSTANTE. Con `===`, el tiempo de respuesta depende
- * de cuántos caracteres iniciales coinciden, y eso permite adivinar el secreto
- * byte a byte con suficientes intentos. Aquí no es explotable en la práctica
- * (el ruido de red domina), pero escribir la versión insegura enseña el patrón
- * malo al siguiente que copie este archivo.
- *
- * FALLA CERRADO: sin variable de entorno configurada, NADIE pasa. La
- * alternativa —"si no hay secreto, deja pasar"— convierte un despliegue con una
- * variable olvidada en un endpoint de métricas público.
- */
-export function bearerValido(cabecera: string | null | undefined, secreto: string | undefined): boolean {
-  // Delega en la implementación única de `lib/cronAuth.ts`.
-  //
-  // Aquí había una cuarta copia de la comparación, y era la débil de las cuatro:
-  // hacía XOR sobre `charCodeAt` (que compara UNIDADES UTF-16, no bytes) y sobre
-  // todo **retornaba antes si las longitudes diferían**. Ese retorno temprano es
-  // justo el oráculo de longitud que las otras tres se molestaban en evitar:
-  // midiendo el tiempo de respuesta se puede averiguar cuánto mide el secreto
-  // antes de intentar adivinarlo.
-  //
-  // No es la superficie más crítica de la app —protege métricas y salud, no
-  // datos de personas—, pero una comparación de secretos escrita a mano y peor
-  // que la de al lado es la clase de cosa que alguien copia mañana a un sitio
-  // donde sí importa.
-  return esCronAutorizado(cabecera, secreto)
-}
+//
+// AQUÍ NO HAY FUNCIÓN DE AUTENTICACIÓN, y es a propósito. La hubo: un
+// `bearerValido` escrito a mano que era la peor de las cuatro copias que
+// llegó a haber en el repo —comparaba `charCodeAt` (UNIDADES UTF-16, no
+// bytes) y, sobre todo, **retornaba antes si las longitudes diferían**, que es
+// justo el oráculo de longitud que el relleno + `timingSafeEqual` de
+// `lib/cronAuth.ts` existe para evitar—.
+//
+// Ahora las dos rutas de máquina de este bloque llaman a `esCronAutorizado`
+// con su propio secreto: `/api/health/deep` con `CRON_SECRET` y `/api/metrics`
+// con `METRICS_TOKEN`. La función es la misma; los secretos NO, y no deben
+// unificarse: quien pueda leer métricas no tiene por qué poder disparar el
+// sondeo caro.
+//
+// Se quitó también el alias `bearerValido`. Un segundo nombre para la misma
+// comparación es como vuelve a empezar la divergencia: alguien "mejora"
+// `bearerValido` sin mirar que es la de todos.
 
 export interface RespuestaMetricas {
   status: number
@@ -169,7 +156,7 @@ export function construirMetricas(
   texto: () => string,
   secreto: string | undefined = process.env.METRICS_TOKEN,
 ): RespuestaMetricas {
-  if (!bearerValido(cabeceraAuth, secreto)) {
+  if (!esCronAutorizado(cabeceraAuth, secreto)) {
     return { status: 401, cuerpo: '', contentType: 'text/plain; charset=utf-8' }
   }
   return {

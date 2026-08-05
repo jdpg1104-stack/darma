@@ -51,7 +51,6 @@ import {
 } from './dependencias.ts'
 
 import {
-  bearerValido,
   construirMetricas,
   construirSalud,
   construirSaludProfunda,
@@ -359,13 +358,11 @@ test('7c · sin METRICS_TOKEN configurado NADIE pasa (falla cerrado)', () => {
 })
 
 // ── 8 ───────────────────────────────────────────────────────────────────────
-test('8 · /api/health/deep con CRON_SECRET incorrecto → no_autenticado', () => {
-  assert.equal(bearerValido('Bearer malo', 'bueno-de-verdad'), false)
-  assert.equal(bearerValido('Bearer bueno-de-verdad', 'bueno-de-verdad'), true)
-  assert.equal(bearerValido('bueno-de-verdad', 'bueno-de-verdad'), false, 'falta el prefijo Bearer')
-  assert.equal(bearerValido(null, 'bueno-de-verdad'), false)
-  assert.equal(bearerValido('Bearer x', undefined), false)
-
+// Esta prueba también ejercitaba la COMPARACIÓN del Bearer, cuando la hacía un
+// `bearerValido` propio de este módulo. Ya no: la comparación es la de
+// `lib/cronAuth.ts` y allí está probada. Aquí se queda lo que sí es de este
+// bloque —el SOBRE del 401— y no se reproduce lo que prueba el vecino.
+test('8 · el 401 de las rutas de máquina sale con el código no_autenticado', () => {
   const r = respuestaNoAutenticado()
   assert.equal(r.status, 401)
   assert.equal(r.cuerpo.ok, false)
