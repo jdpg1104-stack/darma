@@ -199,5 +199,74 @@ begin
 end
 $$;
 
+-- ── `posts.reply_count` sube y TAMBIÉN baja ────────────────────────────────
+-- Subía al validar un comentario y no bajaba nunca: ni al retirarlo
+-- (`state = 'removed'`, que es lo que hace DELETE /api/comments/[id]) ni al
+-- ocultarlo. Como `trg_posts_hot` recalcula `hot_score` con cada cambio del
+-- contador, y una respuesta pesa 13,5 veces más que un voto, el hilo que
+-- moderación acababa de limpiar conservaba su empuje en el feed por unas
+-- respuestas que ya no existían.
+--
+-- Se prueba el CICLO ENTERO y no solo la resta: un trigger que restara de más
+-- pasaría una prueba que solo mirase el final. Ver 0217_1_b04_reply_count.sql.
+do $$
+declare
+  v_autor      uuid;
+  v_escucha    uuid;
+  v_post       uuid;
+  v_comentario uuid;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'rc_autor@darma.test') returning id into v_autor;
+  insert into public.profiles (id, alias) values (v_autor, 'regresion_rc_autor');
+  insert into auth.users (id, email) values (gen_random_uuid(), 'rc_escucha@darma.test') returning id into v_escucha;
+  insert into public.profiles (id, alias) values (v_escucha, 'regresion_rc_escucha');
+
+  -- El primer post es gratis: no hace falta sembrar créditos de reciprocidad.
+  insert into public.posts (author_id, body)
+  values (v_autor, 'Post de la prueba del contador de respuestas, con longitud suficiente.')
+  returning id into v_post;
+
+  insert into public.comments (post_id, author_id, body)
+  values (v_post, v_escucha, 'Comentario de la prueba del contador, con la longitud minima que exige el check.')
+  returning id into v_comentario;
+
+  perform is(
+    (select reply_count from public.posts where id = v_post), 0,
+    'reply_count · un comentario SIN validar no cuenta'
+  );
+
+  update public.comments set is_validated = true where id = v_comentario;
+  perform is(
+    (select reply_count from public.posts where id = v_post), 1,
+    'reply_count · validar suma 1'
+  );
+
+  update public.comments set state = 'hidden' where id = v_comentario;
+  perform is(
+    (select reply_count from public.posts where id = v_post), 0,
+    'reply_count · ocultar resta (el hilo se lee con state = active)'
+  );
+
+  update public.comments set state = 'active' where id = v_comentario;
+  perform is(
+    (select reply_count from public.posts where id = v_post), 1,
+    'reply_count · devolverlo a activo lo vuelve a contar'
+  );
+
+  update public.comments set state = 'removed' where id = v_comentario;
+  perform is(
+    (select reply_count from public.posts where id = v_post), 0,
+    'reply_count · retirar resta: este era el fallo'
+  );
+
+  -- Nunca por debajo de cero: un contador negativo rompe compute_hot_score().
+  update public.comments set state = 'removed' where id = v_comentario;
+  perform ok(
+    (select reply_count from public.posts where id = v_post) >= 0,
+    'reply_count · no baja de cero'
+  );
+end
+$$;
+
 select * from finish();
 rollback;

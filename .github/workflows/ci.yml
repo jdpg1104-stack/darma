@@ -154,6 +154,28 @@ jobs:
       - name: Suite de RLS
         run: node --test --experimental-strip-types "supabase/tests/rls.integracion.ts"
 
+      # ── Los cinco archivos pgTAP, que hasta hoy no ejecutaba NADIE ──────────
+      # `supabase/tests/*.sql` llevaban desde el 3 de agosto en el repositorio
+      # con las regresiones de seguridad más caras que se han encontrado (el
+      # farmeo por `content_views`, la fuga de `karma_spendable`, el ledger
+      # append-only). Su cabecera dice «Ejecutar con: supabase test db», y ese
+      # comando no estaba en ningún sitio: ni en CI, ni en un script de
+      # `package.json`. Cinco archivos que parecían proteger algo y no corrían.
+      #
+      # Es el mismo fallo que un guard que nunca falla, pero peor: aquí la
+      # apariencia de cobertura recaía justo sobre lo que ya se había roto una
+      # vez.
+      #
+      # pgTAP se habilita aquí y no en una migración a propósito: es
+      # infraestructura de prueba, y no tiene por qué existir en producción.
+      - name: Habilitar pgTAP
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -c 'create extension if not exists pgtap with schema extensions;'
+
+      - name: Suite pgTAP · privilegios, políticas y regresiones
+        run: supabase test db
+
       # Los tipos se GENERAN, no se escriben: si el esquema cambió y nadie
       # regeneró, el diff lo destapa aquí en vez de en producción.
       #
