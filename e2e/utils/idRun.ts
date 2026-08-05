@@ -25,9 +25,26 @@ function calcularIdRun(): string {
 /** Prefijo de esta ejecución. Estable dentro del proceso. */
 export const idRun = calcularIdRun()
 
-/** Alias/etiqueta única dentro de la ejecución: `e2e_<8hex>_<sufijo>`. */
+/**
+ * Índice del worker de Playwright (TEST_WORKER_INDEX), único en TODA la
+ * ejecución — incluidos los dos proyectos (chromium y Mobile Safari), que
+ * corren en paralelo los mismos specs con las mismas etiquetas. Sin él, dos
+ * workers generaban `e2e_<id>_otro` a la vez y GoTrue rechazaba el segundo con
+ * «already been registered». El bug fue invisible mientras los fixtures se
+ * saltaban por falta de service_role: la primera ejecución real lo destapó.
+ */
+function indiceWorker(): string {
+  return process.env.TEST_WORKER_INDEX ?? '0'
+}
+
+/**
+ * Alias/etiqueta única dentro de la ejecución: `e2e_<8hex>_w<worker>x<sufijo>`.
+ * Presupuesto de longitud: el CHECK de `profiles.alias` admite 24; el prefijo
+ * gasta 13, `w##x` hasta 4, y el sufijo más largo en uso («otro» tras un
+ * contador de un dígito) cabe con margen.
+ */
 export function nombreE2E(sufijo: string): string {
-  return `${idRun}${sufijo}`
+  return `${idRun}w${indiceWorker()}x${sufijo}`
 }
 
 /**

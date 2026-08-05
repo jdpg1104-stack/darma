@@ -152,8 +152,13 @@ export async function proxy(request: NextRequest) {
     // Las rutas de API se llaman con fetch y esperan JSON: redirigirlas a una
     // página HTML hace que el cliente reviente al hacer res.json(). 401 real.
     if (pathname.startsWith('/api')) {
+      // La MISMA forma del contrato que devuelven todas las rutas
+      // (lib/auth/errores.ts, CONTRATOS §4): {ok, code, message}. Este era el
+      // último emisor del sobre viejo {error} que B00b retiró del resto del
+      // repo; el cliente lee `code`, y un sobre distinto aquí significaba que
+      // el 401 del proxy y el 401 de un handler se parseaban diferente.
       return NextResponse.json(
-        { error: 'no_autenticado' },
+        { ok: false, code: 'no_autenticado', message: 'Necesitas iniciar sesión.' },
         { status: 401, headers: { 'x-request-id': requestId } },
       )
     }

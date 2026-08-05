@@ -21,7 +21,12 @@ test.describe('El botón de crisis está en toda pantalla de app/(app)', () => {
   const rutas = ['/feed', '/publicar', '/perfil', '/animo', '/ranking', '/refugios']
 
   for (const ruta of rutas) {
-    test(`${ruta} muestra el botón de crisis`, async ({ page }) => {
+    // El fixture `usuario` es imprescindible aunque el test no lo lea: es quien
+    // inyecta la sesión en el contexto. Sin él, todas estas rutas redirigen a
+    // /entrar y el botón no puede estar. El spec nunca había corrido de verdad
+    // (siempre en fixme por falta de clave admin) y este hueco quedó invisible.
+    test(`${ruta} muestra el botón de crisis`, async ({ page, usuario }) => {
+      void usuario
       await page.goto(ruta)
       await page.waitForLoadState('networkidle')
 
@@ -30,7 +35,8 @@ test.describe('El botón de crisis está en toda pantalla de app/(app)', () => {
     })
   }
 
-  test('/post/[id] muestra el botón de crisis', async ({ page, sembrarPosts }) => {
+  test('/post/[id] muestra el botón de crisis', async ({ page, usuario, sembrarPosts }) => {
+    void usuario
     const [postId] = await sembrarPosts(1)
     const hilo = new HiloPage(page)
     await hilo.irAPost(postId!)
@@ -39,8 +45,10 @@ test.describe('El botón de crisis está en toda pantalla de app/(app)', () => {
 
   test('los Page Objects coinciden con lo que ve la persona', async ({
     page,
+    usuario,
     sembrarPosts,
   }) => {
+    void usuario
     // La misma comprobación a través de los Page Objects: si el localizador de
     // BasePage se desincroniza del componente, se entera esta prueba y no seis
     // recorridos con un fallo confuso.
