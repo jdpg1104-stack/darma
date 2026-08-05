@@ -19,7 +19,8 @@ test.describe('(d) Crisis: recursos en la misma respuesta', () => {
   omitirSinAdmin()
 
   // ── Camino de fallo nº 6 ────────────────────────────────────────────────
-  test('la tarjeta aparece en menos de 2 s, sin navegar y sin recargar', async ({ page }) => {
+  test('la tarjeta aparece en menos de 2 s, sin navegar y sin recargar', async ({ page, usuario }) => {
+    void usuario
     const publicar = new PublicarPage(page)
     await publicar.ir()
 
@@ -49,7 +50,8 @@ test.describe('(d) Crisis: recursos en la misma respuesta', () => {
   })
 
   // ── Camino de fallo nº 7 ────────────────────────────────────────────────
-  test('el post de crisis SIGUE existiendo y visible para su autor', async ({ page }) => {
+  test('el post de crisis SIGUE existiendo y visible para su autor', async ({ page, usuario }) => {
+    void usuario
     const publicar = new PublicarPage(page)
     await publicar.ir()
     await publicar.escribir(TEXTO_CRISIS)
@@ -63,7 +65,8 @@ test.describe('(d) Crisis: recursos en la misma respuesta', () => {
     expect(await feed.contieneTexto(TEXTO_CRISIS.slice(0, 40))).toBe(true)
   })
 
-  test('el riesgo ALTO también enseña recursos, no solo el crítico', async ({ page }) => {
+  test('el riesgo ALTO también enseña recursos, no solo el crítico', async ({ page, usuario }) => {
+    void usuario
     const publicar = new PublicarPage(page)
     await publicar.ir()
     await publicar.escribir(TEXTO_CRISIS_ALTA)
@@ -74,7 +77,8 @@ test.describe('(d) Crisis: recursos en la misma respuesta', () => {
     await publicar.esperarTarjetaCrisis(2_000)
   })
 
-  test('un riesgo BAJO no dispara la tarjeta', async ({ page }) => {
+  test('un riesgo BAJO no dispara la tarjeta', async ({ page, usuario }) => {
+    void usuario
     const publicar = new PublicarPage(page)
     await publicar.ir()
     await publicar.escribir(TEXTO_RIESGO_BAJO)
@@ -88,7 +92,9 @@ test.describe('(d) Crisis: recursos en la misma respuesta', () => {
 
   test('la respuesta de la API trae los recursos DENTRO, no en una segunda llamada', async ({
     page,
+    usuario,
   }) => {
+    void usuario
     await page.goto('/publicar')
     const respuesta = await page.request.post('/api/posts', {
       data: { body: TEXTO_CRISIS, kind: 'desahogo', topic: 'otro' },
