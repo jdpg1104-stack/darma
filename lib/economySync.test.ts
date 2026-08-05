@@ -246,3 +246,59 @@ test('el karma no es escribible por el cliente (privilegio de columna)', () => {
     assert.ok(!columnas.includes(prohibida), `'${prohibida}' NO puede ser escribible por el cliente`)
   }
 })
+
+// ── El crédito se gana por PERSONA, no por publicación (0213) ───────────────
+//
+// Este bloque no compara dos números: comprueba que una REGLA sigue escrita en
+// Postgres. Se añade porque su ausencia no rompía ninguna prueba y no se veía
+// desde la app — el agujero se descubrió razonando sobre el esquema, no
+// ejecutándolo.
+//
+// El agujero: `uq_comments_one_listen_per_post (post_id, author_id)` impide
+// ganar dos créditos en el MISMO post, y nada más. Comentar tres posts de la
+// MISMA persona daba tres créditos, y tres créditos son una publicación. Con dos
+// cuentas coordinadas eso es voz ilimitada.
+
+const SQL_CREDITO = readFileSync(
+  join(HERE, '..', 'supabase', 'migrations', '0213_1_b21_credito_por_persona.sql'),
+  'utf8',
+)
+
+test('🔴 el trigger de validación sigue comprobando que la persona escuchada no se repite', () => {
+  // Si alguien reescribe `comments_on_validated()` sin esta condición, el
+  // farmeo con dos cuentas vuelve y ninguna otra prueba se pone roja.
+  assert.match(SQL_CREDITO, /p2\.author_id\s*=\s*v_autor_escuchado/, 'se perdió la comparación por persona')
+  assert.match(SQL_CREDITO, /ventana_credito_repetido\(\)/, 'se perdió la ventana temporal')
+  assert.match(
+    SQL_CREDITO,
+    /listen_credits\s*\+\s*case\s+when\s+v_repetida\s+then\s+0\s+else\s+1\s+end/,
+    'el crédito volvió a ser incondicional',
+  )
+})
+
+test('`listens_given` sigue subiendo SIEMPRE, aunque no se pague crédito', () => {
+  // El recuento de cuántas veces alguien ha acompañado a otra persona no debe
+  // mentir porque la reciprocidad no pague: son dos cosas distintas y la
+  // segunda no puede corromper a la primera.
+  assert.match(SQL_CREDITO, /listens_given\s*=\s*listens_given\s*\+\s*1/)
+  assert.doesNotMatch(
+    SQL_CREDITO,
+    /listens_given\s*=\s*listens_given\s*\+\s*case/,
+    'listens_given no debe depender de si hubo crédito',
+  )
+})
+
+test('la ventana es de 30 días, y está en UN solo sitio', () => {
+  assert.match(SQL_CREDITO, /interval\s+'30 days'/)
+  // Una sola definición: si apareciera dos veces, un cambio dejaría media
+  // regla vieja sin que nada avisara.
+  assert.equal((SQL_CREDITO.match(/interval\s+'30 days'/g) ?? []).length, 1)
+})
+
+test('el karma NO se condiciona: tiene su propio techo diario', () => {
+  // Quitar karma a una escucha repetida castigaría a quien de verdad vuelve a
+  // acompañar a la misma persona. El techo de `award_karma` ya acota ese farmeo.
+  const bloque = SQL_CREDITO.slice(SQL_CREDITO.indexOf('comment_validated'))
+  assert.doesNotMatch(bloque.slice(0, 400), /v_repetida/, 'el karma no debe mirar si la escucha se repite')
+  assert.equal(DAILY_KARMA_CAP, 120, 'si cambia el techo, este razonamiento hay que rehacerlo')
+})
