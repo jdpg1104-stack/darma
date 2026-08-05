@@ -192,6 +192,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
 
   return (
     <article
+      id={item.id}
       className={estilos.tarjeta}
       ref={setNodo}
       data-activo={activo || undefined}
