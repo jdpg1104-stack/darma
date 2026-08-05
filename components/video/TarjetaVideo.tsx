@@ -198,6 +198,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
       id={item.id}
       className={estilos.tarjeta}
       ref={setNodo}
+      data-testid="video-tarjeta"
       data-activo={activo || undefined}
       data-reproduciendo={reproduciendoUi || undefined}
     >
@@ -233,6 +234,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
           className={estilos.silencio}
           onClick={alTocar}
           aria-label={t('contenido.activarSonido')}
+          data-testid="video-boton-sonido"
         >
           🔇
         </button>
@@ -243,6 +245,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
         className={estilos.toque}
         onClick={alTocar}
         aria-label={t('contenido.reproducirPausar', { titulo: item.titulo })}
+        data-testid="video-boton-reproducir"
       />
 
       <div className={estilos.capa}>
@@ -253,10 +256,13 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
         </p>
 
         {completado ? (
-          <span className={estilos.completado}>✓ {t('contenido.completado')}</span>
+          <span className={estilos.completado} data-testid="video-completado">
+            ✓ {t('contenido.completado')}
+          </span>
         ) : (
           <span
             className={estilos.progreso}
+            data-testid="video-progreso"
             role="progressbar"
             aria-label={t('contenido.progreso')}
             aria-valuemin={0}

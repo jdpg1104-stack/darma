@@ -51,6 +51,10 @@ export function BotonCrisis({
       aria-label={etiqueta}
       className={posicion === 'flotante' ? estilos.flotante : estilos.inline}
       data-posicion={posicion}
+      // Ancla ESTABLE para el e2e (B18): la etiqueta cambia con el idioma y el
+      // Page Object no puede depender de ella. El testid es adicional; el
+      // nombre accesible sigue siendo el aria-label.
+      data-testid="ui-crisis-boton"
     >
       {/* aria-hidden: el nombre accesible ya lo da el aria-label del enlace.
           Sin esto, un lector de pantalla anuncia el icono y luego la etiqueta. */}

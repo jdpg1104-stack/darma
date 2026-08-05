@@ -111,6 +111,17 @@ export default async function PaginaLegal() {
           )
         })}
       </ul>
+
+      <p style={{ color: 'var(--muted)', fontSize: 14, margin: '24px 0 0' }}>
+        {/* HARDCODEADO EN INGLÉS, A PROPÓSITO: este enlace existe para quien NO
+            lee español, así que ponerlo en el catálogo —que lo mostraría en el
+            idioma de la interfaz— lo escondería justo de su destinatario. Las
+            versiones inglesas son documentos propios (`lib/privacy/textosEn.ts`)
+            y su cuerpo declara que el español prevalece. */}
+        <Link href="/legal/en" style={{ color: 'var(--ink)' }}>
+          Read these documents in English →
+        </Link>
+      </p>
     </div>
   )
 }

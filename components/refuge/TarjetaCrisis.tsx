@@ -43,7 +43,15 @@ export function TarjetaCrisis({ nivel, pais = null }: TarjetaCrisisProps) {
   const recursos = helpResourcesFor(pais)
 
   return (
-    <aside className={estilos.aviso} role="note" aria-label={t('refugios.crisis.etiqueta')}>
+    // `tarjeta-recursos`: el testid UNIFICADO que pidió B18 (PEDIDOS.md), el
+    // mismo que llevan la tarjeta del composer y la del hilo. El `role="note"`
+    // y el `aria-label` se quedan tal cual: el testid es adicional.
+    <aside
+      className={estilos.aviso}
+      role="note"
+      aria-label={t('refugios.crisis.etiqueta')}
+      data-testid="tarjeta-recursos"
+    >
       <p>{t(`crisis.aviso.${nivel}`)}</p>
       <ul className={estilos.advertencias}>
         {recursos.map((r) => (

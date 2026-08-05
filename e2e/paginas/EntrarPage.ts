@@ -13,13 +13,18 @@ const t = obtenerTraductor('es')
 export class EntrarPage extends BasePage {
   readonly ruta = '/entrar'
 
+  /**
+   * El titular sí se busca por su TEXTO, resuelto del catálogo: aquí el test
+   * afirma el contenido de la pantalla (que la promesa se lee tal cual), no
+   * solo que exista un `<h1>`.
+   */
   get titulo(): Locator {
-    return this.page.getByRole('heading', { name: 'Entra sin decir quién eres' })
+    return this.page.getByRole('heading', { name: t('auth.entrada.titulo') })
   }
 
   /** El registro anónimo: ni nombre, ni correo, ni teléfono. */
   get botonAnonimo(): Locator {
-    return this.page.getByRole('button', { name: 'Entrar sin dar mis datos' })
+    return this.page.getByTestId('auth-boton-anonimo')
   }
 
   /**
@@ -38,11 +43,11 @@ export class EntrarPage extends BasePage {
   }
 
   get campoCorreo(): Locator {
-    return this.page.getByLabel(/ya tenías cuenta/i)
+    return this.page.getByTestId('auth-campo-correo')
   }
 
   get botonEnlace(): Locator {
-    return this.page.getByRole('button', { name: 'Enviarme el enlace' })
+    return this.page.getByTestId('auth-boton-enlace')
   }
 
   get error(): Locator {

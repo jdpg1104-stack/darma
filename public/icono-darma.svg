@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Darma">
   <!--
-    Icono provisional de la PWA. Los colores son los tokens de app/globals.css
+    Icono FUENTE de la PWA. Los colores son los tokens de app/globals.css
     (--bg #0e1116, --accent #7c5cff, --accent2 #26d0a5): no hay ningún hex
-    inventado. Es SVG y no PNG porque este bloque no puede generar binarios;
-    Chrome acepta SVG en el manifiesto, pero un par de PNG 192/512 reales
-    (dueño B16) daría mejor resultado en Android. Anotado en HANDOFF/PEDIDOS.md.
+    inventado. Los PNG del manifest (icon-192/512.png) se rasterizan DESDE este
+    archivo con scripts/design/generarAssets.ts: si cambias el dibujo o un
+    token, vuelve a ejecutarlo. El SVG queda en el manifest como fallback.
 
     La forma es una semilla / hoja: el primer nivel de Darma se llama 'semilla'.
     Sin letras, para que no haya que traducirlo.

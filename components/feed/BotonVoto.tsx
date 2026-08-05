@@ -60,6 +60,7 @@ export function BotonVoto({ postId, upvotesIniciales, heVotadoInicial }: BotonVo
     <button
       type="button"
       className={estilos.voto}
+      data-testid="feed-boton-voto"
       // `aria-pressed` y no un cambio de color: el estado del botón tiene que
       // estar en el árbol de accesibilidad, no solo en la paleta.
       aria-pressed={votado}

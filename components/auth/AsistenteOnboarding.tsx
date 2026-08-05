@@ -126,6 +126,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
           aria-valuemax={TOTAL_PASOS}
           aria-valuenow={paso}
           aria-label={t('auth.onboarding.progreso')}
+          data-testid="auth-progreso-onboarding"
           style={{ height: 4, borderRadius: 999, background: 'var(--panel2)' }}
         >
           <div
@@ -142,6 +143,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
       {error && (
         <p
           role="alert"
+          data-testid="auth-error"
           style={{
             margin: 0,
             padding: '12px 14px',
@@ -174,6 +176,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
               </label>
               <input
                 id="alias"
+                data-testid="auth-campo-alias"
                 value={alias}
                 maxLength={24}
                 autoComplete="off"
@@ -189,7 +192,12 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
                   fontWeight: 700,
                 }}
               />
-              <button type="button" className="btn btn--ghost" onClick={otroAlias}>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={otroAlias}
+                data-testid="auth-boton-otro-alias"
+              >
                 {t('auth.onboarding.otroAlias')}
               </button>
             </div>
@@ -200,6 +208,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
             className="btn btn--primary"
             onClick={comprobarYAvanzar}
             disabled={ocupado || alias.trim().length < 3}
+            data-testid="auth-boton-continuar"
           >
             {ocupado ? t('auth.onboarding.comprobando') : t('auth.continuar')}
           </button>
@@ -257,6 +266,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
               type="button"
               className="btn btn--primary"
               onClick={() => setPaso(3)}
+              data-testid="auth-boton-continuar"
               style={{ flex: 1 }}
             >
               {t('auth.continuar')}
@@ -307,6 +317,7 @@ export function AsistenteOnboarding({ candidatos }: { candidatos: readonly Candi
               className="btn btn--primary"
               onClick={crearPerfil}
               disabled={ocupado}
+              data-testid="auth-boton-entrar-darma"
               style={{ flex: 1 }}
             >
               {ocupado ? t('auth.onboarding.creando') : t('auth.entrarEnDarma')}

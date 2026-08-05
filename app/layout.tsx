@@ -76,15 +76,27 @@ export async function generateMetadata(): Promise<Metadata> {
       description: t('comun.og.descripcion'),
       locale: locale === 'es' ? 'es_ES' : 'en_US',
       alternateLocale: locale === 'es' ? 'en_US' : 'es_ES',
-      // SIN `images` a propósito: no existe un og.png real. Anunciar una
-      // imagen rota es peor que no anunciar ninguna (ver PEDIDOS).
+      // `/og.png` es real: lo produce scripts/design/generarAssets.ts con los
+      // tokens de globals.css y el lema del catálogo. La URL relativa se
+      // resuelve contra `metadataBase`, así que apunta al dominio correcto en
+      // cada entorno. El `alt` reutiliza el título: es lo que la imagen dice.
+      images: [
+        {
+          url: '/og.png',
+          width: 1200,
+          height: 630,
+          type: 'image/png',
+          alt: t('comun.og.titulo'),
+        },
+      ],
     },
     twitter: {
-      // `summary`, no `summary_large_image`: la tarjeta grande exige una
-      // imagen 1200×630 que todavía no hay.
-      card: 'summary',
+      // Con un 1200×630 real ya se puede pedir la tarjeta grande; con
+      // `summary` a secas la imagen saldría recortada en un cuadradito.
+      card: 'summary_large_image',
       title: t('comun.og.titulo'),
       description: t('comun.og.descripcion'),
+      images: [{ url: '/og.png', alt: t('comun.og.titulo') }],
     },
   }
 }

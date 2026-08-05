@@ -73,7 +73,7 @@ export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps
       <TarjetaCrisis nivel={riesgo} pais={pais} />
 
       {error ? (
-        <p className={estilos.error} role="alert">
+        <p className={estilos.error} role="alert" data-testid="refugio-error">
           {error}
         </p>
       ) : null}
@@ -84,6 +84,7 @@ export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps
         </label>
         <textarea
           id="redactor-refugio"
+          data-testid="refugio-campo-mensaje"
           className={estilos.campo}
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
@@ -97,7 +98,12 @@ export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps
           autoComplete="off"
           spellCheck={false}
         />
-        <Boton type="submit" cargando={enviando} disabled={!puedeEscribir || texto.trim().length === 0}>
+        <Boton
+          type="submit"
+          cargando={enviando}
+          disabled={!puedeEscribir || texto.trim().length === 0}
+          data-testid="refugio-boton-enviar"
+        >
           {t('refugios.redactor.enviar')}
         </Boton>
       </div>

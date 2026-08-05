@@ -157,6 +157,7 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
         </label>
         <textarea
           id={`respuesta-${postId}`}
+          data-testid="hilo-campo-respuesta"
           suppressHydrationWarning
           className={estilos.campo}
           value={texto}
@@ -175,7 +176,12 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
               ? t('hilo.faltanCaracteres', { n: faltan })
               : t('publicar.contador', { n: longitud, max: MAX_COMMENT_LENGTH })}
           </span>
-          <Boton type="submit" disabled={!puedeEnviar} cargando={enviando}>
+          <Boton
+            type="submit"
+            disabled={!puedeEnviar}
+            cargando={enviando}
+            data-testid="hilo-boton-responder"
+          >
             {t('hilo.responder')}
           </Boton>
         </div>
@@ -199,13 +205,21 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
       {estado === 'valido' ? <OptInPush momento="primer_comentario_validado" /> : null}
 
       {error ? (
-        <p className={estilos.aviso} role="status">
+        <p className={estilos.aviso} role="status" data-testid="hilo-error">
           {error}
         </p>
       ) : null}
 
       {recursos ? (
-        <Tarjeta como="section" acento="crisis" className={estilos.recursos}>
+        // `tarjeta-recursos`: el MISMO testid que la tarjeta del composer y la
+        // del refugio (pedido de B18 en PEDIDOS.md). El marcado sigue siendo el
+        // que era; unificarlo de verdad en un componente único sigue pendiente.
+        <Tarjeta
+          como="section"
+          acento="crisis"
+          className={estilos.recursos}
+          data-testid="tarjeta-recursos"
+        >
           <p className={estilos.cuerpo}>{recursos.mensaje}</p>
           <ul>
             {recursos.recursos.map((r) => (

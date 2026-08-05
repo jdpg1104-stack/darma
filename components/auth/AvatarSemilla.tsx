@@ -88,6 +88,9 @@ export function AvatarSemilla({ semilla, tamano = 96 }: PropiedadesAvatar) {
       // El texto alternativo NO nombra a nadie: describe la forma, no a la
       // persona. Un `alt` con el alias lo repetiría en cada tarjeta del feed.
       aria-label={t('comun.avatarGenerado')}
+      // Ancla estable para el e2e (B18): el aria-label cambia con el idioma.
+      // El test de «SVG inline, no <img> remota» sigue leyendo el tagName.
+      data-testid="auth-avatar"
       style={{ borderRadius: '50%', display: 'block' }}
     >
       <defs>

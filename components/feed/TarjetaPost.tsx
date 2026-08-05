@@ -56,7 +56,7 @@ export function TarjetaPost({ post }: TarjetaPostProps) {
   const locale = useLocale()
 
   return (
-    <Tarjeta como="article" interactiva className={estilos.tarjeta}>
+    <Tarjeta como="article" interactiva className={estilos.tarjeta} data-testid="feed-tarjeta-post">
       <header className={estilos.cabecera}>
         <Avatar semilla={post.autor.avatarSeed} alias={post.autor.alias} nivel={post.autor.nivel} tamano={40} />
         <div className={estilos.identidad}>
@@ -83,7 +83,12 @@ export function TarjetaPost({ post }: TarjetaPostProps) {
 
       {/* `prefetch` para que abrir un hilo sea instantáneo. El enlace cubre la
           tarjeta entera (CSS), pero sigue siendo un ancla real. */}
-      <Link href={`/post/${post.id}`} prefetch className={estilos.enlaceHilo}>
+      <Link
+        href={`/post/${post.id}`}
+        prefetch
+        className={estilos.enlaceHilo}
+        data-testid="feed-abrir-hilo"
+      >
         {t('feed.abrirHilo', { alias: post.autor.alias })}
       </Link>
 
@@ -93,7 +98,11 @@ export function TarjetaPost({ post }: TarjetaPostProps) {
       </footer>
 
       {post.enRiesgo ? (
-        <aside className={estilos.recursos}>
+        // `feed-pie-recursos` y NO `tarjeta-recursos`: esta pieza va dirigida a
+        // quien LEE, no al autor del texto en riesgo. Compartir el testid con la
+        // tarjeta del autor haría que un test de «no hay tarjeta de crisis»
+        // fallara por un post ajeno del feed.
+        <aside className={estilos.recursos} data-testid="feed-pie-recursos">
           {t('feed.recursosPrefijo')}{' '}
           <Link href="/ayuda" className={estilos.enlaceRecursos}>
             {t('feed.recursosEnlace')}

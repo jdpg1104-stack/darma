@@ -29,9 +29,13 @@ export abstract class BasePage {
   /**
    * El botón de crisis. Es un ENLACE a /ayuda, no un botón: funciona sin JS a
    * propósito, porque quien lo necesita puede estar en una red pésima.
+   *
+   * Se localiza por `data-testid` (la etiqueta cambia con el idioma que inyecta
+   * B17); que además sea un `<a href="/ayuda">` con nombre accesible lo afirma
+   * el spec nº 12, no este localizador.
    */
   get botonCrisis(): Locator {
-    return this.page.getByRole('link', { name: 'Necesito ayuda ahora' })
+    return this.page.getByTestId('ui-crisis-boton')
   }
 
   /** El BotonCrisis debe estar en TODA pantalla de app/(app) (CONTRATOS §9). */
@@ -40,21 +44,14 @@ export abstract class BasePage {
   }
 
   /**
-   * La tarjeta de recursos de ayuda que se muestra al autor de un texto de
-   * riesgo. Hoy hay CUATRO marcados distintos en la app (composer, hilo,
-   * refugio, pie del feed) y ninguno lleva `data-testid`; el del composer es el
-   * único con ancla estable (`#recursos-titulo`), así que el localizador es una
-   * unión de los tres marcados accionables. Pedido a B03/B04/B10 y B16 en
-   * PEDIDOS.md para unificarlo en un solo `data-testid="tarjeta-recursos"`.
+   * La tarjeta de recursos de ayuda que se muestra al AUTOR de un texto de
+   * riesgo. Los tres marcados accionables (composer, hilo y refugio) llevan ya
+   * el `data-testid="tarjeta-recursos"` unificado que pedía la ficha de B18;
+   * el pie del feed va aparte (`feed-pie-recursos`) porque se dirige a quien
+   * LEE y compartir testid haría fallar los «no hay tarjeta» por posts ajenos.
    */
   get tarjetaCrisis(): Locator {
-    return this.page.locator(
-      [
-        '[data-testid="tarjeta-recursos"]',
-        'section[aria-labelledby="recursos-titulo"]',
-        '[role="note"][aria-label="Recursos de ayuda"]',
-      ].join(', '),
-    )
+    return this.page.getByTestId('tarjeta-recursos')
   }
 
   /**
