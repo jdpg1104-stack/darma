@@ -101,3 +101,37 @@ test('un destino ausente o sin postMessage no revienta', () => {
   assert.doesNotThrow(() => enviarComando(undefined, 'pauseVideo'))
   assert.doesNotThrow(() => suscribirse(null, 'x'))
 })
+
+// ── El origen inyectado (stub e2e) no ablanda la barrera ────────────────────
+// `origenPermitido` sustituye UN origen exacto por OTRO origen exacto: con el
+// origen del stub inyectado, youtube-nocookie deja de pasar y viceversa. En
+// ningún caso pasan dos a la vez.
+test('con origen inyectado, SOLO ese origen pasa (ni siquiera el real)', () => {
+  const origenStub = 'http://localhost:3018'
+
+  const delStub = parsearMensaje({ origin: origenStub, data: FIN }, origenStub)
+  assert.deepEqual(delStub, { evento: 'onStateChange', estado: ESTADO.TERMINADO })
+
+  assert.equal(parsearMensaje({ origin: ORIGEN_EMBED_ESPERADO, data: FIN }, origenStub), null)
+  assert.equal(parsearMensaje({ origin: 'https://evil.example', data: FIN }, origenStub), null)
+  assert.equal(parsearMensaje({ origin: '', data: FIN }, origenStub), null)
+})
+
+test('sin origen inyectado, el del stub NO pasa: rige youtube-nocookie', () => {
+  assert.equal(parsearMensaje({ origin: 'http://localhost:3018', data: FIN }), null)
+  assert.equal(parsearMensaje({ origin: 'http://localhost:3000', data: FIN }), null)
+})
+
+test('los comandos salen hacia el origen inyectado cuando lo hay', () => {
+  const enviados: Array<[string, string]> = []
+  const destino = {
+    postMessage(mensaje: string, origen: string) {
+      enviados.push([mensaje, origen])
+    },
+  }
+
+  enviarComando(destino, 'playVideo', 'http://localhost:3018')
+  suscribirse(destino, 'id', 'http://localhost:3018')
+
+  assert.deepEqual(enviados.map(([, o]) => o), ['http://localhost:3018', 'http://localhost:3018'])
+})

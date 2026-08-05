@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test'
+import { expect, type Locator } from '@playwright/test'
 import { BasePage } from './BasePage'
 
 /**
@@ -55,6 +55,19 @@ export class AnimoPage extends BasePage {
   /** Baja al siguiente item del feed vertical. */
   async siguiente(): Promise<void> {
     await this.page.mouse.wheel(0, 900)
+  }
+
+  /**
+   * Espera a que la tarjeta activa sea OTRA distinta de `previa`.
+   *
+   * Con reintento A PROPÓSITO: el wheel dispara un scroll con snap que tarda
+   * unos cientos de ms en asentar, y `data-activo` no cambia en el instante
+   * del gesto sino cuando el coordinador ve a la siguiente tarjeta por encima
+   * del umbral de visibilidad. Una comparación inmediata del id lee el estado
+   * de ANTES del scroll y falla siempre.
+   */
+  async esperarOtraActiva(previa: string | null): Promise<void> {
+    await expect(this.tarjetaActiva).not.toHaveAttribute('id', previa ?? '')
   }
 
   /**

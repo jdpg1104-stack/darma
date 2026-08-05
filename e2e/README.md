@@ -99,6 +99,33 @@ Reglas que sostienen la suite:
 - **Cero `page.route()`.** Mockear el gate de reciprocidad haría que la prueba
   pasara siempre sin probar nada.
 
+## El reproductor en headless: el stub
+
+El widget de youtube-nocookie **no responde en Chromium headless**: acepta el
+handshake `{event:'listening'}` y no emite jamás `onReady` ni `onStateChange`
+(verificado con sondeos aislados fuera de la app — iframe directo, red con
+200s, cero eventos en 15 s, también con `channel:'chrome'`). Sin
+`onStateChange: REPRODUCIENDO` el flujo de acreditación de `TarjetaVideo`
+(latidos → `/sesion`, `/latido`, `/completado`) no tiene disparador y el
+recorrido (f) no puede existir.
+
+Por eso `webServer` declara `NEXT_PUBLIC_E2E_STUB_PLAYER=1` y la app, **solo
+bajo ese fusible**, sustituye el iframe del widget por un `srcdoc` que habla su
+mismo protocolo (`lib/video/stubE2E.ts`). Lo que hay que saber:
+
+- **Lo que se deja de probar es el widget de YouTube, nada más.** La barrera de
+  `parsearMensaje` (origen exacto + `source === contentWindow`), la suscripción,
+  los latidos, las RPC y el karma se ejercen de verdad: el `srcdoc` hereda
+  nuestro origen y los mensajes cruzan un `postMessage` real.
+- **El fusible tiene dos cerrojos**: la bandera se inlina en build (solo la
+  declara el `webServer`, nunca `.env.local` ni Vercel) y en runtime se exige
+  `hostname` local. `scripts/security/guardStubReproductor.ts` vigila que la
+  bandera solo se lea en el fusible, que el stub solo lo importe
+  `TarjetaVideo` y que ninguno de los dos cerrojos se borre.
+- **Ojo con `reuseExistingServer`**: un `next dev` ya levantado en el 3018 SIN
+  la bandera hace fallar la suite de vídeo (el widget real no responde en
+  headless). Mata ese servidor y deja que Playwright levante el suyo.
+
 ## Aislamiento y limpieza
 
 Todo lo que la suite crea lleva el prefijo `e2e_<8hex>_` de la ejecución. El

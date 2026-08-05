@@ -15,6 +15,15 @@ import { AnimoPage } from '../paginas/AnimoPage'
 // origen y no se puede leer.
 // ============================================================================
 
+// Secuencial dentro del archivo, A PROPÓSITO (y `default`, no `serial`: un
+// fallo no arrastra a los demás). Estos cuatro tests siembran contenido en un
+// catálogo COMPARTIDO por los workers: con dos en paralelo, la tarjeta activa
+// de un test puede ser la siembra del otro, y cuando ese otro termina su
+// teardown la borra A MITAD de reproducción — la sesión muere en cascada, los
+// latidos pasan a acreditar 0 y `/completado` no llega nunca. Los usuarios se
+// aíslan por test; el catálogo de `/animo` no se puede aislar por usuario.
+test.describe.configure({ mode: 'default' })
+
 test.describe('(f) Feed vertical de vídeo', () => {
   omitirSinAdmin()
 
@@ -105,7 +114,7 @@ test.describe('(f) Feed vertical de vídeo', () => {
     // sonarían a la vez, que en una app que se usa de noche en el móvil es un
     // fallo grave y no un detalle.
     await expect(animo.tarjetaActiva).toHaveCount(1)
-    expect(await animo.tarjetaActiva.getAttribute('id')).not.toBe(primera)
+    await animo.esperarOtraActiva(primera)
   })
 
   // ── Camino de fallo nº 11 ───────────────────────────────────────────────

@@ -62,11 +62,19 @@ export interface MensajeEntrante {
  * frecuentes y normales; tratarlos como error llenaría la consola de ruido y
  * escondería el problema de verdad.
  */
-export function parsearMensaje(evento: MensajeEntrante): MensajeReproductor | null {
+export function parsearMensaje(
+  evento: MensajeEntrante,
+  origenPermitido: string = ORIGEN_EMBED,
+): MensajeReproductor | null {
   // ── LA BARRERA ───────────────────────────────────────────────────────────
-  // Comparación exacta contra el origen completo. Nunca `includes()` ni
+  // Comparación exacta contra UN único origen completo. Nunca `includes()` ni
   // `endsWith()`: `https://www.youtube-nocookie.com.evil.example` pasa las dos.
-  if (evento.origin !== ORIGEN_EMBED) return null
+  //
+  // `origenPermitido` existe para UN caso: el stub e2e (lib/video/stubE2E.ts),
+  // cuyo srcdoc hereda nuestro propio origen. Solo TarjetaVideo lo inyecta y
+  // solo con el fusible abierto; en todos los demás llamadores rige el valor
+  // por defecto. Lo vigila scripts/security/guardStubReproductor.ts.
+  if (evento.origin !== origenPermitido) return null
 
   let carga: unknown = evento.data
   if (typeof carga === 'string') {
@@ -115,13 +123,20 @@ export interface DestinoComando {
  * El segundo argumento de `postMessage` es el origen DESTINO, y va explícito
  * (nunca `'*'`): con `'*'` el mensaje se entrega a quien sea que ocupe ese
  * iframe, incluido un origen distinto tras una redirección.
+ *
+ * `origenDestino` es el mismo punto de inyección (y con la misma regla) que el
+ * `origenPermitido` de `parsearMensaje`: solo el stub e2e lo usa.
  */
-export function enviarComando(destino: DestinoComando | null | undefined, comando: ComandoReproductor): void {
+export function enviarComando(
+  destino: DestinoComando | null | undefined,
+  comando: ComandoReproductor,
+  origenDestino: string = ORIGEN_EMBED,
+): void {
   if (!destino || typeof destino.postMessage !== 'function') return
 
   destino.postMessage(
     JSON.stringify({ event: 'command', func: comando, args: [] }),
-    ORIGEN_EMBED,
+    origenDestino,
   )
 }
 
@@ -131,11 +146,15 @@ export function enviarComando(destino: DestinoComando | null | undefined, comand
  * Sin este mensaje inicial YouTube no envía NADA aunque `enablejsapi=1` esté
  * puesto: el `listening` es lo que abre el canal.
  */
-export function suscribirse(destino: DestinoComando | null | undefined, idEscucha: string): void {
+export function suscribirse(
+  destino: DestinoComando | null | undefined,
+  idEscucha: string,
+  origenDestino: string = ORIGEN_EMBED,
+): void {
   if (!destino || typeof destino.postMessage !== 'function') return
 
   destino.postMessage(
     JSON.stringify({ event: 'listening', id: idEscucha, channel: 'widget' }),
-    ORIGEN_EMBED,
+    origenDestino,
   )
 }

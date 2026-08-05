@@ -18,12 +18,13 @@
 // cuenta; esto es cortesía con la batería y con su rate limit, no la defensa.)
 // ============================================================================
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import Image from 'next/image'
 import { useTraductor } from '@/i18n/Proveedor'
 import { urlEmbedDeItem } from '@/lib/video/embed'
 import { INTERVALO_LATIDO_MS, objetivoCompletado } from '@/lib/video/acreditacion'
 import { ESTADO, enviarComando, parsearMensaje, suscribirse } from '@/lib/video/reproductor'
+import { MARCADO_STUB_REPRODUCTOR, stubReproductorActivo } from '@/lib/video/stubE2E'
 import type { EstadoLatido, ItemVideo, ResultadoCompletado } from '@/lib/video/tipos'
 import { useAutoplayEnVista, useAutoplayPermitido } from './useAutoplayEnVista'
 import { puedeSonar, useDesbloqueoAudio } from './desbloqueoAudio'
@@ -55,6 +56,16 @@ async function pedir<T>(ruta: string, cuerpo?: unknown): Promise<T | null> {
   }
 }
 
+/** El fusible del stub no cambia tras el arranque: no hay nada que suscribir. */
+function suscripcionVacia(): () => void {
+  return () => {}
+}
+
+/** Lo que pinta el servidor (y la hidratación): sin stub. */
+function instantaneaSinStub(): boolean {
+  return false
+}
+
 export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps) {
   const t = useTraductor()
   const [nodo, setNodo] = useState<HTMLElement | null>(null)
@@ -77,6 +88,21 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
   const [faltan, setFaltan] = useState<number>(objetivoCompletado(item.duracionSegundos))
   const [completado, setCompletado] = useState(item.completado)
 
+  // ── Stub e2e del reproductor ──────────────────────────────────────────────
+  // `useSyncExternalStore` y no estado + efecto: el fusible es un valor externo
+  // a React que no cambia tras el arranque. La instantánea del servidor (y de
+  // la hidratación) es `false` —el servidor no sabe de fusibles—, y React
+  // re-lee la del cliente justo después de montar: sin discrepancia de
+  // hidratación y sin setState dentro de un efecto. En un build sin la
+  // bandera, la instantánea del cliente es `false` constante: código muerto.
+  const stub = useSyncExternalStore(suscripcionVacia, stubReproductorActivo, instantaneaSinStub)
+
+  // Bajo el stub, el srcdoc hereda NUESTRO origen; `undefined` deja actuar el
+  // valor por defecto (youtube-nocookie) en reproductor.ts, de modo que el
+  // camino real no toca la barrera. Cuando `stub` es true ya estamos en el
+  // navegador: `window` existe.
+  const origenWidget = stub ? window.location.origin : undefined
+
   const objetivo = objetivoCompletado(item.duracionSegundos)
   const progreso = objetivo === 0 ? 1 : Math.min(1, (objetivo - faltan) / objetivo)
 
@@ -87,10 +113,11 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
     if (!src) return
 
     function alMensaje(evento: MessageEvent) {
-      // LA BARRERA. `parsearMensaje` descarta todo lo que no venga de
-      // youtube-nocookie. Sin esta comprobación cualquier iframe podría fingir
-      // un «vídeo terminado» y disparar la llamada a /completado.
-      const mensaje = parsearMensaje({ origin: evento.origin, data: evento.data })
+      // LA BARRERA. `parsearMensaje` descarta todo lo que no venga del ÚNICO
+      // origen esperado (youtube-nocookie; el propio, bajo el stub e2e). Sin
+      // esta comprobación cualquier iframe podría fingir un «vídeo terminado»
+      // y disparar la llamada a /completado.
+      const mensaje = parsearMensaje({ origin: evento.origin, data: evento.data }, origenWidget)
       if (!mensaje) return
       if (evento.source !== marco.current?.contentWindow) return
 
@@ -106,7 +133,24 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
 
     window.addEventListener('message', alMensaje)
     return () => window.removeEventListener('message', alMensaje)
-  }, [src])
+  }, [origenWidget, src])
+
+  // Suscripción + arranque, compartido entre el efecto del coordinador y el
+  // `load` del iframe (ver el comentario del `onLoad`).
+  const engancharReproductor = useCallback(() => {
+    const ventana = marco.current?.contentWindow
+    if (!ventana) return
+
+    suscribirse(ventana, item.id, origenWidget)
+    // Ser la tarjeta actual no implica arrancar: con `prefers-reduced-motion`
+    // o `saveData` la reproducción espera al toque de la persona (alTocar).
+    // La suscripción sí se abre siempre — sin ella los mensajes del reproductor
+    // no llegan y los latidos del arranque manual no acreditarían nada.
+    if (autoplay) {
+      enviarComando(ventana, 'playVideo', origenWidget)
+      enviarComando(ventana, audioDesbloqueado && puedeSonar() ? 'unMute' : 'mute', origenWidget)
+    }
+  }, [audioDesbloqueado, autoplay, item.id, origenWidget])
 
   // ── Abrir sesión y encender/apagar según el coordinador ───────────────────
   useEffect(() => {
@@ -117,22 +161,14 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
       // Apagar SIEMPRE, aunque el estado local diga que no reproducía: el
       // coordinador apaga antes de encender, y un fallo aquí es el segundo
       // vídeo sonando de fondo.
-      enviarComando(ventana, 'pauseVideo')
+      enviarComando(ventana, 'pauseVideo', origenWidget)
       reproduciendo.current = false
       setReproduciendoUi(false)
       return
     }
 
-    suscribirse(ventana, item.id)
-    // Ser la tarjeta actual no implica arrancar: con `prefers-reduced-motion`
-    // o `saveData` la reproducción espera al toque de la persona (alTocar).
-    // La suscripción sí se abre siempre — sin ella los mensajes del reproductor
-    // no llegan y los latidos del arranque manual no acreditarían nada.
-    if (autoplay) {
-      enviarComando(ventana, 'playVideo')
-      enviarComando(ventana, audioDesbloqueado && puedeSonar() ? 'unMute' : 'mute')
-    }
-  }, [activo, autoplay, audioDesbloqueado, item.id, src])
+    engancharReproductor()
+  }, [activo, engancharReproductor, origenWidget, src])
 
   // ── El bucle de latidos ───────────────────────────────────────────────────
   const latir = useCallback(async () => {
@@ -180,13 +216,13 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
     if (!ventana) return
 
     if (reproduciendo.current) {
-      enviarComando(ventana, 'pauseVideo')
+      enviarComando(ventana, 'pauseVideo', origenWidget)
       reproduciendo.current = false
       setReproduciendoUi(false)
     } else {
-      enviarComando(ventana, 'playVideo')
+      enviarComando(ventana, 'playVideo', origenWidget)
       // El toque ES activación de usuario, así que aquí sí se puede desmutear.
-      enviarComando(ventana, 'unMute')
+      enviarComando(ventana, 'unMute', origenWidget)
     }
   }
 
@@ -202,7 +238,9 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
         <iframe
           ref={marco}
           className={estilos.medio}
-          src={src}
+          // Bajo el stub e2e el documento es un `srcdoc` (hereda nuestro
+          // origen, no toca la red); en el camino real, el widget de YouTube.
+          {...(stub ? { srcDoc: MARCADO_STUB_REPRODUCTOR } : { src })}
           title={item.titulo}
           allow="autoplay; encrypted-media; picture-in-picture"
           // `sandbox` no se pone: la IFrame API necesita `allow-same-origin` +
@@ -210,6 +248,15 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
           // anula el sandbox. El aislamiento real lo da la CSP (`frame-src` con
           // un único origen) y `frame-ancestors 'none'`.
           loading="lazy"
+          // El iframe puede terminar de cargar DESPUÉS de que el efecto del
+          // coordinador enviara `listening`/`playVideo`: un postMessage a un
+          // documento a medio cargar se entrega al about:blank inicial y se
+          // pierde sin error. Reengancharse en `load` cierra esa carrera —
+          // con el widget real y con el stub. Repetir la suscripción o el
+          // `playVideo` es idempotente para los dos.
+          onLoad={() => {
+            if (activo) engancharReproductor()
+          }}
         />
       ) : item.miniaturaUrl ? (
         <Image
