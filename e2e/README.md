@@ -60,14 +60,17 @@ secretos del runner.
 
 ## Estado actual de este entorno
 
-- **`SUPABASE_SERVICE_ROLE_KEY` no sirve.** En `.env.local` está vacía, y la que
-  hay heredada del shell (`sb_secret_…`) la rechaza `darma-dev` con
-  `Invalid API key … might also be owned by another Supabase project`. El
-  *global setup* lo **comprueba de verdad** con una lectura mínima —no se fía de
-  que la variable exista— y propaga el veredicto a los workers por
-  `E2E_ADMIN_OK`. Los recorridos que la necesitan quedan en `test.fixme()` con
-  el motivo visible en el informe, y se ejecutarán solos el día que la clave
-  correcta esté puesta: no hay que tocar ni una línea.
+- **`SUPABASE_SERVICE_ROLE_KEY` ya sirve** (2026-08-05: los recorridos corren de
+  verdad contra `darma-dev`). El *global setup* la sigue **comprobando de
+  verdad** con una lectura mínima —no se fía de que la variable exista— y
+  propaga el veredicto a los workers por `E2E_ADMIN_OK`: si un día deja de
+  servir, los recorridos que la necesitan vuelven solos a `test.fixme()` con el
+  motivo visible en el informe, sin tocar una línea.
+- **El Auth de Supabase limita los logins POR IP.** Cada test crea y loguea su
+  usuario; varias pasadas de la suite completa seguidas agotan el límite y los
+  fixtures fallan con `429 over_request_rate_limit` ANTES de tocar la app. No
+  es un fallo de nada: espera unos minutos. (Y no subas los workers: ver
+  «Paralelismo y rate limiting».)
 - **No hay `MODERATION_API_KEY`**, así que el clasificador corre siempre
   degradado y **ningún comentario se valida solo**. Es diseño: el sistema falla
   cerrado. Por eso los comentarios se escriben **por la UI** (que es lo que se

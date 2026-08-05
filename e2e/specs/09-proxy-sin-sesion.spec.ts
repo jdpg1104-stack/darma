@@ -53,17 +53,15 @@ test.describe('Frontera pública sin sesión', () => {
     expect(respuesta.status()).toBe(401)
   })
 
-  test.fixme('/ayuda es alcanzable SIN sesión y existe de verdad', async ({ page }) => {
+  test('/ayuda es alcanzable SIN sesión y existe de verdad', async ({ page }) => {
     // `/ayuda` es el destino del BotonCrisis y está declarada pública en
     // proxy.ts por una razón que no es técnica: una persona en riesgo no puede
     // toparse con un muro de login. Se prueba sin sesión a propósito.
     //
-    // ⚠️ `test.fixme` PORQUE HOY DEVUELVE 404, y el hallazgo no es mío de
-    // arreglar: no existe ninguna `app/**/ayuda/page.tsx`, aunque BotonCrisis,
-    // TarjetaPost y la landing enlazan ahí y proxy.ts la declara pública. **El
-    // botón de crisis de toda la app lleva a una página que no existe.** Es lo
-    // más grave que ha encontrado este bloque: anotado en HANDOFF/PEDIDOS.md
-    // dirigido a F4/B11 como bloqueante de despliegue, no como deuda.
+    // Estuvo en `test.fixme` porque la página NO EXISTÍA (el hallazgo más
+    // grave de B18: el botón de crisis de toda la app llevaba a un 404). Hoy
+    // `app/ayuda/page.tsx` existe; si esta prueba vuelve a rojo, ese 404 ha
+    // vuelto y es bloqueante de despliegue, no deuda.
     const respuesta = await page.goto('/ayuda')
     expect(
       respuesta?.status(),

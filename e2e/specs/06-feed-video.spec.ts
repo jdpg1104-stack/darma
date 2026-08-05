@@ -35,13 +35,16 @@ test.describe('(f) Feed vertical de vídeo', () => {
   }) => {
     // Duración corta a propósito: el presupuesto de la suite son 6 minutos y el
     // servidor exige el 90 % del tiempo real.
-    await sembrarVideo(10)
+    const contenidoId = await sembrarVideo(10)
     const antes = await karmaDe(usuario)
 
     const animo = new AnimoPage(page)
     await animo.ir()
 
     await expect(animo.tarjetaActiva).toBeVisible()
+    // Reproducir EL VÍDEO SEMBRADO, no «el primero»: la primera tarjeta puede
+    // ser la siembra de otro worker u otro proyecto (ver irAlContenido).
+    await animo.irAlContenido(contenidoId)
     await expect(animo.reproductorActivo).toBeVisible()
 
     await animo.arrancar()
@@ -66,6 +69,7 @@ test.describe('(f) Feed vertical de vídeo', () => {
 
     const animo = new AnimoPage(page)
     await animo.ir()
+    await animo.irAlContenido(contenidoId)
     await animo.arrancar()
     await animo.esperarSesionAbierta()
     await animo.esperarCompletado()

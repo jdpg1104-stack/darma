@@ -56,13 +56,18 @@ async function pedir<T>(ruta: string, cuerpo?: unknown): Promise<T | null> {
   }
 }
 
-/** El fusible del stub no cambia tras el arranque: no hay nada que suscribir. */
+/** Para valores externos que no cambian tras el arranque: nada que suscribir. */
 function suscripcionVacia(): () => void {
   return () => {}
 }
 
-/** Lo que pinta el servidor (y la hidratación): sin stub. */
-function instantaneaSinStub(): boolean {
+/** Instantánea del cliente una vez montado. */
+function instantaneaVerdadera(): boolean {
+  return true
+}
+
+/** Lo que pinta el servidor (y la hidratación): sin stub y sin iframe. */
+function instantaneaFalsaEnServidor(): boolean {
   return false
 }
 
@@ -95,7 +100,21 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
   // re-lee la del cliente justo después de montar: sin discrepancia de
   // hidratación y sin setState dentro de un efecto. En un build sin la
   // bandera, la instantánea del cliente es `false` constante: código muerto.
-  const stub = useSyncExternalStore(suscripcionVacia, stubReproductorActivo, instantaneaSinStub)
+  const stub = useSyncExternalStore(suscripcionVacia, stubReproductorActivo, instantaneaFalsaEnServidor)
+
+  // ── El iframe se monta SOLO en el cliente ─────────────────────────────────
+  // El src lleva `origin=` y en el servidor `origenPropio()` solo puede
+  // adivinar NEXT_PUBLIC_SITE_URL: con cualquier origen real distinto (otro
+  // puerto en desarrollo, la suite e2e, un preview de Vercel) el src del
+  // servidor y el del cliente difieren, React declara discrepancia de
+  // hidratación y recrea el subárbol — con el iframe cargando DOS veces. La
+  // miniatura que pinta el servidor es exactamente lo que se vería mientras el
+  // reproductor carga, así que el primer fotograma no pierde nada.
+  const hidratado = useSyncExternalStore(
+    suscripcionVacia,
+    instantaneaVerdadera,
+    instantaneaFalsaEnServidor,
+  )
 
   // Bajo el stub, el srcdoc hereda NUESTRO origen; `undefined` deja actuar el
   // valor por defecto (youtube-nocookie) en reproductor.ts, de modo que el
@@ -106,7 +125,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
   const objetivo = objetivoCompletado(item.duracionSegundos)
   const progreso = objetivo === 0 ? 1 : Math.min(1, (objetivo - faltan) / objetivo)
 
-  const src = conIframe ? urlEmbedDeItem(item) : null
+  const src = conIframe && hidratado ? urlEmbedDeItem(item) : null
 
   // ── Escucha del reproductor ───────────────────────────────────────────────
   useEffect(() => {

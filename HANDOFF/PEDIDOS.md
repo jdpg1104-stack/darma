@@ -1205,7 +1205,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 
 ### B18 · E2E con Playwright
 
-- [ ] **De B18 → F4 (`package.json`)** · **añadir Playwright a
+- [x] **De B18 → F4 (`package.json`)** · **añadir Playwright a
       `devDependencies`.** Comando exacto:
       ```bash
       npm i -D @playwright/test@^1.62.1
@@ -1222,15 +1222,22 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       integre, la suite solo corre en una máquina donde alguien haya repetido
       ese comando. Comprobado: `git status` limpio fuera de `e2e/**`,
       `playwright.config.ts`, `PEDIDOS.md` y `ESTADO.md` · 2026-08-03
-- [ ] **De B18 → F4 (`.env.example`)** · documentar
+      → **Resuelto 2026-08-05:** `@playwright/test@^1.62.1` ya está en
+      `devDependencies` (llegó con una integración anterior) y los dos scripts
+      `e2e` / `e2e:ui` se añaden hoy, tal cual se pedían
+- [x] **De B18 → F4 (`.env.example`)** · documentar
       **`E2E_SUPABASE_PROJECT_REF`** (y opcionalmente `E2E_PORT`). Es el segundo
       cerrojo del fusible anti-producción de `e2e/utils/admin.ts`: contra una
       base remota, la suite se niega a ejecutarse si el ref del proyecto no está
       declarado a mano. Se pide una variable propia a propósito — si bastara con
       «la URL que hay en `.env.local`», apuntar la suite a producción sería
       cambiar una variable que ya existe · 2026-08-03
+      → **Resuelto 2026-08-05:** las dos documentadas en `.env.example`
+      (sección «Solo desarrollo y pruebas»), junto con
+      `NEXT_PUBLIC_E2E_STUB_PLAYER`, la bandera del stub del reproductor que
+      SOLO declara el `webServer` de `playwright.config.ts`
 
-- [ ] **De B18 → F4 / B11 · 🔴 BLOQUEANTE DE DESPLIEGUE: `/ayuda` NO EXISTE.**
+- [x] **De B18 → F4 / B11 · 🔴 BLOQUEANTE DE DESPLIEGUE: `/ayuda` NO EXISTE.**
       `components/ui/BotonCrisis.tsx` enlaza a `/ayuda`, `components/feed/TarjetaPost.tsx`
       también, la landing igual, y `proxy.ts:44` la declara ruta pública «por
       razones que no son técnicas». Pero **no hay ninguna `app/**/ayuda/page.tsx`**:
@@ -1239,7 +1246,12 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `e2e/specs/09-proxy-sin-sesion.spec.ts` › «/ayuda es alcanzable SIN sesión
       y existe de verdad». Quítale el `fixme` en cuanto la página exista ·
       2026-08-03
-- [ ] **De B18 → HUMANO · `SUPABASE_SERVICE_ROLE_KEY` no sirve contra `darma-dev`.**
+      → **Resuelto 2026-08-05:** `app/ayuda/page.tsx` existe y sigue pública en
+      `proxy.ts`; el `fixme` queda retirado hoy y la prueba corre como prueba
+      de verdad
+- [x] **(Resuelto 2026-08-05: la clave ya sirve — el global setup la valida y
+      los recorridos corren de verdad; `06-feed-video` 4/4 en chromium. La fila
+      queda como historia.) De B18 → HUMANO · `SUPABASE_SERVICE_ROLE_KEY` no sirve contra `darma-dev`.**
       En `.env.local` está vacía; la que hay heredada del shell (`sb_secret_…`)
       la rechaza el proyecto con `Invalid API key … This API key might also be
       owned by another Supabase project` — **probablemente es de OTRO proyecto**,

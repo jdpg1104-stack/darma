@@ -52,9 +52,39 @@ export class AnimoPage extends BasePage {
     return this.page.getByRole('heading', { name: 'Todavía no hay vídeos para ti' })
   }
 
-  /** Baja al siguiente item del feed vertical. */
+  /**
+   * Baja al siguiente item del feed vertical.
+   *
+   * No es `mouse.wheel`: en WebKit móvil no existe (Playwright lanza
+   * «Mouse wheel is not supported in mobile WebKit») y este spec corre en los
+   * DOS proyectos. Se desplaza la siguiente tarjeta a la vista — el mismo
+   * efecto observable que el gesto: el snap asienta en ella, el observador de
+   * visibilidad la ve por encima del umbral y el coordinador la elige activa.
+   */
   async siguiente(): Promise<void> {
-    await this.page.mouse.wheel(0, 900)
+    await this.page.evaluate(() => {
+      const activa = document.querySelector('article[data-activo]')
+      activa?.nextElementSibling?.scrollIntoView({ behavior: 'smooth' })
+    })
+  }
+
+  /**
+   * Lleva el feed hasta el contenido dado y espera a que sea la tarjeta ACTIVA.
+   *
+   * Los specs que completan un vídeo anclan la reproducción a SU contenido
+   * sembrado, nunca a «la primera tarjeta»: el catálogo de `/animo` es
+   * COMPARTIDO (el otro proyecto de esta misma suite, otro worker, otra
+   * persona contra darma-dev) y la primera tarjeta puede ser una siembra ajena
+   * — que su dueño borrará en su teardown A MITAD de la reproducción, matando
+   * la sesión en cascada y dejando los latidos acreditando 0 para siempre.
+   */
+  async irAlContenido(contenidoId: string): Promise<void> {
+    const tarjeta = this.page.locator(`article[id="${contenidoId}"]`)
+    await tarjeta.waitFor({ state: 'attached' })
+    await tarjeta.evaluate((nodo) => nodo.scrollIntoView({ behavior: 'smooth' }))
+    await this.page
+      .locator(`article[data-activo][id="${contenidoId}"]`)
+      .waitFor({ state: 'attached' })
   }
 
   /**
