@@ -70,6 +70,23 @@ export interface RecursoCrisis {
    * reciente). Anotado en HANDOFF/PEDIDOS.md para que B00 lo recoja.
    */
   verificadoPor: string | null
+  /**
+   * SOLO para `tipo: 'sms'`. La palabra con la que hay que EMPEZAR el mensaje.
+   *
+   * ── POR QUÉ ESTE CAMPO EXISTE ────────────────────────────────────────────
+   * Las líneas de texto no contestan a un mensaje en blanco: esperan una
+   * palabra concreta que enruta la conversación. La app enseñaba el número y
+   * el enlace `sms:` abre el compositor VACÍO, así que quien lo usara mandaría
+   * un mensaje que no recibe respuesta. En una pantalla de crisis eso no es un
+   * detalle de producto: es alguien que pide ayuda y no obtiene nada, y que
+   * probablemente no lo intenta dos veces.
+   *
+   * `null` = NO CONSTA. Igual que `verificadoPor`, y por el mismo motivo: no se
+   * inventa. Mientras sea `null`, `/ayuda` no promete una palabra concreta —
+   * dice que hay que mirarla en la fuente y enlaza allí. Es peor que tenerla,
+   * y mucho mejor que enseñar una equivocada.
+   */
+  palabraClave?: string | null
   /** URL oficial contra la que se verifica. */
   fuente: string
 }
@@ -335,6 +352,10 @@ const ENTRADAS: readonly RecursosPais[] = [
         tipo: 'sms',
         nombre: 'Crisis Text Line',
         valor: '741741',
+        // NO CONSTA: hay que confirmarla con la organización. Ver el campo en la
+        // interfaz. Mientras sea null, /ayuda manda a la fuente en vez de
+        // prometer una palabra que podría estar mal.
+        palabraClave: null,
         descripcionKey: 'crisis.recursos.sms',
         idiomasAtencion: ['en', 'es'],
         horario: '24/7',
@@ -388,6 +409,8 @@ const ENTRADAS: readonly RecursosPais[] = [
         tipo: 'sms',
         nombre: 'Shout',
         valor: '85258',
+        // NO CONSTA. Ver la nota de Crisis Text Line.
+        palabraClave: null,
         descripcionKey: 'crisis.recursos.sms',
         idiomasAtencion: ['en'],
         horario: '24/7',

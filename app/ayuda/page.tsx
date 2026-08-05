@@ -174,6 +174,23 @@ export default async function PaginaAyuda() {
                 ? ` · ${t('crisis.tarjeta.atiendeEn', { idiomas: textoIdiomas(r.idiomasAtencion, t) })}`
                 : ''}
             </p>
+            {/* Las líneas de SMS no contestan a un mensaje en blanco, y `sms:`
+                abre el compositor VACÍO. Sin esta línea, quien lo use manda algo
+                que no recibe respuesta — y quien pide ayuda y no obtiene nada
+                probablemente no lo intenta dos veces.
+
+                Con palabra conocida se dice cuál. Sin ella NO se inventa: se
+                manda a la fuente oficial, que es la única respuesta honesta. */}
+            {r.tipo === 'sms' ? (
+              <p className={estilos.detalle}>
+                {r.palabraClave
+                  ? t('crisis.tarjeta.smsPalabra', { palabra: r.palabraClave, numero: r.valor })
+                  : t('crisis.tarjeta.smsPalabraDesconocida')}{' '}
+                <a href={r.fuente} target="_blank" rel="noopener noreferrer">
+                  {t('crisis.tarjeta.smsVerFuente')}
+                </a>
+              </p>
+            ) : null}
           </li>
         ))}
       </ul>
