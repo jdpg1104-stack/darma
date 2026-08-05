@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test --experimental-strip-types \"lib/**/*.test.ts\" \"i18n/*.test.ts\" \"components/**/*.test.ts\" \"app/**/*.test.ts\" \"scripts/**/*.test.ts\"",
     "db:push": "supabase db push",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

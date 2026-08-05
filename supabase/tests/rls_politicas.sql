@@ -123,13 +123,30 @@ select ok(
 -- ── posts_read contempla el shadow-ban ──────────────────────────────────────
 -- Deliberadamente deja al AUTOR ver sus propios posts aunque esté silenciado:
 -- quien está en shadow-ban no debe notarlo.
+-- Buscaba la cadena `shadow_banned` DENTRO del `qual`. Dejó de encontrarla en
+-- 0005, que sacó la condición a `esta_silenciado()` para poder indexarla, y
+-- nadie se enteró porque este archivo no lo ejecutaba nadie: la protección
+-- seguía intacta y la prueba llevaba meses en rojo sin decirlo.
+--
+-- Se comprueba en DOS saltos —la política llama a la función, y la función mira
+-- la columna— porque comprobar solo el primero permitiría que
+-- `esta_silenciado()` dejara de mirar el shadow-ban sin que nada se quejara.
 select ok(
   (
-    select bool_or(qual like '%shadow_banned%')
+    select bool_or(qual like '%esta_silenciado%')
       from pg_policies
      where schemaname = 'public' and tablename = 'posts' and cmd = 'SELECT'
   ),
-  'posts_read filtra por shadow_banned'
+  'posts_read delega el shadow-ban en esta_silenciado()'
+);
+select ok(
+  (
+    select pg_get_functiondef(p.oid) like '%shadow_banned%'
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = 'esta_silenciado'
+  ),
+  'esta_silenciado() sigue mirando profiles.shadow_banned'
 );
 
 -- ── Los refugios se leen a través de is_refuge_member() ─────────────────────
