@@ -18,11 +18,13 @@
 //  3. Zod `.strict()`.                     9. UPDATE con cliente ADMIN → el
 //  4. PII.                                    trigger paga +10 y +1 crédito.
 //  5. Riesgo de crisis (puro).            10. Leer del ledger lo REALMENTE
-//  6. Comprobar el post + INSERT.             pagado.
+//  6. Post + historial (en paralelo)          pagado.
+//     + INSERT.
 //
 // Lo importante del orden: nada caro ocurre antes del rate limit, nada se
 // persiste antes de la comprobación de PII, y el karma se LEE en vez de
-// asumirse.
+// asumirse. Y desde el enganche de B11, la crisis se registra UNA sola vez:
+// la ruta O el pipeline, nunca ambos (ver `laRegistraElPipeline` abajo).
 //
 // ── POR QUÉ LA VALIDACIÓN ES SÍNCRONA Y NO UNA COLA ────────────────────────
 // Porque la persona necesita saber AL MOMENTO si su escucha contó. Diferirlo a
@@ -34,7 +36,10 @@
 // ── LOS TRES USOS DEL CLIENTE ADMIN EN TODO EL BLOQUE ──────────────────────
 //  (1) `is_validated` + `quality_score`  ← aquí abajo.
 //  (2) `is_helpful`                      ← `[id]/util/route.ts`.
-//  (3) `crisis_events` y `moderation_flags` ← aquí y en `crisisHilo.ts`.
+//  (3) `crisis_events` y `moderation_flags` ← aquí, en `crisisHilo.ts` y,
+//      desde el enganche de B11, dentro del pipeline al que este MISMO admin
+//      viaja vía `ContextoValidacionIA` (presupuesto, auditoría y crisis):
+//      es el uso (3) entrando por otra puerta.
 // No hay una cuarta. (El cliente admin que reciben los límites no escribe en
 // ninguna tabla de dominio; ver `limites.ts`.)
 // ============================================================================
@@ -48,10 +53,16 @@ import { exigirPerfil, getContextoSesion } from '@/lib/auth/session'
 import { perfilPublicoDesde } from '@/lib/auth/perfil'
 import { assertNoPii, PiiDetectedError } from '@/lib/anonymity'
 import { paisDePeticion } from '@/lib/auth/peticion'
+import { hayClaveIA } from '@/lib/ai/cliente'
 
 import { limitarHilo } from './limites.ts'
 import { evaluar, registrar } from './crisisHilo.ts'
-import { validadorPorDefecto } from './validador.ts'
+import { leerPreviosDelAutor } from './historial.ts'
+import {
+  ValidadorHeuristico,
+  validadorPorDefecto,
+  type ContextoValidacionIA,
+} from './validador.ts'
 import { leerHilo } from './consulta.ts'
 import { decodificarCursor } from './cursor.ts'
 import {
@@ -75,6 +86,13 @@ import type {
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+/**
+ * Suelo heurístico con el que se decide QUIÉN registra la crisis (la ruta o el
+ * pipeline de B11). Es la MISMA implementación que el validador usa por dentro:
+ * pura, determinista y sin estado, así que instanciarla una vez es gratis.
+ */
+const sueloHeuristico = new ValidadorHeuristico()
 
 /** Contexto de sesión con perfil ya creado. Una sola consulta, memoizada. */
 async function contextoConPerfil() {
@@ -120,22 +138,34 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
-    // ── 1ª consulta: el post. Se necesitan las dos columnas:
-    //    · `author_id` para impedir el autocomentario. El índice único
+    // ── 1ª y 2ª consultas, A LA VEZ. Las dos alimentan la MISMA validación y
+    // ninguna depende de la otra ni del INSERT, así que el historial viaja al
+    // lado del post y no añade un solo salto de red al camino de comentar. Que
+    // sea barato importa: si detectar la plantilla costara latencia a todo el
+    // mundo, la siguiente persona que mire este archivo la quitaría.
+    //
+    //    · El post: `author_id` para impedir el autocomentario —el índice único
     //      `uq_comments_one_listen_per_post` impide 3 créditos en el mismo
     //      post, pero NO impide que alguien se gane el crédito comentando su
-    //      propio desahogo, que es la vía de farmeo más obvia de todas.
-    //    · `body` para que la validación pueda detectar el eco (copiar el post
+    //      propio desahogo, que es la vía de farmeo más obvia de todas— y
+    //      `body` para que la validación pueda detectar el eco (copiar el post
     //      y devolvérselo no es escuchar).
-    // Si RLS lo oculta o no existe, `maybeSingle()` devuelve null y la
-    // respuesta es la MISMA en los dos casos: distinguir «retirado» de «no
-    // existe» le confirma a quien sondea que ese uuid existió.
-    const { data: post, error: errorPost } = await supabase
-      .from('posts')
-      .select('id, author_id, body')
-      .eq('id', entrada.postId)
-      .eq('state', 'active')
-      .maybeSingle()
+    //      Si RLS lo oculta o no existe, `maybeSingle()` devuelve null y la
+    //      respuesta es la MISMA en los dos casos: distinguir «retirado» de «no
+    //      existe» le confirma a quien sondea que ese uuid existió.
+    //    · El historial: los comentarios recientes de quien escribe, que es lo
+    //      que enciende `self_repetition`. Sin esto, la misma plantilla pegada
+    //      en doce posts distintos cobra doce veces. Ver `historial.ts` para
+    //      cuántos, en qué ventana y qué pasa si la consulta falla.
+    const [{ data: post, error: errorPost }, historial] = await Promise.all([
+      supabase
+        .from('posts')
+        .select('id, author_id, body')
+        .eq('id', entrada.postId)
+        .eq('state', 'active')
+        .maybeSingle(),
+      leerPreviosDelAutor(supabase, { autorId: userId }),
+    ])
 
     if (errorPost) throw new ErrorApi('error_interno', { causa: errorPost })
     if (!post) throw new ErrorApi('no_encontrado')
@@ -160,10 +190,62 @@ export async function POST(request: Request) {
 
     if (errorInsert || !creado) throw new ErrorApi('error_interno', { causa: errorInsert })
 
-    await registrar(admin, evaluacion, userId, creado.id, pais)
+    // ── Contexto COMPLETO del validador (el enganche que pedía B11):
+    // `autorId` SIEMPRE de la sesión (jamás del body), `refId` del comentario
+    // YA insertado, el `admin` de esta ruta para presupuesto/auditoría/crisis
+    // del pipeline, y el `pais` ya resuelto en el borde para que el pipeline no
+    // viaje a `identity_vault`. Sin `autorId` el validador cae a heurística a
+    // propósito.
+    const contextoIA: ContextoValidacionIA = {
+      postBody: post.body,
+      // Fusión de dos frentes que llegaron a la vez: el historial del autor
+      // viaja DENTRO del contexto de IA y no por una llamada aparte, así que lo
+      // ven las DOS capas — el suelo heurístico (`self_repetition`) y el
+      // modelo, que además puede juzgar una plantilla mejor que un Jaccard.
+      previosDelAutor: historial.previos,
+      autorId: userId,
+      refId: creado.id,
+      admin,
+      pais,
+    }
+
+    // ── QUIÉN registra la crisis: la ruta O el pipeline, nunca ambos.
+    // Con `admin` en el contexto, `evaluarContenido()` (B11) escribe
+    // `crisis_events` por su cuenta — y su registro es mejor: añade la escalada
+    // por LLM. El pipeline corre EXACTAMENTE cuando hay clave y el suelo
+    // heurístico aprueba (ver `ValidadorIA.validar`); en ese camino la ruta NO
+    // registra, porque escribiría la fila dos veces. Si el pipeline corre y
+    // luego DEGRADA (timeout, refusal, presupuesto), su registro por reglas ya
+    // quedó escrito ANTES de tocar la red, así que tampoco se pierde. En todos
+    // los demás caminos —sin clave, que es el estado real de hoy, o con el
+    // suelo en contra— el pipeline no llega a correr y el registro sigue
+    // siendo de esta ruta. El suelo es puro y determinista
+    // (`lib/moderation.ts`): evaluarlo aquí y dentro del validador da el mismo
+    // veredicto. Vigilado por `enganche.test.ts`.
+    const laRegistraElPipeline =
+      evaluacion.tarjeta !== null &&
+      hayClaveIA() &&
+      (await sueloHeuristico.validar(entrada.body, contextoIA)).valido
+
+    if (!laRegistraElPipeline) {
+      await registrar(admin, evaluacion, userId, creado.id, pais)
+    }
+
+    // Si el historial no se pudo leer, se avisa AQUÍ y se sigue. Un fallo de
+    // base de datos no puede convertirse en el rechazo de una escucha sincera:
+    // «no pude comprobarlo» no es «es una plantilla». Lo que no puede es pasar
+    // en silencio —un filtro antifarmeo apagado sin ruido es peor que no
+    // tenerlo—, así que queda el aviso con prefijo estable. No sale nada de
+    // esto hacia el cliente: contar que la comprobación está ciega es publicar
+    // la ventana por la que colar la plantilla.
+    if (historial.estado === 'no_disponible') {
+      console.warn('[darma][b04] historial del autor no disponible; se valida sin la señal de plantilla', {
+        code: historial.codigo,
+      })
+    }
 
     // ── Validación de calidad, síncrona.
-    const veredicto = await validadorPorDefecto.validar(entrada.body, { postBody: post.body })
+    const veredicto = await validadorPorDefecto.validar(entrada.body, contextoIA)
 
     let validacion: ResultadoValidacion
     let creditoGanado = 0

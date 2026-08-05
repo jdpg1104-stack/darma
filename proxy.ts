@@ -61,6 +61,14 @@ const PUBLIC_ROUTES = [
   // «Restaurar compras». Nada falla de forma visible en nuestro lado.
   '/api/billing/webhook/',
   '/api/health',
+  // Scraper de Prometheus: llega de una máquina, sin cookie, y el handler falla
+  // cerrado con su propio Bearer METRICS_TOKEN. Con el proxy delante recibía un
+  // 401 antes de poder presentar el token: observabilidad ciega en producción.
+  '/api/metrics',
+  // Página de caída sin red. El service worker la precachea y la sirve cuando
+  // no hay cobertura; debe poder cachearse ANTES de que exista sesión, o la
+  // primera visita sin red de alguien no autenticado acaba en un 503 de texto.
+  '/offline',
 ]
 
 function isPublicPath(pathname: string): boolean {
@@ -144,8 +152,13 @@ export async function proxy(request: NextRequest) {
     // Las rutas de API se llaman con fetch y esperan JSON: redirigirlas a una
     // página HTML hace que el cliente reviente al hacer res.json(). 401 real.
     if (pathname.startsWith('/api')) {
+      // La MISMA forma del contrato que devuelven todas las rutas
+      // (lib/auth/errores.ts, CONTRATOS §4): {ok, code, message}. Este era el
+      // último emisor del sobre viejo {error} que B00b retiró del resto del
+      // repo; el cliente lee `code`, y un sobre distinto aquí significaba que
+      // el 401 del proxy y el 401 de un handler se parseaban diferente.
       return NextResponse.json(
-        { error: 'no_autenticado' },
+        { ok: false, code: 'no_autenticado', message: 'Necesitas iniciar sesión.' },
         { status: 401, headers: { 'x-request-id': requestId } },
       )
     }

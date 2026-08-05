@@ -1,5 +1,11 @@
 import type { Locator } from '@playwright/test'
+import { obtenerTraductor } from '@/i18n/traductor'
 import { BasePage } from './BasePage'
+
+// El contexto se crea con locale es-ES: el copy se resuelve del catálogo, no
+// se escribe a mano (el «Enviar» fijado a mano nunca existió: el botón real
+// dice «Responder», y este PO jamás había corrido contra la app de verdad).
+const t = obtenerTraductor('es')
 
 /**
  * `/post/[id]` — donde se escucha de verdad.
@@ -26,7 +32,7 @@ export class HiloPage extends BasePage {
   }
 
   get botonEnviar(): Locator {
-    return this.page.getByRole('button', { name: 'Enviar', exact: true })
+    return this.page.getByRole('button', { name: t('hilo.responder'), exact: true })
   }
 
   get comentarios(): Locator {

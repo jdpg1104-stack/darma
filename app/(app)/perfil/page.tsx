@@ -18,8 +18,10 @@
 // puras sobre datos ya cargados.
 //
 // ── JS DE CLIENTE ──────────────────────────────────────────────────────────
-// Solo `HistorialKarma` (el botón de "cargar más") y `BotonCrisis` (que se
-// oculta a sí mismo en /ayuda). Cabecera, panel privado, medidor, racha y
+// `HistorialKarma` (el botón de "cargar más"), `BotonCrisis` (que se oculta a
+// sí mismo en /ayuda) y dos hojas diminutas de B13/B01: `BotonInstalar` (solo
+// se pinta si el navegador ofrece instalar la PWA) y `BotonSalir` (cierra
+// sesión y avisa al service worker). Cabecera, panel privado, medidor, racha y
 // rejilla de insignias son Server Components y envían 0 bytes.
 // ============================================================================
 
@@ -28,6 +30,8 @@ import Link from 'next/link'
 
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { requirePerfil } from '@/lib/auth/session'
+import { BotonInstalar } from '@/components/pwa'
+import { BotonSalir } from '@/components/perfil/BotonSalir'
 import { CabeceraPerfil } from '@/components/perfil/CabeceraPerfil'
 import { PanelPrivado } from '@/components/perfil/PanelPrivado'
 import { ProgresoNivel } from '@/components/perfil/ProgresoNivel'
@@ -71,6 +75,14 @@ export default async function PaginaPerfilPropio() {
         <Link className={estilos.enlaceAccion} href="/perfil/editar">
           {t('perfil.editarPerfil')}
         </Link>
+        {/* B13: la instalación pertenece al perfil, no a un flotante global
+            (components/pwa/index.ts). Se pinta solo cuando el navegador dispara
+            `beforeinstallprompt`; en Safari y en la app ya instalada no ocupa
+            ni un píxel. */}
+        <BotonInstalar />
+        {/* Cierra sesión avisando ANTES al service worker para que borre las
+            cachés (móvil compartido). Ver la cabecera de BotonSalir. */}
+        <BotonSalir />
       </div>
 
       <RachaDias racha={propio.resumen.racha} />

@@ -1,15 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { crearConsultaMetadatos } from './metadatosVideo.ts'
+import { crearConsultaMetadatos, duracionIsoASegundos } from './metadatosVideo.ts'
 
-/** Respuesta de `videos.list` con el `snippet` que se le pida. */
-function respuesta(snippet: Record<string, unknown> | null, status = 200): typeof fetch {
+/** Respuesta de `videos.list` con el `snippet` (y `contentDetails`) que se le pida. */
+function respuesta(
+  snippet: Record<string, unknown> | null,
+  status = 200,
+  contentDetails?: Record<string, unknown>,
+): typeof fetch {
   return (async () =>
     ({
       status,
       ok: status >= 200 && status < 300,
-      json: async () => (snippet === null ? { items: [] } : { items: [{ snippet }] }),
+      json: async () => (snippet === null ? { items: [] } : { items: [{ snippet, contentDetails }] }),
     }) as unknown as Response) as unknown as typeof fetch
 }
 
@@ -27,21 +31,72 @@ const CLAVE = 'AIzaSyDePrueba'
 
 // ── Lo que trae ─────────────────────────────────────────────────────────────
 
-test('devuelve los tres campos del snippet', async () => {
+test('devuelve los campos del snippet y la duración de contentDetails', async () => {
   const consultar = crearConsultaMetadatos({
     apiKey: CLAVE,
-    fetchImpl: respuesta({
-      channelId: 'UC07-dOwgza1IguKA86jqxNA',
-      defaultAudioLanguage: 'es-419',
-      defaultLanguage: 'es',
-    }),
+    fetchImpl: respuesta(
+      {
+        channelId: 'UC07-dOwgza1IguKA86jqxNA',
+        defaultAudioLanguage: 'es-419',
+        defaultLanguage: 'es',
+      },
+      200,
+      { duration: 'PT12M30S' },
+    ),
   })
 
   assert.deepEqual(await consultar('abcdefghijk'), {
     channelId: 'UC07-dOwgza1IguKA86jqxNA',
     defaultAudioLanguage: 'es-419',
     defaultLanguage: 'es',
+    durationSeconds: 750,
   })
+})
+
+test('sin contentDetails la duración es null, y el resto del snippet no se pierde', async () => {
+  const consultar = crearConsultaMetadatos({
+    apiKey: CLAVE,
+    fetchImpl: respuesta({ channelId: 'UC07-dOwgza1IguKA86jqxNA' }),
+  })
+  const meta = await consultar('abcdefghijk')
+  assert.equal(meta?.channelId, 'UC07-dOwgza1IguKA86jqxNA')
+  assert.equal(meta?.durationSeconds, null)
+})
+
+test('🔴 la duración viaja en la MISMA llamada: part pide snippet y contentDetails', async () => {
+  // Es el motivo de capturarla aquí: videos.list cuesta 1 unidad pidas los
+  // `part` que pidas. Una segunda llamada solo por la duración costaría el doble.
+  const e = espia(respuesta({ channelId: 'UC07-dOwgza1IguKA86jqxNA' }, 200, { duration: 'PT1M' }))
+  await crearConsultaMetadatos({ apiKey: CLAVE, fetchImpl: e.fetch })('abcdefghijk')
+  assert.equal(e.urls.length, 1)
+  assert.ok(e.urls[0]?.includes('part=snippet,contentDetails'))
+})
+
+// ── duracionIsoASegundos: pura, sin red ─────────────────────────────────────
+
+test('duracionIsoASegundos entiende las formas reales de YouTube', () => {
+  assert.equal(duracionIsoASegundos('PT54S'), 54)
+  assert.equal(duracionIsoASegundos('PT12M30S'), 750)
+  assert.equal(duracionIsoASegundos('PT1H2M3S'), 3_723)
+  assert.equal(duracionIsoASegundos('P1DT1S'), 86_401)
+  assert.equal(duracionIsoASegundos(' PT2M '), 120, 'el espacio sobrante no invalida el dato')
+})
+
+test('🔴 una duración de CERO es null, no 0: un 0 completaría el vídeo al primer latido', () => {
+  // 'P0D' es lo que declara YouTube en los directos. Con 0 en duration_seconds
+  // el objetivo de acreditación sería 0 y el +1 se regalaría al instante — el
+  // agujero contrario al que la captura de duración viene a cerrar.
+  assert.equal(duracionIsoASegundos('P0D'), null)
+  assert.equal(duracionIsoASegundos('PT0S'), null)
+})
+
+test('duracionIsoASegundos: lo que no encaja es null, nunca un número inventado', () => {
+  assert.equal(duracionIsoASegundos(null), null)
+  assert.equal(duracionIsoASegundos(undefined), null)
+  assert.equal(duracionIsoASegundos(''), null)
+  assert.equal(duracionIsoASegundos('7200'), null)
+  assert.equal(duracionIsoASegundos('P1W'), null, 'YouTube no usa semanas; conservador a propósito')
+  assert.equal(duracionIsoASegundos('PT'), null)
 })
 
 test('los campos ausentes son null, no cadena vacía', async () => {

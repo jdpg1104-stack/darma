@@ -7,7 +7,9 @@
 //
 //   1. ENTRAR SIN NADA, arriba, como acción primaria. Es la promesa de Darma y
 //      quien llega mal no debería tener que rellenar nada. Un formulario en
-//      esta pantalla es gente que se va.
+//      esta pantalla es gente que se va. La única condición es la casilla de
+//      edad mínima («tengo 16 años o más», ver lib/privacy/avisos.ts):
+//      desmarcada por defecto, y el servidor la exige igual (422 sin ella).
 //   2. RECUPERAR CON UN ENLACE, abajo y plegado. Solo lo necesita quien ya
 //      estuvo aquí y perdió el dispositivo.
 //
@@ -19,8 +21,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Respuesta } from '@/lib/auth/respuestas'
-import { traducirCodigoError } from '@/i18n/traductor'
+import type { Respuesta, RespuestaError } from '@/lib/auth/respuestas'
+// Constante pura (lib/privacy/avisos.ts no importa nada de servidor): puede
+// entrar en el bundle. El número de la casilla y el del servidor son EL MISMO.
+import { EDAD_MINIMA } from '@/lib/privacy/avisos'
+import { traducirCodigoError, type Traductor } from '@/i18n/traductor'
 import { useTraductor } from '@/i18n/Proveedor'
 
 type Estado = 'inicial' | 'enviando' | 'enlaceEnviado'
@@ -43,12 +48,23 @@ async function pedir<T>(url: string, opciones?: RequestInit): Promise<Respuesta<
   return (await respuesta.json()) as Respuesta<T>
 }
 
+/** La CLAVE manda sobre el mensaje: el servidor no sabe en qué idioma lee quien
+ *  pregunta, así que `message` viene siempre en uno solo. Sin clave se traduce
+ *  por código, nunca pintando `message` tal cual (CONTRATOS §4). */
+function pintarError(cuerpo: RespuestaError, t: Traductor): string {
+  if (cuerpo.mensajeClave) return t(cuerpo.mensajeClave, cuerpo.mensajeParams ?? {})
+  return traducirCodigoError(cuerpo.code, t, cuerpo.retryAfter ? { retryAfter: cuerpo.retryAfter } : {})
+}
+
 export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
   const router = useRouter()
   const t = useTraductor()
   const [estado, setEstado] = useState<Estado>('inicial')
   const [correo, setCorreo] = useState('')
   const [enmascarado, setEnmascarado] = useState('')
+  // Desmarcada por defecto, siempre: la declaración de edad es un gesto que la
+  // persona tiene que hacer, no un valor que la app pueda dar por hecho.
+  const [edadDeclarada, setEdadDeclarada] = useState(false)
   const [error, setError] = useState<string | null>(
     errorInicial === 'enlace' ? t('auth.entrada.enlaceCaducado') : null,
   )
@@ -56,14 +72,20 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
   const ocupado = estado === 'enviando'
 
   async function entrarAnonimo() {
+    // El botón no se deshabilita: pulsar sin marcar la casilla responde con el
+    // porqué en vez de con un botón muerto. El servidor valida lo mismo (422).
+    if (!edadDeclarada) {
+      setError(t('auth.entrada.errorEdadMinima', { edad: EDAD_MINIMA }))
+      return
+    }
     setError(null)
     setEstado('enviando')
     try {
-      const cuerpo = await pedir<{ userId: string }>('/api/auth/anonimo')
+      const cuerpo = await pedir<{ userId: string }>('/api/auth/anonimo', {
+        body: JSON.stringify({ edadMinimaDeclarada: true }),
+      })
       if (!cuerpo.ok) {
-        // Por CÓDIGO, no por `message`: el mensaje del servidor viene en un solo
-        // idioma (CONTRATOS §4 e `i18n/index.ts`).
-        setError(traducirCodigoError(cuerpo.code, t, cuerpo.retryAfter ? { retryAfter: cuerpo.retryAfter } : {}))
+        setError(pintarError(cuerpo, t))
         setEstado('inicial')
         return
       }
@@ -88,7 +110,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
         body: JSON.stringify({ email: valor }),
       })
       if (!cuerpo.ok) {
-        setError(traducirCodigoError(cuerpo.code, t, cuerpo.retryAfter ? { retryAfter: cuerpo.retryAfter } : {}))
+        setError(pintarError(cuerpo, t))
         setEstado('inicial')
         return
       }
@@ -128,6 +150,43 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
           {error}
         </p>
       )}
+
+      <label
+        htmlFor="edad-minima"
+        style={{
+          display: 'flex',
+          gap: 10,
+          alignItems: 'flex-start',
+          color: 'var(--muted)',
+          fontSize: 14,
+          lineHeight: 1.5,
+          cursor: 'pointer',
+        }}
+      >
+        <input
+          id="edad-minima"
+          name="edad-minima"
+          type="checkbox"
+          checked={edadDeclarada}
+          onChange={(evento) => {
+            setEdadDeclarada(evento.target.checked)
+            if (evento.target.checked) setError(null)
+          }}
+          style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--accent)' }}
+        />
+        <span>
+          {t('auth.entrada.casillaEdad', { edad: EDAD_MINIMA })}{' '}
+          {/* En pestaña nueva a propósito: abrirlo no debe vaciar esta pantalla. */}
+          <a
+            href="/legal/menores"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--ink)', textDecoration: 'underline' }}
+          >
+            {t('auth.entrada.casillaEdadEnlace')}
+          </a>
+        </span>
+      </label>
 
       <button
         type="button"

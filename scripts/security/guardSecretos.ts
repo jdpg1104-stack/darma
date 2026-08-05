@@ -75,6 +75,36 @@ const RUTA_PROPIA = 'scripts/security/'
 
 const EXT_BINARIAS = /\.(png|jpe?g|gif|webp|avif|ico|woff2?|ttf|eot|pdf|zip|gz|mp4|webm)$/i
 
+// ── Archivos de secretos locales ────────────────────────────────────────────
+
+/**
+ * `.env.local` (y variantes `.env.*.local`) son el ÚNICO sitio sancionado para
+ * secretos reales en una máquina de desarrollo: Next los carga y `.gitignore`
+ * los excluye del repositorio. Denunciar la clave que ese archivo existe para
+ * guardar convierte cada máquina configurada en un falso positivo permanente —
+ * y un guard que grita siempre enseña al equipo a ignorarlo (el mismo
+ * argumento de la cabecera sobre la anon key).
+ *
+ * La exención NO es incondicional: `esEnvLocalIgnorado()` comprueba con
+ * `git check-ignore` que el archivo sigue realmente ignorado. Si alguien lo
+ * saca del `.gitignore` (y por tanto puede acabar en un commit), vuelve a
+ * escanearse. Y si a pesar del ignore alguien lo forzó al historial con
+ * `git add -f`, lo caza `escanearHistorial`, que no aplica esta exención.
+ */
+export const ENV_LOCAL_RE = /(^|\/)\.env(\.[^/]+)?\.local$/
+
+export function esEnvLocalIgnorado(raiz: string, rel: string): boolean {
+  if (!ENV_LOCAL_RE.test(rel)) return false
+  try {
+    execFileSync('git', ['check-ignore', '-q', rel], { cwd: raiz, stdio: 'ignore' })
+    return true
+  } catch {
+    // Fuera de un repo de git, o no ignorado: se escanea. Fallar hacia
+    // escanear de más es el lado seguro.
+    return false
+  }
+}
+
 function aPosix(p: string): string {
   return p.split(sep).join('/')
 }
@@ -208,6 +238,7 @@ export function escanearArbol(raiz: string): Hallazgo[] {
     const rel = aPosix(relative(raiz, archivo))
     if (rel.startsWith(RUTA_PROPIA)) continue
     if (EXT_BINARIAS.test(rel) && !rel.endsWith('.p8')) continue
+    if (esEnvLocalIgnorado(raiz, rel)) continue
 
     let contenido: string
     try {

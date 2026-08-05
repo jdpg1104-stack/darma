@@ -24,7 +24,10 @@
 // ============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { assessCrisisRisk, crisisMessage, helpResourcesFor } from '@/lib/crisis'
+// Import RELATIVO y con extensión a propósito (mismo motivo que en
+// `validador.ts`): así `node --test --experimental-strip-types` puede cargar
+// este archivo desde sus tests colocados sin el alias `@/` de Next.
+import { assessCrisisRisk, crisisMessage, helpResourcesFor } from '../../../lib/crisis.ts'
 import type { TarjetaRecursosDatos } from './tipos.ts'
 
 /** Resultado de evaluar un texto. `tarjeta` null ⇒ no hay nada que hacer. */

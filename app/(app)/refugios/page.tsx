@@ -12,7 +12,7 @@
 
 import { redirect } from 'next/navigation'
 
-import { ListaAlmasAfines, ListaRefugios } from '@/components/refuge'
+import { CrearCirculo, ListaAlmasAfines, ListaRefugios } from '@/components/refuge'
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { getSesion } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
@@ -75,6 +75,10 @@ export default async function PaginaRefugios() {
       <p className={estilos.explicacion}>{t('refugios.explicacion')}</p>
 
       <ListaRefugios refugios={refugios} />
+
+      {/* La mitad grupal: se elige entre las almas afines de abajo. El propio
+          componente se retira si no hay ninguna guardada. */}
+      <CrearCirculo miId={sesion.userId} almas={almas} />
 
       <h2>{t('refugios.almasAfines')}</h2>
       <ListaAlmasAfines almas={almas} />

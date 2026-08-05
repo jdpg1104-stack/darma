@@ -59,6 +59,16 @@ export const TABS_ADMIN: readonly TabAdmin[] = [
   // no abierta— y por eso registrarla es el paso obligatorio, no un adorno.
   { id: 'encuestas',    ruta: '/encuestas',          etiquetaKey: 'admin.nav.encuestas',    rolMinimo: 'moderador' },
   { id: 'economia',     ruta: '/panel/economia',     etiquetaKey: 'admin.nav.economia',     rolMinimo: 'operaciones' },
+  // Solicitudes RGPD (pedido de B20). `operaciones` y no `moderador` a
+  // propósito: no es una decisión de CONTENIDO sino de operación y
+  // cumplimiento — quién está a punto de irse es información más sensible que
+  // cualquier métrica agregada, y ni soporte ni moderación la necesitan para
+  // su trabajo. Misma clase que economía.
+  // ⚠️ `admin.nav.privacidad` aún NO existe en messages/*.json (los catálogos
+  // son de otro bloque; pedido anotado). Hasta que se añada, la pestaña pinta
+  // la clave tal cual — visible a propósito, como decide i18n/traductor.ts:
+  // un hueco que se ve es un hueco que se arregla.
+  { id: 'privacidad',   ruta: '/panel/privacidad',   etiquetaKey: 'admin.nav.privacidad',   rolMinimo: 'operaciones' },
   { id: 'roles',        ruta: '/panel/roles',        etiquetaKey: 'admin.nav.roles',        rolMinimo: 'superadmin' },
 ] as const
 

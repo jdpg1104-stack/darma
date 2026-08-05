@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { EDAD_ADULTA, EDAD_MINIMA, cumpleEdadMinima } from './avisos.ts'
+import { CONTACTO_EMAIL, EDAD_ADULTA, EDAD_MINIMA, cumpleEdadMinima } from './avisos.ts'
 
 const HOY = new Date('2026-08-03T12:00:00.000Z')
 const RAIZ = join(import.meta.dirname, '..', '..')
@@ -11,6 +11,12 @@ const RAIZ = join(import.meta.dirname, '..', '..')
 test('la edad mínima es 16 y la de controles reforzados 18', () => {
   assert.equal(EDAD_MINIMA, 16)
   assert.equal(EDAD_ADULTA, 18)
+})
+
+test('el correo de contacto del responsable tiene forma de correo', () => {
+  // Los textos legales lo interpolan tal cual: un valor vacío o con espacios
+  // dejaría cuatro «escríbenos a » apuntando a la nada.
+  assert.match(CONTACTO_EMAIL, /^[^\s@]+@[^\s@]+\.[^\s@]+$/)
 })
 
 test('con 16 recién cumplidos se acepta', () => {

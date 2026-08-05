@@ -85,8 +85,12 @@ test.describe('(f) Feed vertical de vídeo', () => {
 
   test('el scroll pasa al siguiente item del feed vertical', async ({
     page,
+    usuario,
     sembrarVideo,
   }) => {
+    // `usuario` inyecta la sesión aunque el test no lo lea: sin él, /animo
+    // redirige a /entrar y no hay ni una tarjeta (mismo hueco que el spec 08).
+    void usuario
     await sembrarVideo(10)
     await sembrarVideo(10)
 
@@ -107,8 +111,10 @@ test.describe('(f) Feed vertical de vídeo', () => {
   // ── Camino de fallo nº 11 ───────────────────────────────────────────────
   test('con prefers-reduced-motion el feed sigue siendo navegable', async ({
     page,
+    usuario,
     sembrarVideo,
   }) => {
+    void usuario
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await sembrarVideo(10)
     await sembrarVideo(10)

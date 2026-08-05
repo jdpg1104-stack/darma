@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import { ejecutarIngesta, type DependenciasIngesta } from './ejecutar.ts'
 import { CLAVE_CURSOR_REVERIFICACION, type AlmacenIngesta, type ItemAprobado } from './almacen.ts'
+import { crearContadorCuota, PRESUPUESTO_POR_CORRIDA, TOPE_DIARIO_PERSISTENTE } from './cuota.ts'
 import type { CandidatoContenido, EstadoContenido, FuenteIngesta, SemillaFuente } from './tipos.ts'
 
 // ============================================================================
@@ -116,9 +117,36 @@ class AlmacenFalso implements AlmacenIngesta {
     return this.cupoModelo
   }
 
+  // ── Cupo diario persistente (0214): se apunta cada llamada para afirmar ──
+  cuotaReservas: Array<{ unidades: number; tope: number }> = []
+  cuotaDevueltas: number[] = []
+  /** `null` = conceder lo pedido; un número = lo que el «Postgres» del test concede. */
+  cuotaConcedida: number | null = null
+
+  async reservarCuotaYoutube(unidades: number, tope: number): Promise<number> {
+    this.cuotaReservas.push({ unidades, tope })
+    return this.cuotaConcedida ?? unidades
+  }
+
+  async devolverCuotaYoutube(unidades: number): Promise<void> {
+    this.cuotaDevueltas.push(unidades)
+  }
+
   async purgarLog(): Promise<number> {
     this.purgadas++
     return 0
+  }
+
+  // ── Backfill de duración ──
+  sinDuracion: Array<{ id: string; externalId: string }> = []
+  duraciones = new Map<string, number>()
+
+  async videosSinDuracion(cursor: string | null, limite: number): Promise<Array<{ id: string; externalId: string }>> {
+    return this.sinDuracion.filter((v) => (cursor ? v.id > cursor : true)).slice(0, limite)
+  }
+
+  async guardarDuracion(id: string, segundos: number): Promise<void> {
+    this.duraciones.set(id, segundos)
   }
 
   async sembrarFuentes(semilla: readonly SemillaFuente[]): Promise<number> {
@@ -181,6 +209,19 @@ function fuenteYoutube(cursor: string | null = null): FuenteIngesta {
   return { key: 'yt:test', kind: 'youtube_channel', handle: 'UC0', language: 'es', topic: null, cursor, fallosConsecutivos: 0 }
 }
 
+/** Fuente de playlist con un id VÁLIDO: es lo que exige la vía de la Data API. */
+function fuentePlaylist(): FuenteIngesta {
+  return {
+    key: 'yt:playlist',
+    kind: 'youtube_playlist',
+    handle: 'PL6hS8Moik7ku0qViOb3LIYWrjqUelnt5c',
+    language: 'es',
+    topic: null,
+    cursor: null,
+    fallosConsecutivos: 0,
+  }
+}
+
 /** Dependencias por defecto: modelo permisivo, embed OK, cero red real. */
 function deps(almacen: AlmacenFalso, fetchFeed: typeof fetch, extra: Partial<DependenciasIngesta> = {}): DependenciasIngesta {
   return {
@@ -188,9 +229,45 @@ function deps(almacen: AlmacenFalso, fetchFeed: typeof fetch, extra: Partial<Dep
     fetchImpl: fetchFeed,
     cribado: { apiKey: 'clave-de-prueba', proveedor: async () => ({ seguro: true, confianza: 0.99 }) },
     sonda: { fetchImpl: fetchFijo('', 200), esperarImpl: async () => {} },
+    // Claves VACÍAS a propósito: fijan el camino «sin Data API» (feed Atom)
+    // aunque el entorno de quien ejecuta los tests tenga YOUTUBE_API_KEY.
+    // Los tests del descubrimiento las sobreescriben con una clave falsa.
+    descubrir: { claveApi: '' },
+    metadatos: { apiKey: '' },
     ...extra,
   }
 }
+
+/** Cuerpo de `playlistItems.list` con vídeos y su DUEÑO (`videoOwnerChannelId`). */
+function apiPlaylist(videos: Array<{ id: string; titulo?: string; publicado?: string; dueno?: string }>): unknown {
+  return {
+    items: videos.map((v) => ({
+      snippet: {
+        title: v.titulo ?? `Vídeo ${v.id}`,
+        description: 'Descripción',
+        publishedAt: v.publicado ?? '2026-01-02T00:00:00Z',
+        // Dueño de la LISTA, que en una playlist curada NO es el del vídeo.
+        channelId: 'UCdeLaListaCuradaXXXXXXX',
+        videoOwnerChannelId: v.dueno ?? 'UC07-dOwgza1IguKA86jqxNA',
+        resourceId: { kind: 'youtube#video', videoId: v.id },
+        thumbnails: { high: { url: `https://i.ytimg.com/vi/${v.id}/hq.jpg` } },
+      },
+    })),
+  }
+}
+
+/** Espía de red que devuelve JSON y apunta las URLs llamadas. */
+function espiaJson(cuerpo: unknown): { fetchImpl: typeof fetch; urls: string[] } {
+  const urls: string[] = []
+  const fetchImpl = (async (url: string) => {
+    urls.push(String(url))
+    return { status: 200, ok: true, json: async () => cuerpo, text: async () => JSON.stringify(cuerpo) } as unknown as Response
+  }) as unknown as typeof fetch
+  return { fetchImpl, urls }
+}
+
+/** Reloj del descubrimiento: dentro de la ventana de los ítems de `apiPlaylist`. */
+const AHORA_DESCUBRIMIENTO = (): Date => new Date('2026-01-03T00:00:00.000Z')
 
 // ── Prueba exigida nº 5 · idempotencia ──────────────────────────────────────
 
@@ -611,4 +688,190 @@ test('las guardas corren ANTES del modelo: un canal ajeno no paga cribado', asyn
   })
 
   assert.equal(llamadasAlModelo, 0, 'no se debe pagar al modelo por algo ya descartado')
+})
+
+// ── Cableado del descubrimiento por la Data API (B21 §1) ────────────────────
+//
+// Lo que se protege aquí es la POLÍTICA del orquestador, no el módulo
+// `descubrir.ts` (ese tiene sus propias pruebas): con clave la API manda y el
+// feed no se toca; sin clave o sin cuota, el feed Atom sigue vivo — la API es
+// una mejora, no una dependencia.
+
+test('B21 · una fuente youtube se lee por playlistItems.list y el feed Atom NO se descarga', async () => {
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuentePlaylist())
+  const feed = { n: 0 }
+  const api = espiaJson(apiPlaylist([{ id: 'vid00000001', titulo: 'Respirar hondo' }]))
+  const cuota = crearContadorCuota()
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo('<feed></feed>', 200, feed), {
+      cuota,
+      descubrir: { claveApi: 'clave-de-prueba', fetchImpl: api.fetchImpl, ahora: AHORA_DESCUBRIMIENTO },
+    }),
+  })
+
+  assert.equal(r.insertados, 1)
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'approved')
+  assert.equal(feed.n, 0, 'con la API disponible, el feed Atom no se descarga')
+  assert.ok(api.urls[0]?.includes('/youtube/v3/playlistItems?'), 'la vía es playlistItems.list')
+  assert.ok(!api.urls.some((u) => u.includes('/youtube/v3/search')), 'search.list cuesta 100× y aquí no pinta nada')
+  assert.equal(cuota.gastadas(), 1, 'una playlist = UNA unidad')
+})
+
+test('B21 · el videoOwnerChannelId sobrevive a normalizar() y alimenta la allowlist', async () => {
+  // El pedido de PEDIDOS.md: sin `channelId` en los tipos, la allowlist perdía
+  // el dato que el descubrimiento ya había pagado. Aquí un vídeo de TERCEROS
+  // dentro de una playlist curada se rechaza SIN gastar ni un videos.list.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuentePlaylist())
+  const api = espiaJson(apiPlaylist([{ id: 'vid00000001', dueno: 'UCAjenoAjenoAjenoAjeno12' }]))
+  const cuota = crearContadorCuota()
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo('<feed></feed>'), {
+      cuota,
+      descubrir: { claveApi: 'clave-de-prueba', fetchImpl: api.fetchImpl, ahora: AHORA_DESCUBRIMIENTO },
+    }),
+  })
+
+  assert.equal(r.rechazados.canal, 1)
+  assert.equal(almacen.log.get('youtube:vid00000001')?.decision, 'rejected_channel')
+  assert.equal(cuota.gastadas(), 1, 'solo la unidad de la playlist: la identidad ya venía del descubrimiento')
+})
+
+test('B21 · con la cuota cortada, el descubrimiento cae al feed Atom y el feed NO se apaga', async () => {
+  // La propiedad que más importa del cableado: agotar la cuota no puede
+  // silenciar /animo al día siguiente. El feed Atom no necesita cuota.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuentePlaylist())
+  const api = espiaJson(apiPlaylist([{ id: 'vid00000009' }]))
+  const cuota = crearContadorCuota({ presupuesto: 0 })
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respiración guiada', publicado: '2026-01-02T00:00:00Z' }])
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      cuota,
+      descubrir: { claveApi: 'clave-de-prueba', fetchImpl: api.fetchImpl, ahora: AHORA_DESCUBRIMIENTO },
+    }),
+  })
+
+  assert.equal(api.urls.length, 0, 'el corte llega ANTES de la llamada, no después')
+  assert.equal(r.insertados, 1, 'el feed Atom siguió trayendo contenido')
+  assert.ok(cuota.resumen().cortes.presupuesto_agotado >= 1, 'el corte queda contado: es la alarma temprana')
+})
+
+test('B21 · la duración de videos.list llega al ítem: el +1 deja de valer ~54 s para todo', async () => {
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Mirar al Futuro', publicado: '2026-01-02T00:00:00Z' }])
+  const cuota = crearContadorCuota()
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      cuota,
+      metadatos: {
+        apiKey: 'clave-de-prueba',
+        fetchImpl: fetchJson({
+          items: [
+            {
+              snippet: { channelId: 'UC07-dOwgza1IguKA86jqxNA', defaultAudioLanguage: 'es-419' },
+              contentDetails: { duration: 'PT12M30S' },
+            },
+          ],
+        }),
+      },
+    }),
+  })
+
+  assert.equal(r.insertados, 1)
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.item.durationSeconds, 750)
+  assert.equal(cuota.gastadas(), 1, 'canal + idioma + duración: UNA sola unidad')
+})
+
+test('B21 · orden embed → canal → idioma: un vídeo no incrustable no gasta ni una unidad', async () => {
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Bloqueado', publicado: '2026-01-02T00:00:00Z' }])
+  const metadatos = espiaJson({ items: [] })
+  const cuota = crearContadorCuota()
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      cuota,
+      sonda: { fetchImpl: fetchFijo('', 401), esperarImpl: async () => {} },
+      metadatos: { apiKey: 'clave-de-prueba', fetchImpl: metadatos.fetchImpl },
+    }),
+  })
+
+  assert.equal(r.rechazados.embed, 1)
+  assert.equal(metadatos.urls.length, 0, 'videos.list no se llama para un vídeo ya muerto')
+  assert.equal(cuota.gastadas(), 0)
+})
+
+// ── El cupo diario PERSISTENTE (migración 0214) ─────────────────────────────
+
+test('B21 · la corrida reserva del cupo diario y devuelve el sobrante al terminar', async () => {
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Mirar al Futuro', publicado: '2026-01-02T00:00:00Z' }])
+
+  await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      metadatos: {
+        apiKey: 'clave-de-prueba',
+        fetchImpl: fetchJson({
+          items: [{ snippet: { channelId: 'UC07-dOwgza1IguKA86jqxNA', defaultAudioLanguage: 'es' } }],
+        }),
+      },
+    }),
+  })
+
+  assert.deepEqual(almacen.cuotaReservas, [{ unidades: PRESUPUESTO_POR_CORRIDA, tope: TOPE_DIARIO_PERSISTENTE }])
+  // Se gastó 1 unidad (el videos.list compartido): vuelve todo lo demás.
+  assert.deepEqual(almacen.cuotaDevueltas, [PRESUPUESTO_POR_CORRIDA - 1])
+})
+
+test('B21 · sin clave de API no se reserva cupo diario: cero round-trips a Postgres', async () => {
+  // El caso REAL de hoy en producción. Reservar presupuesto que nadie puede
+  // gastar solo añadiría latencia y ruido al contador.
+  const almacen = new AlmacenFalso()
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respirar hondo', publicado: '2026-01-02T00:00:00Z' }])
+
+  const r = await ejecutarIngesta({ tipo: 'videos', deps: deps(almacen, fetchFijo(xml)) })
+
+  assert.equal(r.insertados, 1, 'el pipeline sigue aprobando, como antes de la Data API')
+  assert.equal(almacen.cuotaReservas.length, 0)
+  assert.equal(almacen.cuotaDevueltas.length, 0)
+})
+
+test('B21 · si el cupo diario concede 0, nada gasta y el ítem cae a la cola humana, no a rechazo', async () => {
+  // Fail-closed de verdad: con clave configurada pero el día agotado, «no pude
+  // comprobar el idioma» es pending — jamás una aprobación ni un rechazo.
+  const almacen = new AlmacenFalso()
+  almacen.cuotaConcedida = 0
+  almacen.agregarFuente(fuenteYoutube())
+  const xml = feedYoutube([{ id: 'vid00000001', titulo: 'Respirar hondo', publicado: '2026-01-02T00:00:00Z' }])
+  const metadatos = espiaJson({ items: [] })
+
+  const r = await ejecutarIngesta({
+    tipo: 'videos',
+    deps: deps(almacen, fetchFijo(xml), {
+      metadatos: { apiKey: 'clave-de-prueba', fetchImpl: metadatos.fetchImpl },
+    }),
+  })
+
+  assert.equal(almacen.cuotaReservas.length, 1, 'lo intentó y Postgres dijo que no quedaba')
+  assert.equal(metadatos.urls.length, 0, 'sin presupuesto no sale ni una llamada')
+  assert.equal(r.pendientes, 1)
+  assert.equal(r.rechazados.idioma, 0)
+  assert.equal(almacen.contenido.get('youtube:vid00000001')?.state, 'pending')
+  assert.equal(almacen.cuotaDevueltas.length, 0, 'con 0 concedidas no hay nada que devolver')
 })

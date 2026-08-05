@@ -1,42 +1,23 @@
 // ============================================================================
 // Aviso de PII EN EL CLIENTE — cortesía, no barrera
 //
-// ⚠️ ESTO ES UNA COPIA TEMPORAL DE LOS PATRONES DE `lib/anonymity.ts` ⚠️
+// Este módulo NO decide nada. La barrera es `assertNoPii()` en el servidor
+// (`POST /api/posts`), que bloquea con `contenido_bloqueado`. Aquí solo se
+// avisa con amabilidad ANTES de enviar, para que nadie reciba el rechazo del
+// servidor en frío después de haber puesto en palabras algo difícil.
 //
-// ── POR QUÉ EXISTE LA COPIA ────────────────────────────────────────────────
-// `lib/anonymity.ts` es el sitio correcto y `detectPii()` es exactamente la
-// función que hace falta aquí. No se puede importar: ese módulo hace
-// `import { randomBytes } from 'node:crypto'` en su primera línea (lo necesita
-// `createIdentitySeed()`, que es de alta de usuario y solo corre en servidor), y
-// un componente `'use client'` que lo importe arrastra `node:crypto` al bundle
-// del navegador y rompe la compilación.
-//
-// La solución de verdad es partir `lib/anonymity.ts` en dos: los patrones de PII
-// —puros e isomorfos— por un lado y la generación de identidad —servidor— por
-// otro. Eso es de F3, no de B03. Pedido abierto en HANDOFF/PEDIDOS.md; el día
-// que exista, este archivo se borra y el composer importa de allí.
-//
-// ── POR QUÉ LA DUPLICACIÓN AQUÍ NO ES PELIGROSA ────────────────────────────
-// Porque este código NO decide nada. La barrera es `assertNoPii()` en
-// `POST /api/posts`, que corre en el servidor y bloquea con
-// `contenido_bloqueado`. Si esta copia se queda atrás respecto al original, el
-// único efecto es que el aviso amable llegue tarde y la persona reciba el
-// rechazo del servidor en su lugar: peor experiencia, cero fuga. La dirección
-// contraria —que el cliente fuera la única comprobación— sí sería un fallo, y es
-// justo lo que no ocurre aquí.
+// Los patrones viven en `lib/pii.ts` —puro e isomorfo, sin `node:crypto`— y se
+// usan vía `detectPii()`: cliente y servidor ven EXACTAMENTE lo mismo, así que
+// este aviso no puede quedarse atrás respecto a la barrera real. (Hasta
+// 2026-08 este archivo duplicaba las cuatro expresiones porque
+// `lib/anonymity.ts` arrastraba `node:crypto` al bundle del navegador; el
+// pedido «De B03 → F3» de HANDOFF/PEDIDOS.md se cerró partiendo ese módulo.)
 // ============================================================================
 
+import { detectPii, type PiiKind } from '@/lib/pii'
 import type { Traductor } from '@/i18n'
 
-export type TipoPii = 'email' | 'phone' | 'handle' | 'url'
-
-/** Copias literales de las expresiones de `lib/anonymity.ts`. */
-const RE_EMAIL =
-  /[a-z0-9._%+-]+\s*(?:@|\(\s*(?:arroba|at)\s*\)|\[\s*(?:arroba|at)\s*\]|\s+(?:arroba|at)\s+)\s*[a-z0-9.-]+\s*(?:\.|\s*(?:punto|dot)\s*)\s*[a-z]{2,}/gi
-const RE_PHONE = /(?:\+|00)?\s?\d(?:[\s.\-()]?\d){8,}/g
-const RE_HANDLE = /@[a-z0-9._]{3,30}\b/gi
-const RE_URL =
-  /\b(?:https?:\/\/|www\.)[^\s]+|\b[a-z0-9-]+\.(?:com|net|org|es|mx|ar|co|cl|pe|io|me|ly|gg|link|app|tv)\b(?:\/[^\s]*)?/gi
+export type TipoPii = PiiKind
 
 /**
  * Claves del catálogo con el mensaje de cara a la persona: explican, no regañan
@@ -56,22 +37,16 @@ const CLAVES: Readonly<Record<TipoPii, string>> = {
  * («llevo 123456789 días así») no se queda sin publicar por culpa de una
  * expresión regular.
  *
+ * Usa `detectPii()` —la misma función que el servidor— así que hereda su
+ * deduplicación (un email no se avisa además como handle) y su orden por
+ * posición en el texto, igual que el mensaje de `PiiDetectedError`.
+ *
  * El traductor entra por parámetro y no se resuelve aquí dentro: este módulo es
  * una función pura sobre un texto, y `useTraductor()` es un hook que solo puede
  * llamarse desde el componente.
  */
 export function avisoDePii(texto: string, t: Traductor): string | null {
-  const tipos: TipoPii[] = []
-
-  const buscar = (re: RegExp, tipo: TipoPii): void => {
-    re.lastIndex = 0
-    if (re.test(texto)) tipos.push(tipo)
-  }
-
-  buscar(RE_EMAIL, 'email')
-  buscar(RE_PHONE, 'phone')
-  buscar(RE_HANDLE, 'handle')
-  buscar(RE_URL, 'url')
+  const tipos = [...new Set(detectPii(texto).map((hallazgo) => hallazgo.kind))]
 
   if (tipos.length === 0) return null
 

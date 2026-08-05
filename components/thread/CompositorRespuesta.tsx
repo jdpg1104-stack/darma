@@ -25,6 +25,7 @@
 
 import { useState } from 'react'
 import { Boton, Tarjeta } from '@/components/ui'
+import { OptInPush } from '@/components/pwa'
 import { useTraductor } from '@/i18n/Proveedor'
 import { MIN_COMMENT_LENGTH, MAX_COMMENT_LENGTH } from '@/lib/moderation'
 import type { RespuestaComentar, TarjetaRecursosDatos } from '@/app/api/comments/tipos'
@@ -188,6 +189,14 @@ export function CompositorRespuesta({ postId, alPublicar }: CompositorRespuestaP
           creditoGanado={credito}
         />
       ) : null}
+
+      {/* El momento oportuno del opt-in de push (B13): la persona acaba de ver
+          que su comentario contó. Solo con `estado === 'valido'` — tras un «no
+          válido» o durante la revisión no hay nada que avisar y pedir permiso
+          ahí sería pedirlo en el vacío. Si no es realmente su primer comentario
+          validado, el propio componente deja de preguntar (aceptado o tres
+          «ahora no»); jamás va en un layout: ver la cabecera de OptInPush. */}
+      {estado === 'valido' ? <OptInPush momento="primer_comentario_validado" /> : null}
 
       {error ? (
         <p className={estilos.aviso} role="status">

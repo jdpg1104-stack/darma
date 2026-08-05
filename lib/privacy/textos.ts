@@ -27,7 +27,7 @@
 // marcado es justo el que la gente lee antes de registrarse.
 // ============================================================================
 
-import { AVISO_NO_TERAPIA_LARGO } from './avisos.ts'
+import { AVISO_NO_TERAPIA_LARGO, CONTACTO_EMAIL } from './avisos.ts'
 import { POLITICA_RETENCION } from './retencion.ts'
 
 export type TipoDocumentoLegal =
@@ -53,16 +53,28 @@ export interface DocumentoLegal {
 
 // v2: la v1 decía «nunca el contacto en sí», y era falso para quien vincula
 // correo de recuperación. Ver la nota de PRIVACIDAD_VERSION.
-export const TERMINOS_VERSION = 'v2-2026-08'
+// v3: el «escribirnos» de moderación (§6) no decía a dónde. Ahora lleva
+// CONTACTO_EMAIL. Ver la nota de PRIVACIDAD_VERSION.
+export const TERMINOS_VERSION = 'v3-2026-08'
 // v2: declara el correo en claro de quien vincula recuperación. La v1 lo
 // omitía — decía solo «huella irreversible» — y eso dejaba fuera de la política
 // una categoría de dato personal que sí se trata. Subir la versión NO es
 // cosmético: `consents` guarda la versión aceptada, así que quien consintió la
 // v1 consintió un texto que no describía esto.
-export const PRIVACIDAD_VERSION = 'v2-2026-08'
+// v3: identifica al responsable del tratamiento y da su correo de contacto.
+// La política decía «escríbenos» cuatro veces sin que existiera NINGÚN canal
+// de contacto en toda la app, y el RGPD (arts. 13-14) exige la identidad y los
+// datos de contacto del responsable. Sin entidad jurídica que declarar, la
+// fórmula honesta es la real: el titular del proyecto, contactable en
+// CONTACTO_EMAIL.
+export const PRIVACIDAD_VERSION = 'v3-2026-08'
 export const COOKIES_VERSION = 'v1-2026-08'
 export const NO_ES_TERAPIA_VERSION = 'v1-2026-08'
-export const MENORES_VERSION = 'v1-2026-08'
+// v3 (la v2 no existió): el «escríbenos» del punto 5 no decía a dónde; ahora
+// lleva CONTACTO_EMAIL. Salta de v1 a v3 para que los tres documentos tocados
+// por el mismo cambio queden en la misma versión; `cubreVersionActual()`
+// compara igualdad exacta, así que el salto es inocuo.
+export const MENORES_VERSION = 'v3-2026-08'
 export const RETENCION_VERSION = 'v1-2026-08'
 
 const ACTUALIZADO = '2026-08-03'
@@ -171,8 +183,8 @@ shadow-ban: la cuenta sigue funcionando con normalidad pero su contenido no
 entra en el feed de nadie. Es deliberado, y no se comunica: contra el acoso
 funciona mucho mejor que una expulsión, que solo provoca otra cuenta nueva.
 
-Si crees que nos hemos equivocado contigo, puedes escribirnos y lo revisa una
-persona.
+Si crees que nos hemos equivocado contigo, puedes escribirnos a
+${CONTACTO_EMAIL} y lo revisa una persona.
 
 7. TU CONTENIDO
 
@@ -204,6 +216,11 @@ Datos. Si eres consumidor, esto no te quita ningún derecho que la ley te dé.`
 
 const CUERPO_PRIVACIDAD = `Darma guarda lo más íntimo que una persona escribe. Esta página cuenta qué
 hacemos con ello, sin rodeos.
+
+El responsable del tratamiento es el titular del proyecto Darma, una persona
+física, no una empresa, contactable en ${CONTACTO_EMAIL}. Ese buzón no
+es un formulario ni un robot: lo lee la misma persona que mantiene la
+aplicación.
 
 1. EL PRINCIPIO
 
@@ -318,8 +335,8 @@ exactamente esto en su artículo 17.3: el derecho al borrado cede cuando choca
 con los derechos de terceros, y aquí la anonimización cumple el objetivo real,
 que es que nadie pueda saber quién lo escribió.
 
-Si esto no te vale, escríbenos antes de borrar la cuenta y lo miramos caso a
-caso. Preferimos hablarlo a que te enteres después.
+Si esto no te vale, escríbenos a ${CONTACTO_EMAIL} antes de borrar la
+cuenta y lo miramos caso a caso. Preferimos hablarlo a que te enteres después.
 
 TU PERFIL NO SE ELIMINA, SE ANONIMIZA EN EL SITIO. Tu seudónimo pasa a ser uno
 anónimo del tipo «alguien_1a2b3c4d», el avatar cambia, la biografía se borra, el
@@ -364,8 +381,8 @@ tenemos accesible.
 
 Un clasificador automático valora si un comentario cuenta como escucha y si un
 texto indica riesgo. Puede afectarte: un comentario no validado no acredita
-reciprocidad. Puedes pedir revisión humana escribiéndonos, y la cola de riesgo
-la revisa siempre una persona.
+reciprocidad. Puedes pedir revisión humana escribiéndonos a
+${CONTACTO_EMAIL}, y la cola de riesgo la revisa siempre una persona.
 
 Ante la duda, el sistema escala hacia arriba. Un falso positivo molesta; un
 falso negativo es irreversible.
@@ -374,7 +391,8 @@ falso negativo es irreversible.
 
 Acceso, rectificación, supresión, limitación, portabilidad y oposición. Los tres
 primeros los puedes ejercer tú mismo desde la aplicación, sin escribir a nadie y
-sin identificarte, que es como debe ser. Para el resto, escríbenos.
+sin identificarte, que es como debe ser. Para el resto, escríbenos a
+${CONTACTO_EMAIL}.
 
 También puedes reclamar ante la Agencia Española de Protección de Datos.
 
@@ -383,8 +401,9 @@ También puedes reclamar ante la Agencia Española de Protección de Datos.
 Si un tutor legal nos pide el borrado de la cuenta de un menor, no podemos
 atenderlo: para hacerlo tendríamos que reidentificar a esa persona, y el sistema
 es incapaz de hacerlo por diseño. La vía es que la propia persona lo pida desde
-su cuenta. Si hay riesgo para alguien, escríbenos y lo tratamos por el protocolo
-de crisis, no por el de privacidad. Está explicado en /legal/menores.`
+su cuenta. Si hay riesgo para alguien, escríbenos a ${CONTACTO_EMAIL} y
+lo tratamos por el protocolo de crisis, no por el de privacidad. Está explicado
+en /legal/menores.`
 
 const CUERPO_COOKIES = `Darma usa las cookies imprescindibles para funcionar y ninguna más.
 
@@ -481,9 +500,9 @@ pertenece a esta persona».
 La única vía es que sea la propia persona quien lo pida desde su cuenta. Puede
 hacerlo en dos clics y sin dar explicaciones a nadie.
 
-Si tu preocupación es que esté en riesgo, escríbenos y lo tratamos por el
-protocolo de crisis, no por el de privacidad. Ahí sí podemos ayudar, y es la
-puerta correcta.`
+Si tu preocupación es que esté en riesgo, escríbenos a ${CONTACTO_EMAIL}
+y lo tratamos por el protocolo de crisis, no por el de privacidad. Ahí sí
+podemos ayudar, y es la puerta correcta.`
 
 /**
  * Texto que sustituye al cuerpo de un post al borrar la cuenta de su autor.
@@ -504,7 +523,7 @@ export const DOCUMENTOS_LEGALES: Readonly<Record<TipoDocumentoLegal, DocumentoLe
     actualizadoEn: ACTUALIZADO,
     titulo: 'Condiciones de uso',
     cuerpo: CUERPO_TERMINOS,
-    sha256: '571f56e0f50a20a247115d41916e2bdf7fa1b01f6e5a1a9c380afd9f6a520329',
+    sha256: 'bec5784fa8199f0f8b385402867f68b79e63b2065dbdfa267a45ab53d6115b3c',
   },
   privacidad: {
     tipo: 'privacidad',
@@ -512,7 +531,7 @@ export const DOCUMENTOS_LEGALES: Readonly<Record<TipoDocumentoLegal, DocumentoLe
     actualizadoEn: ACTUALIZADO,
     titulo: 'Privacidad y protección de datos',
     cuerpo: CUERPO_PRIVACIDAD,
-    sha256: 'f7bcd22c9c88060c35efb252cab7bb3981af4f72fa571aee604203cbe22d2370',
+    sha256: '5bba5e1ac16c620d5891a1d26733173d17a1162f460ba0823b005384bf85ca56',
   },
   cookies: {
     tipo: 'cookies',
@@ -536,7 +555,7 @@ export const DOCUMENTOS_LEGALES: Readonly<Record<TipoDocumentoLegal, DocumentoLe
     actualizadoEn: ACTUALIZADO,
     titulo: 'Edad mínima y menores',
     cuerpo: CUERPO_MENORES,
-    sha256: '31d40db963ac4e1b0ab5fd2112e881acfda6b486f87f0799d0153a3d3aa6909d',
+    sha256: '807955e0f55ff60297195270ad4e707c6afb529c5378e68e3e96f52dd532d2ab',
   },
   retencion: {
     tipo: 'retencion',

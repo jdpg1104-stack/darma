@@ -93,7 +93,7 @@ npm run dev            # http://localhost:3000
 | `npm run build` | Build de producción |
 | `npm run typecheck` | `tsc --noEmit` — debe salir limpio siempre |
 | `npm run lint` | ESLint 9 (flat config) |
-| `npm test` | 1.210 pruebas con el runner nativo de Node |
+| `npm test` | Más de 1.400 pruebas con el runner nativo de Node |
 | `npm run db:push` | Aplica las migraciones |
 
 ### Contribuir
@@ -213,7 +213,7 @@ Está contado en [`app/SIN-LOADING.md`](./app/SIN-LOADING.md).
 
 ## Estado
 
-Compila, pasa 1.210 pruebas, construye 110 rutas y funciona en dos idiomas. El
+Compila, pasa más de 1.400 pruebas, construye 110 rutas y funciona en dos idiomas. El
 bucle completo está verificado contra Postgres: publicar, escuchar, validar,
 karma, y el segundo intento de publicar bloqueado.
 

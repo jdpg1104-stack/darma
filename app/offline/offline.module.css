@@ -1,0 +1,55 @@
+/* /offline · CSS Module.
+   Todo color sale de un token de app/globals.css (CONTRATOS §10): ni un hex a
+   mano. Misma regla de diseño que el banner de components/pwa: quedarse sin
+   cobertura no es un error de nadie y no merece una pantalla de alarma. */
+
+.pagina {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 60vh;
+  padding: 48px 20px calc(48px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 36px;
+}
+
+.bloque {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+
+.mensaje {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* El mismo punto ámbar del banner de sin conexión: una marca, no una alarma. */
+.punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+/* Pill táctil como el «Volver» de /ayuda: quien llega aquí puede estar en un
+   momento malo y con el pulso regular; el objetivo mínimo es --touch. */
+.enlace {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch, 44px);
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--panel);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+}

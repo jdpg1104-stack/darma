@@ -22,6 +22,7 @@ import { limitar } from '@/lib/auth/limites'
 import { requireSesion, type FilaSesion } from '@/lib/auth/session'
 import { perfilPublicoDesde, type PerfilPublico } from '@/lib/auth/perfil'
 import { leerJson, validarAlias, validarNivelEntrada, validarSemillaAvatar } from '@/lib/auth/validacion'
+import { anotarConsentimiento } from '@/lib/privacy/consentimientos'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -68,6 +69,14 @@ export async function POST(request: Request) {
     // que la función devuelva más no autoriza a que la API lo enseñe.
     const fila = (Array.isArray(data) ? data[0] : data) as FilaSesion | null
     if (!fila) throw new ErrorApi('error_interno')
+
+    // El consentimiento `edad_minima` se registra AQUÍ y no en el alta:
+    // `consents.user_id` tiene FK contra `profiles(id)` y la fila acaba de
+    // nacer. Nadie llega a este paso sin haber marcado la casilla (el alta
+    // devuelve 422 sin ella), así que registrarlo con el perfil es el registro
+    // fiel que el art. 7.1 RGPD obliga a poder demostrar. Si falla, el
+    // onboarding falla y se reintenta: es idempotente por (user, kind, version).
+    await anotarConsentimiento(admin, sesion.userId, 'edad_minima')
 
     return sobreOk<{ perfil: PerfilPublico }>({ perfil: perfilPublicoDesde(fila) }, 201)
   })

@@ -129,7 +129,10 @@ export async function sembrarVideo(
       language: 'es',
       duration_seconds: duracionSegundos,
       topic: 'ansiedad',
-      state: 'published',
+      // El enum real de content_state es pending|approved|rejected (0002): el
+      // valor 'published' de la primera versión de este fixture no existió
+      // nunca en el esquema — el spec estuvo siempre en fixme y nadie lo pisó.
+      state: 'approved',
       published_at: new Date().toISOString(),
     })
     .select('id')

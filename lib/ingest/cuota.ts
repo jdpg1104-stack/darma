@@ -100,6 +100,25 @@ export const PRESUPUESTO_POR_CORRIDA = 400
 export const RESERVA_VERIFICACION = 120
 
 /**
+ * Tope diario PERSISTENTE, en unidades. Es el número que aplica Postgres
+ * (`ingest_reservar_cuota_youtube`, migración 0214) al principio de cada
+ * corrida: el contador en memoria de este archivo protege UNA corrida, pero no
+ * sobrevive ni a un reinicio ni a dos instancias — el techo de verdad tiene que
+ * ser transaccional y compartido, igual que `ingest_model_budget` (0108).
+ *
+ * 6 × 400 = 2.400, y el reparto está elegido, no redondeado:
+ *   · El cron real va cada 6 h (4 corridas/día a presupuesto completo) y las
+ *     2 reservas restantes son margen para corridas manuales o el backfill.
+ *   · Deja 7.600 de las 10.000 unidades diarias libres, porque HOY
+ *     `YOUTUBE_API_KEY` es la MISMA clave que usa DataLaps (anotado en
+ *     PEDIDOS.md): ya la agotó una vez (429 real, 2026-07-29) y Darma no debe
+ *     poder dejarla a cero por su cuenta.
+ * Además, lo que una corrida reserva y no gasta se DEVUELVE al terminar
+ * (`ingest_devolver_cuota_youtube`), así que el gasto contable se pega al real.
+ */
+export const TOPE_DIARIO_PERSISTENTE = 6 * PRESUPUESTO_POR_CORRIDA
+
+/**
  * Tope de LLAMADAS por operación y corrida.
  *
  * `search.list` a 2 no es timidez: son 200 de las 400 unidades del presupuesto,

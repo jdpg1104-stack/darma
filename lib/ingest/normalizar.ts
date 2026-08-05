@@ -117,6 +117,11 @@ export function normalizar(crudo: unknown, fuente: FuenteIngesta): CandidatoCont
     topic: fuente.topic,
     tags: normalizarTags(e.tags),
     publishedAt: texto(e.publishedAt),
+    // Sobrevive a la normalización a propósito (pedido de PEDIDOS.md): la
+    // allowlist de canal corre DESPUÉS de este punto y sin el dato tendría que
+    // volver a pagarlo a la Data API. No se valida su forma aquí — de juzgar si
+    // es un `UC…` legítimo se ocupa `canalesPermitidos.ts`, que es quien decide.
+    channelId: texto(e.channelId),
   }
 }
 

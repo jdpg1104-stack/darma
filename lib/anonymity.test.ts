@@ -14,6 +14,7 @@ import {
   redactPii,
   PiiDetectedError,
 } from './anonymity.ts'
+import * as pii from './pii.ts'
 
 // El CHECK exacto de la columna profiles.alias en 0001_core.sql.
 const ALIAS_CHECK = /^[a-zA-Z0-9_áéíóúñÁÉÍÓÚÑ ]+$/
@@ -110,85 +111,14 @@ test('avatarSeed: determinista y ligado a la semilla', () => {
   assert.notEqual(deriveAvatarSeed('x'), deriveAvatarSeed('y'))
 })
 
-// ── PII ─────────────────────────────────────────────────────────────────────
+// ── PII (reexportada desde lib/pii.ts) ──────────────────────────────────────
+// Los tests de detección viven en lib/pii.test.ts, junto al código. Aquí solo
+// se comprueba la capa de compatibilidad: que los llamantes históricos de
+// lib/anonymity.ts reciben LAS MISMAS funciones, no copias que puedan divergir.
 
-test('detecta emails, incluidas las evasiones habituales', () => {
-  for (const texto of [
-    'escríbeme a maria.lopez@gmail.com',
-    'mi correo es maria (arroba) gmail punto com',
-    'maria AT gmail DOT com',
-  ]) {
-    const findings = detectPii(texto)
-    assert.ok(findings.some((f) => f.kind === 'email'), `no detectó email en: "${texto}"`)
-  }
-})
-
-test('detecta teléfonos con y sin separadores', () => {
-  for (const texto of [
-    'mi movil es 612345678',
-    'llámame al +34 612 34 56 78',
-    'tel: 612-34-56-78',
-  ]) {
-    assert.ok(detectPii(texto).some((f) => f.kind === 'phone'), `no detectó teléfono en: "${texto}"`)
-  }
-})
-
-test('no confunde años ni cifras cortas con teléfonos', () => {
-  for (const texto of [
-    'esto empezó en 2019 y aún sigue',
-    'llevo 3 semanas sin dormir',
-    'tengo 28 años y peso 65 kilos',
-  ]) {
-    assert.deepEqual(detectPii(texto).filter((f) => f.kind === 'phone'), [], `falso positivo en: "${texto}"`)
-  }
-})
-
-test('detecta handles y URLs', () => {
-  assert.ok(detectPii('sígueme en @maria_lopez').some((f) => f.kind === 'handle'))
-  assert.ok(detectPii('mira https://instagram.com/maria').some((f) => f.kind === 'url'))
-  assert.ok(detectPii('está en www.miblog.es').some((f) => f.kind === 'url'))
-  assert.ok(detectPii('busca miblog.com').some((f) => f.kind === 'url'))
-})
-
-test('un email no se cuenta además como handle (no se subraya dos veces)', () => {
-  const findings = detectPii('maria@gmail.com')
-  assert.equal(findings.filter((f) => f.kind === 'handle').length, 0)
-  assert.equal(findings.filter((f) => f.kind === 'email').length, 1)
-})
-
-test('los hallazgos vienen ordenados por posición', () => {
-  const findings = detectPii('mi correo maria@gmail.com y mi movil 612345678')
-  const indices = findings.map((f) => f.index)
-  assert.deepEqual(indices, [...indices].sort((a, b) => a - b))
-})
-
-test('un desahogo normal no dispara nada', () => {
-  const texto =
-    'Llevo tres semanas sin dormir bien. Mi jefe me pide cosas imposibles y en casa ' +
-    'tampoco puedo hablarlo. No sé por dónde empezar.'
-  assert.deepEqual(detectPii(texto), [])
-  assert.doesNotThrow(() => assertNoPii(texto))
-})
-
-test('assertNoPii lanza (no devuelve booleano) para que no se pueda ignorar', () => {
-  assert.throws(() => assertNoPii('escríbeme a maria@gmail.com'), PiiDetectedError)
-  assert.throws(() => assertNoPii('mi movil 612345678'), PiiDetectedError)
-})
-
-test('el error explica el porqué sin regañar y conserva los hallazgos', () => {
-  try {
-    assertNoPii('maria@gmail.com')
-    assert.fail('debería haber lanzado')
-  } catch (e) {
-    assert.ok(e instanceof PiiDetectedError)
-    assert.ok(e.findings.length > 0)
-    assert.match(e.message, /sitio seguro/)
-  }
-})
-
-test('redactPii sustituye pero no borra el resto del texto (para logs)', () => {
-  const out = redactPii('contacta a maria@gmail.com o al 612345678')
-  assert.ok(!out.includes('maria@gmail.com'))
-  assert.ok(!out.includes('612345678'))
-  assert.match(out, /contacta a/)
+test('COMPATIBILIDAD: la API de PII reexportada es idéntica a la de lib/pii.ts', () => {
+  assert.equal(detectPii, pii.detectPii)
+  assert.equal(assertNoPii, pii.assertNoPii)
+  assert.equal(redactPii, pii.redactPii)
+  assert.equal(PiiDetectedError, pii.PiiDetectedError)
 })

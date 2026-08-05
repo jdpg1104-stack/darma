@@ -80,7 +80,10 @@ function recalcular(): void {
     visibilidades.push({ id: tarjeta.id, razon: tarjeta.razon })
   }
 
-  const siguiente = elegirActivo(visibilidades, leerPreferencias(), UMBRAL_VISIBILIDAD)
+  // La selección no mira las preferencias: `prefers-reduced-motion` y
+  // `saveData` apagan el ARRANQUE automático (useAutoplayPermitido, en la
+  // tarjeta), no la elección de cuál es la tarjeta actual. Ver elegirActivo().
+  const siguiente = elegirActivo(visibilidades, UMBRAL_VISIBILIDAD)
   if (siguiente === activoActual) return
 
   activoActual = siguiente

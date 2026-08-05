@@ -18,6 +18,7 @@
 import { useState } from 'react'
 
 import { Avatar, Boton, Chip, EstadoVacio } from '@/components/ui'
+import { OptInPush } from '@/components/pwa'
 import { useTraductor } from '@/i18n/Proveedor'
 import type { AlmaAfin } from '@/lib/crypto/tipos'
 import { MenuBloquear } from './MenuBloquear'
@@ -71,29 +72,41 @@ export function ListaAlmasAfines({ almas }: ListaAlmasAfinesProps) {
   }
 
   return (
-    <ul className={estilos.lista}>
-      {visibles.map((alma) => {
-        const estadoDisponibilidad = ETIQUETA[alma.disponibilidad]
-        return (
-          <li key={alma.id} className={estilos.almaFila}>
-            <Avatar semilla={alma.avatarSeed} alias={alma.alias} nivel={alma.nivel} tamano={40} />
-            <span className={estilos.almaCuerpo}>
-              <span className={estilos.filaTitulo}>{alma.alias}</span>
-              <span className={estilos.filaMeta}>
-                {/* Texto, no solo color: el chip lleva la palabra escrita. */}
-                <Chip tono={estadoDisponibilidad.tono}>{t(estadoDisponibilidad.clave)}</Chip>
-                {alma.note ? ` · ${alma.note}` : ''}
+    <>
+      <ul className={estilos.lista}>
+        {visibles.map((alma) => {
+          const estadoDisponibilidad = ETIQUETA[alma.disponibilidad]
+          return (
+            <li key={alma.id} className={estilos.almaFila}>
+              <Avatar semilla={alma.avatarSeed} alias={alma.alias} nivel={alma.nivel} tamano={40} />
+              <span className={estilos.almaCuerpo}>
+                <span className={estilos.filaTitulo}>{alma.alias}</span>
+                <span className={estilos.filaMeta}>
+                  {/* Texto, no solo color: el chip lleva la palabra escrita. */}
+                  <Chip tono={estadoDisponibilidad.tono}>{t(estadoDisponibilidad.clave)}</Chip>
+                  {alma.note ? ` · ${alma.note}` : ''}
+                </span>
               </span>
-            </span>
-            <span className={estilos.almaAcciones}>
-              <MenuBloquear userId={alma.id} alias={alma.alias} />
-              <Boton variante="fantasma" tamano="sm" onClick={() => void olvidar(alma.id)}>
-                {t('refugios.almas.quitar')}
-              </Boton>
-            </span>
-          </li>
-        )
-      })}
-    </ul>
+              <span className={estilos.almaAcciones}>
+                <MenuBloquear userId={alma.id} alias={alma.alias} />
+                <Boton variante="fantasma" tamano="sm" onClick={() => void olvidar(alma.id)}>
+                  {t('refugios.almas.quitar')}
+                </Boton>
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+
+      {/* El momento oportuno del opt-in de push (B13): hay al menos un Alma Afín
+          guardada, así que «avisarte si un Alma Afín necesita hablar» por fin
+          significa algo. Va tras la lista y NUNCA en la rama vacía: sin nadie
+          guardado no hay nada que avisar. El botón de guardar todavía no existe
+          en ninguna pantalla (`guardarAlmaAfin` de ./api.ts no tiene llamadas);
+          cuando B10 lo monte, este montaje puede mudarse a esa confirmación. El
+          componente se retira solo si ya se aceptó o se aplazó tres veces, y
+          jamás va en un layout: ver la cabecera de OptInPush. */}
+      <OptInPush momento="primera_alma_afin" />
+    </>
   )
 }

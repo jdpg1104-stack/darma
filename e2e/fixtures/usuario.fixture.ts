@@ -31,7 +31,10 @@ let contador = 0
 export async function crearUsuario(etiqueta?: string): Promise<UsuarioE2E> {
   const admin = clienteAdminE2E()
   contador += 1
-  const sufijo = etiqueta ?? String(contador)
+  // El contador entra SIEMPRE, también con etiqueta: un retry de Playwright
+  // reusa el worker, y si el teardown del intento fallido no llegó a borrar
+  // al usuario, la etiqueta sola colisionaría con «already been registered».
+  const sufijo = etiqueta ? `${contador}${etiqueta}` : String(contador)
   const alias = nombreE2E(sufijo)
   const email = correoE2E(sufijo)
 

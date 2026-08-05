@@ -26,7 +26,9 @@ export type DecisionRegistrada =
   | 'rejected_safety'
   | 'rejected_embed'
   | 'rejected_quality'
-  // Los dos de abajo llegaron con B21 y su CHECK está en 0211_1_b21_ingesta.sql.
+  // Los dos de abajo llegaron con B21 y su CHECK está en
+  // 0212_1_b21_decision_ingesta.sql (re-afirmado por 0214 al cablear el
+  // descubrimiento).
   //
   // POR QUÉ NO SE REAPROVECHÓ `rejected_embed` NI `rejected_quality`: porque este
   // campo es exactamente lo que se consultará cuando alguien pregunte «¿por qué
@@ -89,6 +91,16 @@ export interface CandidatoContenido {
   tags: string[]
   /** ISO-8601 o null. */
   publishedAt: string | null
+  /**
+   * Canal PROPIETARIO del vídeo, si la vía de entrada lo dio (la Data API lo
+   * da; el feed Atom no). NO SE PERSISTE en content_items: viaja por el
+   * pipeline para que la allowlist de canal (B21 §4) pueda verificar identidad
+   * sin volver a la red. `null`/ausente = no consta, y no se inventa — es la
+   * misma disciplina que los 24 teléfonos de crisis. Este campo existe porque
+   * la allowlist corre DESPUÉS de `normalizar()` y el dato tenía que
+   * sobrevivirla (pedido «channelId no sobrevive a normalizar()» de PEDIDOS.md).
+   */
+  channelId?: string | null
 }
 
 /** Lo que devuelve una ejecución del cron. Es también el cuerpo de la respuesta. */
@@ -130,4 +142,6 @@ export interface EntradaCruda {
   language?: string | null
   durationSeconds?: number | null
   tags?: string[]
+  /** Canal propietario del vídeo, si la vía lo dio (`descubrir.ts` sí; Atom no). */
+  channelId?: string | null
 }

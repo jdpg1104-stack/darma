@@ -314,6 +314,38 @@
   margin-top: 20px;
 }
 
+/* ── Crear un círculo ────────────────────────────────────────────────────── */
+
+/* El fieldset de la selección: solo quitarle el cromo por defecto. Se usa
+   fieldset de verdad porque `disabled` apaga todas las casillas de golpe
+   mientras se crea, sin repartir el estado input a input. */
+.grupoCirculo {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+/* Una fila marcable entera: la etiqueta ES el objetivo táctil (≥44px), no solo
+   el cuadradito de la casilla. */
+.opcionCirculo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  min-height: 44px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.campoCirculo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 0.25rem);
+}
+
 .avisoAccion {
   margin: 10px 0 0;
   font-size: 13.5px;

@@ -25,7 +25,7 @@ import { urlEmbedDeItem } from '@/lib/video/embed'
 import { INTERVALO_LATIDO_MS, objetivoCompletado } from '@/lib/video/acreditacion'
 import { ESTADO, enviarComando, parsearMensaje, suscribirse } from '@/lib/video/reproductor'
 import type { EstadoLatido, ItemVideo, ResultadoCompletado } from '@/lib/video/tipos'
-import { useAutoplayEnVista } from './useAutoplayEnVista'
+import { useAutoplayEnVista, useAutoplayPermitido } from './useAutoplayEnVista'
 import { puedeSonar, useDesbloqueoAudio } from './desbloqueoAudio'
 import estilos from './FeedVertical.module.css'
 
@@ -64,7 +64,15 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
   const completadoPedido = useRef(false)
 
   const activo = useAutoplayEnVista(item.id, nodo)
+  const autoplay = useAutoplayPermitido()
   const audioDesbloqueado = useDesbloqueoAudio()
+
+  // Espejo en estado del `reproduciendo` de la ref, SOLO para pintar
+  // `data-reproduciendo` en el DOM. La ref sigue mandando en la lógica (los
+  // latidos la leen sin re-render); el atributo existe para que quien mire el
+  // DOM —una persona con inspector, un test— sepa si el vídeo suena, y para
+  // que un click de «reproducir» pueda no enviarse cuando ya reproduce.
+  const [reproduciendoUi, setReproduciendoUi] = useState(false)
 
   const [faltan, setFaltan] = useState<number>(objetivoCompletado(item.duracionSegundos))
   const [completado, setCompletado] = useState(item.completado)
@@ -86,9 +94,13 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
       if (!mensaje) return
       if (evento.source !== marco.current?.contentWindow) return
 
-      if (mensaje.estado === ESTADO.REPRODUCIENDO) reproduciendo.current = true
+      if (mensaje.estado === ESTADO.REPRODUCIENDO) {
+        reproduciendo.current = true
+        setReproduciendoUi(true)
+      }
       if (mensaje.estado === ESTADO.PAUSADO || mensaje.estado === ESTADO.TERMINADO) {
         reproduciendo.current = false
+        setReproduciendoUi(false)
       }
     }
 
@@ -107,13 +119,23 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
       // vídeo sonando de fondo.
       enviarComando(ventana, 'pauseVideo')
       reproduciendo.current = false
+      // El espejo de UI se adelanta en microtarea, no en el cuerpo del efecto
+      // (regla react-compiler: un setState síncrono aquí dispara renders en
+      // cascada). El PAUSADO del reproductor lo confirmará por mensaje igual.
+      queueMicrotask(() => setReproduciendoUi(false))
       return
     }
 
     suscribirse(ventana, item.id)
-    enviarComando(ventana, 'playVideo')
-    enviarComando(ventana, audioDesbloqueado && puedeSonar() ? 'unMute' : 'mute')
-  }, [activo, audioDesbloqueado, item.id, src])
+    // Ser la tarjeta actual no implica arrancar: con `prefers-reduced-motion`
+    // o `saveData` la reproducción espera al toque de la persona (alTocar).
+    // La suscripción sí se abre siempre — sin ella los mensajes del reproductor
+    // no llegan y los latidos del arranque manual no acreditarían nada.
+    if (autoplay) {
+      enviarComando(ventana, 'playVideo')
+      enviarComando(ventana, audioDesbloqueado && puedeSonar() ? 'unMute' : 'mute')
+    }
+  }, [activo, autoplay, audioDesbloqueado, item.id, src])
 
   // ── El bucle de latidos ───────────────────────────────────────────────────
   const latir = useCallback(async () => {
@@ -163,6 +185,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
     if (reproduciendo.current) {
       enviarComando(ventana, 'pauseVideo')
       reproduciendo.current = false
+      setReproduciendoUi(false)
     } else {
       enviarComando(ventana, 'playVideo')
       // El toque ES activación de usuario, así que aquí sí se puede desmutear.
@@ -171,7 +194,13 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
   }
 
   return (
-    <article className={estilos.tarjeta} ref={setNodo} data-activo={activo || undefined}>
+    <article
+      id={item.id}
+      className={estilos.tarjeta}
+      ref={setNodo}
+      data-activo={activo || undefined}
+      data-reproduciendo={reproduciendoUi || undefined}
+    >
       {src ? (
         <iframe
           ref={marco}

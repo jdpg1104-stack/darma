@@ -1,7 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { ejecutarBorradosRgpd, ejecutarRetencionRgpd, LOTE_RETENCION } from './rgpd.ts'
+import {
+  ejecutarBorradosRgpd,
+  ejecutarRetencionRgpd,
+  LOTE_CADUCADAS,
+  LOTE_RETENCION,
+} from './rgpd.ts'
 import type { ContextoTrabajo } from '../tipos.ts'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -210,25 +215,37 @@ test('CAMINO DE FALLO: si la cola no se puede leer, el trabajo LANZA (el despach
 
 // ── Retención ───────────────────────────────────────────────────────────────
 
+/** Fila jsonb como la que devuelve `purgar_retencion()`. */
+function lotePurga(parcial: Partial<Record<string, number>> = {}) {
+  return {
+    data: {
+      content_views: 0,
+      rate_limits: 0,
+      refuge_messages: 0,
+      moderation_flags: 0,
+      crisis_events: 0,
+      ...parcial,
+    },
+  }
+}
+
 test('encadena lotes hasta que no queda nada que purgar', async () => {
   let pasada = 0
   const { cliente, llamadas } = adminFalso({
-    rpc: () => {
+    rpc: (nombre) => {
+      // El barrido de caducadas no tiene cola en este escenario.
+      if (nombre === 'barrer_solicitudes_caducadas') return { data: 0 }
       pasada += 1
-      if (pasada === 1) {
-        return { data: { content_views: LOTE_RETENCION, rate_limits: 5, refuge_messages: 0, moderation_flags: 0, crisis_events: 0 } }
-      }
-      if (pasada === 2) {
-        return { data: { content_views: 3, rate_limits: 0, refuge_messages: 0, moderation_flags: 0, crisis_events: 0 } }
-      }
-      return { data: { content_views: 0, rate_limits: 0, refuge_messages: 0, moderation_flags: 0, crisis_events: 0 } }
+      if (pasada === 1) return lotePurga({ content_views: LOTE_RETENCION, rate_limits: 5 })
+      if (pasada === 2) return lotePurga({ content_views: 3 })
+      return lotePurga()
     },
   })
 
   const r = await ejecutarRetencionRgpd(contexto(cliente))
 
-  // Tres pasadas: la tercera devuelve cero y corta el bucle.
-  assert.equal(llamadas.length, 3)
+  // Tres pasadas de purga: la tercera devuelve cero y corta el bucle.
+  assert.equal(llamadas.filter((l) => l.rpc === 'purgar_retencion').length, 3)
   assert.equal(r.estado, 'ok')
   assert.equal(r.detalle.pasadas, 3)
   assert.equal(r.detalle.content_views, LOTE_RETENCION + 3)
@@ -238,9 +255,10 @@ test('encadena lotes hasta que no queda nada que purgar', async () => {
 test('PRESUPUESTO AGOTADO a mitad de la purga: sale `parcial` y el resto es cosa de mañana', async () => {
   let pasada = 0
   const { cliente } = adminFalso({
-    rpc: () => {
+    rpc: (nombre) => {
+      if (nombre === 'barrer_solicitudes_caducadas') return { data: 0 }
       pasada += 1
-      return { data: { content_views: LOTE_RETENCION, rate_limits: 0, refuge_messages: 0, moderation_flags: 0, crisis_events: 0 } }
+      return lotePurga({ content_views: LOTE_RETENCION })
     },
   })
 
@@ -250,10 +268,74 @@ test('PRESUPUESTO AGOTADO a mitad de la purga: sale `parcial` y el resto es cosa
   assert.equal(r.estado, 'parcial')
 })
 
-test('un presupuesto ya agotado al entrar no purga nada y no lanza', async () => {
+test('un presupuesto ya agotado al entrar no purga nada, no barre nada y no lanza', async () => {
   const { cliente, llamadas } = adminFalso({ rpc: () => ({ data: {} }) })
   const r = await ejecutarRetencionRgpd(contexto(cliente, () => true))
   assert.equal(llamadas.length, 0)
   assert.equal(r.estado, 'ok')
   assert.equal(r.detalle.pasadas, 0)
+  assert.equal(r.detalle.solicitudes_caducadas, 0)
+})
+
+// ── Barrido de solicitudes `pending_confirm` caducadas (0215) ───────────────
+
+test('BARRIDO: va ANTES de la purga y su conteo entra en el detalle', async () => {
+  const { cliente, llamadas } = adminFalso({
+    rpc: (nombre) =>
+      nombre === 'barrer_solicitudes_caducadas' ? { data: 3 } : lotePurga(),
+  })
+
+  const r = await ejecutarRetencionRgpd(contexto(cliente))
+
+  // Primero el barrido (diminuto y acotado), luego la purga: si el presupuesto
+  // muere en la purga, el panel de privacidad ya quedó sin madera muerta.
+  assert.equal(llamadas[0].rpc, 'barrer_solicitudes_caducadas')
+  assert.equal(llamadas[0].args.p_limite, LOTE_CADUCADAS)
+  assert.equal(r.detalle.solicitudes_caducadas, 3)
+  assert.equal(r.estado, 'ok')
+})
+
+test('BARRIDO: encadena lotes mientras vengan llenos', async () => {
+  let vuelta = 0
+  const { cliente, llamadas } = adminFalso({
+    rpc: (nombre) => {
+      if (nombre !== 'barrer_solicitudes_caducadas') return lotePurga()
+      vuelta += 1
+      return { data: vuelta === 1 ? LOTE_CADUCADAS : 2 }
+    },
+  })
+
+  const r = await ejecutarRetencionRgpd(contexto(cliente))
+
+  assert.equal(llamadas.filter((l) => l.rpc === 'barrer_solicitudes_caducadas').length, 2)
+  assert.equal(r.detalle.solicitudes_caducadas, LOTE_CADUCADAS + 2)
+  assert.equal(r.estado, 'ok')
+})
+
+test('BARRIDO: lote lleno + presupuesto agotado ⇒ `parcial`, y la purga no llega a correr', async () => {
+  let barridas = 0
+  const { cliente, llamadas } = adminFalso({
+    rpc: (nombre) => {
+      if (nombre !== 'barrer_solicitudes_caducadas') return lotePurga()
+      barridas += 1
+      return { data: LOTE_CADUCADAS }
+    },
+  })
+
+  const r = await ejecutarRetencionRgpd(contexto(cliente, () => barridas >= 1))
+
+  assert.equal(barridas, 1)
+  assert.equal(llamadas.filter((l) => l.rpc === 'purgar_retencion').length, 0)
+  // Queda cola de caducadas: mañana continúa. No es un fallo, es `parcial`.
+  assert.equal(r.estado, 'parcial')
+})
+
+test('BARRIDO: si falla, el trabajo LANZA (el despachador lo aísla)', async () => {
+  const { cliente } = adminFalso({
+    rpc: (nombre) =>
+      nombre === 'barrer_solicitudes_caducadas'
+        ? { error: { message: 'barrido caído' } }
+        : lotePurga(),
+  })
+  await assert.rejects(() => ejecutarRetencionRgpd(contexto(cliente)), /barrido caído/)
 })
