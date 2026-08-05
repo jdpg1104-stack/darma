@@ -119,6 +119,7 @@
       "encuestas": "Encuestas",
       "moderacion": "Moderación",
       "panel": "Resumen",
+      "privacidad": "Privacidad",
       "reciprocidad": "Reciprocidad",
       "roles": "Roles"
     },
@@ -206,12 +207,15 @@
     "entrada": {
       "botonAnonimo": "Entrar sin dar mis datos",
       "botonEnlace": "Enviarme el enlace",
+      "casillaEdad": "Tengo {edad} años o más.",
+      "casillaEdadEnlace": "Por qué lo preguntamos",
       "chip": "Anónimo de verdad",
       "enlaceCaducado": "Ese enlace ya no vale (los enlaces caducan). Pide uno nuevo o entra sin nada.",
       "enlaceEnviadoFin": ". Caduca pronto: ábrelo desde este mismo dispositivo.",
       "enlaceEnviadoInicio": "Si esa dirección tiene cuenta, le hemos enviado un enlace a",
       "enviando": "Un momento…",
       "errorConexion": "No hemos podido conectarte. Comprueba tu conexión y vuelve a intentarlo.",
+      "errorEdadMinima": "Para entrar necesitas confirmar que tienes {edad} años o más. Si aún no los tienes, en la página sobre menores te contamos por qué y qué otros sitios pueden acompañarte.",
       "errorEnvio": "No hemos podido enviarlo. Comprueba tu conexión y vuelve a intentarlo.",
       "etiquetaCorreo": "¿Ya tenías cuenta y cambiaste de móvil? Te enviamos un enlace.",
       "marcadorCorreo": "tu@correo.com",
@@ -336,6 +340,10 @@
       "8": "ago",
       "9": "sep"
     },
+    "og": {
+      "descripcion": "Red social anónima de crecimiento emocional basada en reciprocidad. Acompañas a tres personas y desbloqueas tu turno de contar lo tuyo.",
+      "titulo": "Darma — donde escuchar es lo que da derecho a hablar"
+    },
     "pais": "País",
     "paisAyuda": "Sirve solo para enseñarte los teléfonos de ayuda de donde estás. No se guarda con tu cuenta.",
     "pwa": {
@@ -425,6 +433,9 @@
       "horario24": "24 h, todos los días",
       "llamar": "Llamar",
       "noGratuito": "Coste de llamada según tu operador",
+      "smsPalabra": "Empieza el mensaje con {palabra} y envíalo al {numero}. Sin esa palabra no te contestan.",
+      "smsPalabraDesconocida": "Estas líneas solo responden si el mensaje empieza por una palabra concreta, y aún no la hemos confirmado. Míralo antes de escribir:",
+      "smsVerFuente": "cómo escribir a esta línea",
       "subtitulo": "Personas preparadas para escucharte. No hace falta estar en lo peor para llamar.",
       "textoNoSeTraduce": "Los nombres y los números se muestran tal cual: son los oficiales de cada país.",
       "titulo": "Ayuda a la que puedes llamar"
@@ -916,6 +927,22 @@
       "sinLlave": "Mensaje cerrado: este dispositivo no tiene la llave de esta conversación."
     },
     "cifrado": "Lo que se escribe aquí va cifrado de extremo a extremo.",
+    "circulo": {
+      "abrir": "Crear un círculo",
+      "crear": "Crear el círculo",
+      "creando": "Creando…",
+      "cuenta": "{n, plural, =0 {Nadie elegido todavía} one {# persona elegida} other {# personas elegidas}} de {max} posibles",
+      "descripcion": "Un círculo es un refugio de hasta {max} personas, contándote a ti. Lo que se escriba dentro va cifrado de extremo a extremo, como en un refugio de dos.",
+      "elegir": "Elige entre tus almas afines",
+      "error": "No hemos podido crear el círculo. Inténtalo otra vez.",
+      "limite": "Un círculo es de {max} personas como mucho, contándote a ti.",
+      "nombreAviso": "El nombre es lo único que no va cifrado: no escribas en él nada que quieras proteger.",
+      "nombreEtiqueta": "Nombre del círculo (opcional)",
+      "rechazado": "No hemos podido crear el círculo con estas personas. Cambia la selección e inténtalo otra vez.",
+      "sinClave": "{n, plural, one {{aliases} todavía no ha abierto sus refugios, así que no podemos cifrar para esa persona. Puedes quitarla y crear el círculo con el resto, o volver a intentarlo más adelante.} other {{aliases} todavía no han abierto sus refugios, así que no podemos cifrar para esas personas. Puedes quitarlas y crear el círculo con el resto, o volver a intentarlo más adelante.}}",
+      "sinNadie": "Elige al menos a una persona.",
+      "titulo": "Crear un círculo"
+    },
     "clave": {
       "cambiada": "El dispositivo de esta persona ha cambiado.",
       "cambiadaAlias": "El dispositivo de {alias} ha cambiado.",

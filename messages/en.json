@@ -119,6 +119,7 @@
       "encuestas": "Polls",
       "moderacion": "Moderation",
       "panel": "Overview",
+      "privacidad": "Privacy",
       "reciprocidad": "Reciprocity",
       "roles": "Roles"
     },
@@ -206,12 +207,15 @@
     "entrada": {
       "botonAnonimo": "Come in without giving my details",
       "botonEnlace": "Send me the link",
+      "casillaEdad": "I am {edad} or older.",
+      "casillaEdadEnlace": "Why we ask",
       "chip": "Genuinely anonymous",
       "enlaceCaducado": "That link has expired (they all do). Ask for a new one, or just come in with nothing.",
       "enlaceEnviadoFin": ". It expires soon: open it on this same device.",
       "enlaceEnviadoInicio": "If that address has an account, we've sent a link to",
       "enviando": "One moment…",
       "errorConexion": "We couldn't get you in. Check your connection and try again.",
+      "errorEdadMinima": "To come in you need to confirm that you are {edad} or older. If you're not there yet, the page about minors explains why, and which other places can support you.",
       "errorEnvio": "We couldn't send it. Check your connection and try again.",
       "etiquetaCorreo": "Had an account and changed phone? We'll send you a link.",
       "marcadorCorreo": "you@email.com",
@@ -336,6 +340,10 @@
       "8": "Aug",
       "9": "Sep"
     },
+    "og": {
+      "descripcion": "An anonymous social network for emotional growth, built on reciprocity. Listen to three people and your turn to talk unlocks.",
+      "titulo": "Darma — where listening earns the right to speak"
+    },
     "pais": "Country",
     "paisAyuda": "Only used to show you the helplines where you are. It is never stored with your account.",
     "pwa": {
@@ -425,6 +433,9 @@
       "horario24": "24 h, every day",
       "llamar": "Call",
       "noGratuito": "Call charged at your operator's rate",
+      "smsPalabra": "Start your message with {palabra} and send it to {numero}. Without that word they will not reply.",
+      "smsPalabraDesconocida": "These lines only reply if the message starts with a specific word, and we have not confirmed it yet. Check before you write:",
+      "smsVerFuente": "how to text this line",
       "subtitulo": "People trained to listen. You don't have to be at your worst to call.",
       "textoNoSeTraduce": "Names and numbers are shown as they are: they're the official ones for each country.",
       "titulo": "Help you can call"
@@ -916,6 +927,22 @@
       "sinLlave": "Sealed message: this device doesn't have the key to this conversation."
     },
     "cifrado": "What's written here is end-to-end encrypted.",
+    "circulo": {
+      "abrir": "Create a circle",
+      "crear": "Create the circle",
+      "creando": "Creating…",
+      "cuenta": "{n, plural, =0 {Nobody chosen yet} one {# person chosen} other {# people chosen}} of {max} possible",
+      "descripcion": "A circle is a shelter for up to {max} people, counting you. What's written inside is end-to-end encrypted, just like a shelter for two.",
+      "elegir": "Choose from your Kindred Souls",
+      "error": "We couldn't create the circle. Try again.",
+      "limite": "A circle is {max} people at most, counting you.",
+      "nombreAviso": "The name is the only thing that isn't encrypted: don't put anything you want to protect in it.",
+      "nombreEtiqueta": "Name of the circle (optional)",
+      "rechazado": "We couldn't create the circle with these people. Change the selection and try again.",
+      "sinClave": "{n, plural, one {{aliases} hasn't opened their shelters yet, so we can't encrypt for that person. You can remove them and create the circle with the rest, or try again later.} other {{aliases} haven't opened their shelters yet, so we can't encrypt for those people. You can remove them and create the circle with the rest, or try again later.}}",
+      "sinNadie": "Choose at least one person.",
+      "titulo": "Create a circle"
+    },
     "clave": {
       "cambiada": "This person's device has changed.",
       "cambiadaAlias": "{alias}'s device has changed.",

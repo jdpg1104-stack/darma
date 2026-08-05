@@ -250,3 +250,50 @@ test('la tabla NO está lista para producción y lo dice en voz alta', () => {
     assert.ok(entrada.fuente.startsWith('https://'), 'sin fuente no hay verificación posible')
   }
 })
+
+// ── La palabra clave de las líneas de SMS ───────────────────────────────────
+//
+// Una línea de texto no contesta a un mensaje en blanco. Enseñar el número sin
+// la palabra es enseñar algo que no funciona, y en esta pantalla eso significa
+// alguien que pide ayuda y no recibe nada.
+
+/** Todas las entradas de tipo `sms`, con su país, para poder nombrarlas al fallar. */
+function recursosSms(): Array<{ pais: string; recurso: (typeof RECURSOS_POR_PAIS)[string]['recursos'][number] }> {
+  const salida = []
+  for (const pais of Object.keys(RECURSOS_POR_PAIS)) {
+    for (const recurso of RECURSOS_POR_PAIS[pais]!.recursos) {
+      if (recurso.tipo === 'sms') salida.push({ pais, recurso })
+    }
+  }
+  return salida
+}
+
+test('hay al menos una línea de SMS: si no, estas pruebas no vigilan nada', () => {
+  // Control positivo. Sin él, borrar las dos entradas dejaría los dos tests de
+  // abajo en verde sin comprobar nada.
+  assert.ok(recursosSms().length >= 2)
+})
+
+test('🔴 todo recurso de SMS declara `palabraClave`, aunque sea null', () => {
+  // Explícito y no omitido: `undefined` se lee como «nadie lo pensó», y `null`
+  // como «se miró y no consta». La diferencia importa cuando alguien añada la
+  // tercera línea de SMS dentro de seis meses.
+  for (const { pais, recurso } of recursosSms()) {
+    assert.ok(
+      Object.hasOwn(recurso, 'palabraClave'),
+      `${pais}·${recurso.nombre} es SMS y no declara palabraClave`,
+    )
+  }
+})
+
+test('una palabra clave declarada nunca es cadena vacía ni lleva espacios', () => {
+  // '' pasaría el `if (r.palabraClave)` de la pantalla como falsy y caería en el
+  // texto de «no consta»: correcto por accidente. ' HOLA ' se pintaría con los
+  // espacios y nadie sabría si hay que enviarlos.
+  for (const { pais, recurso } of recursosSms()) {
+    const p = recurso.palabraClave
+    if (p === null || p === undefined) continue
+    assert.equal(p, p.trim(), `${pais}·${recurso.nombre}: la palabra lleva espacios`)
+    assert.ok(p.length > 0, `${pais}·${recurso.nombre}: palabra vacía`)
+  }
+})
