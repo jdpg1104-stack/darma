@@ -1,5 +1,5 @@
 -- ============================================================================
--- Darma · 0216_1 · B12 · Reembolsos: el apunte inverso con suelo en cero
+-- Darma · 0219_1 · B12 · Reembolsos: el apunte inverso con suelo en cero
 --
 -- Cierra el pendiente que B12 dejó anotado (ESTADO.md, fila B12): «REFUND /
 -- voidedPurchase se registran pero NO generan el apunte inverso; falta decidir
@@ -93,7 +93,7 @@ alter table public.crystal_ledger
   add constraint crystal_ledger_delta_check check (delta <> 0 or source = 'refund');
 
 comment on column public.crystal_ledger.delta is
-  'Positivo = compra o regalo recibido. Negativo = gasto o reversión de reembolso. 0 SOLO con source=''refund'': el saldo ya se había gastado y el apunte audita la pérdida (raw_receipt lleva reembolsado/revertido/perdido). Ver 0216_1 §1.';
+  'Positivo = compra o regalo recibido. Negativo = gasto o reversión de reembolso. 0 SOLO con source=''refund'': el saldo ya se había gastado y el apunte audita la pérdida (raw_receipt lleva reembolsado/revertido/perdido). Ver 0219_1 §1.';
 
 -- ----------------------------------------------------------------------------
 -- SECCIÓN 2 · revertir_compra — la única vía por la que SALEN cristales
@@ -214,4 +214,4 @@ revoke all on function public.revertir_compra(text, text) from public, anon, aut
 grant execute on function public.revertir_compra(text, text) to service_role;
 
 comment on function public.revertir_compra(text, text) is
-  'Apunte inverso de un reembolso de la store (REFUND/REVOKE de Apple, voidedPurchase de Google) con suelo en 0 sobre profiles.crystals. Idempotente por external_id ''refund:''||original (mismo patrón que acreditar_compra, 0121_1 §4). El apunte queda SIEMPRE, delta 0 incluido, con la pérdida auditada en raw_receipt (reembolsado/revertido/perdido). Solo service_role. Ver cabecera de 0216_1.';
+  'Apunte inverso de un reembolso de la store (REFUND/REVOKE de Apple, voidedPurchase de Google) con suelo en 0 sobre profiles.crystals. Idempotente por external_id ''refund:''||original (mismo patrón que acreditar_compra, 0121_1 §4). El apunte queda SIEMPRE, delta 0 incluido, con la pérdida auditada en raw_receipt (reembolsado/revertido/perdido). Solo service_role. Ver cabecera de 0219_1.';

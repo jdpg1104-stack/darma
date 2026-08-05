@@ -1,5 +1,5 @@
 -- ============================================================================
--- Darma · 0217_1 · B12 · Cosméticos de perfil: la propiedad se persiste y la
+-- Darma · 0220_1 · B12 · Cosméticos de perfil: la propiedad se persiste y la
 --                        compra cobra y escribe en la MISMA transacción.
 --
 -- Cierra el pedido «De B12 → F2/B05 · faltan columnas para los cosméticos de
@@ -174,4 +174,4 @@ revoke all on function public.comprar_cosmetico(uuid, text, integer)
 grant execute on function public.comprar_cosmetico(uuid, text, integer) to service_role;
 
 comment on function public.comprar_cosmetico(uuid, text, integer) is
-  'Cobra p_coste con spend_crystals() y escribe cosmetic_frame o cosmetic_palette en la MISMA transacción. Idempotente por (persona, cosmético): si la columna ya lleva ese id, devuelve comprado=false sin cobrar. Solo service_role; p_coste lo resuelve el servidor contra lib/billing/cosmeticos.ts. Ver 0217_1.';
+  'Cobra p_coste con spend_crystals() y escribe cosmetic_frame o cosmetic_palette en la MISMA transacción. Idempotente por (persona, cosmético): si la columna ya lleva ese id, devuelve comprado=false sin cobrar. Solo service_role; p_coste lo resuelve el servidor contra lib/billing/cosmeticos.ts. Ver 0220_1.';

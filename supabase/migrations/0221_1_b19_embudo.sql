@@ -1,5 +1,5 @@
 -- ============================================================================
--- B19 · 0218_1 · El rollup del embudo: vuelta al día siguiente y pilar 1
+-- B19 · 0221_1 · El rollup del embudo: vuelta al día siguiente y pilar 1
 --
 -- ── POR QUÉ EXISTE ─────────────────────────────────────────────────────────
 -- El hallazgo del crítico: el dueño no puede ver si el embudo funciona — nada
@@ -82,7 +82,7 @@ create index if not exists idx_content_views_completadas_dia
   where completed_at is not null;
 
 comment on index public.idx_content_views_completadas_dia is
-  'Consumidor único: admin_rollup_embudo_dia() (0218), que cuenta completados y personas distintas por día. Corta siempre por completed_at >= x and < y.';
+  'Consumidor único: admin_rollup_embudo_dia() (0221), que cuenta completados y personas distintas por día. Corta siempre por completed_at >= x and < y.';
 
 
 -- ════════════════════════════════════════════════════════════════════════════
