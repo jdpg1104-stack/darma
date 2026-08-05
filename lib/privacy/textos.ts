@@ -51,8 +51,15 @@ export interface DocumentoLegal {
   sha256: string
 }
 
-export const TERMINOS_VERSION = 'v1-2026-08'
-export const PRIVACIDAD_VERSION = 'v1-2026-08'
+// v2: la v1 decía «nunca el contacto en sí», y era falso para quien vincula
+// correo de recuperación. Ver la nota de PRIVACIDAD_VERSION.
+export const TERMINOS_VERSION = 'v2-2026-08'
+// v2: declara el correo en claro de quien vincula recuperación. La v1 lo
+// omitía — decía solo «huella irreversible» — y eso dejaba fuera de la política
+// una categoría de dato personal que sí se trata. Subir la versión NO es
+// cosmético: `consents` guarda la versión aceptada, así que quien consintió la
+// v1 consintió un texto que no describía esto.
+export const PRIVACIDAD_VERSION = 'v2-2026-08'
 export const COOKIES_VERSION = 'v1-2026-08'
 export const NO_ES_TERAPIA_VERSION = 'v1-2026-08'
 export const MENORES_VERSION = 'v1-2026-08'
@@ -120,7 +127,12 @@ está en /legal/menores.
 
 Una persona, una cuenta. Para poder sostener esa regla sin saber quién eres,
 guardamos una huella criptográfica irreversible de tu contacto en una tabla
-aislada; nunca el contacto en sí.
+aislada.
+
+Aparte de eso, si decides vincular un correo para poder recuperar tu cuenta, ese
+correo se guarda legible en el sistema de acceso y queda asociado a tu cuenta.
+Es opcional y es tu elección: sin él entras igual, pero si pierdes el
+dispositivo pierdes la cuenta. Lo explicamos con detalle en /legal/privacidad.
 
 3. RECIPROCIDAD: CÓMO SE GANA EL DERECHO A PUBLICAR
 
@@ -211,6 +223,13 @@ sacarla de ahí.
 · Tu karma, tus créditos de escucha y tus cristales.
 · Una huella criptográfica irreversible de tu correo o teléfono, en la tabla
   aislada. Sirve para una sola cosa: que una persona no tenga diez cuentas.
+· SI Y SOLO SI vinculas un correo para poder recuperar tu cuenta: ese correo,
+  tal cual, en el sistema de acceso de nuestro proveedor de identidad. No es lo
+  mismo que la huella de la línea anterior y conviene que sepas la diferencia.
+  La huella no se puede deshacer; el correo sí es legible, y está asociado a la
+  misma cuenta que tu seudónimo. Quien administra la infraestructura puede
+  verlo. Vincularlo es opcional: sin él entras igual, pero si pierdes el
+  dispositivo pierdes la cuenta.
 · Los consentimientos que has dado, con su versión y la huella del texto.
 
 Qué NO guardamos: tu dirección IP asociada a lo que escribes, tu user-agent, tu
@@ -227,7 +246,16 @@ servidor y que no se guarda junto a la huella. Esto significa dos cosas:
 · No podemos recuperar tu correo a partir de ella. Nadie puede.
 · Cuando borras tu cuenta, esa fila se elimina de forma definitiva y no queda
   absolutamente nada de lo que partir, ni siquiera teniendo la clave secreta.
-  A partir de ese momento tu seudónimo es un nombre sin persona detrás.
+
+Y una precisión que hay que hacer, porque si no lo anterior se lee como algo que
+no es: todo esto habla de LA HUELLA. Si además vinculaste un correo para poder
+recuperar la cuenta, ese correo sí es legible y sí está asociado a tu seudónimo
+dentro del sistema de acceso. La huella protege frente a quien vea la base de
+datos de la comunidad; no convierte tu cuenta en imposible de identificar para
+quien administra la infraestructura.
+
+Si lo que necesitas es anonimato frente a todo el mundo, incluidos nosotros: no
+vincules correo. Es la opción por defecto y no te pide nada.
 
 4. TU DERECHO A LLEVARTE TUS DATOS
 
@@ -476,7 +504,7 @@ export const DOCUMENTOS_LEGALES: Readonly<Record<TipoDocumentoLegal, DocumentoLe
     actualizadoEn: ACTUALIZADO,
     titulo: 'Condiciones de uso',
     cuerpo: CUERPO_TERMINOS,
-    sha256: '0947cc403fc06167f8419d79a4a17415d2376506d5def0b6f7fb3eb10e7d16b4',
+    sha256: '571f56e0f50a20a247115d41916e2bdf7fa1b01f6e5a1a9c380afd9f6a520329',
   },
   privacidad: {
     tipo: 'privacidad',
@@ -484,7 +512,7 @@ export const DOCUMENTOS_LEGALES: Readonly<Record<TipoDocumentoLegal, DocumentoLe
     actualizadoEn: ACTUALIZADO,
     titulo: 'Privacidad y protección de datos',
     cuerpo: CUERPO_PRIVACIDAD,
-    sha256: 'c670705697cc36e50bef6d97cdc763498047146c39f8b52198d482b2ff515927',
+    sha256: 'f7bcd22c9c88060c35efb252cab7bb3981af4f72fa571aee604203cbe22d2370',
   },
   cookies: {
     tipo: 'cookies',

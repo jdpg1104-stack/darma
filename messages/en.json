@@ -215,7 +215,7 @@
       "errorEnvio": "We couldn't send it. Check your connection and try again.",
       "etiquetaCorreo": "Had an account and changed phone? We'll send you a link.",
       "marcadorCorreo": "you@email.com",
-      "notaCorreo": "Your email is only there to recognise you if you come back. It's never stored with your profile and never shown on any screen.",
+      "notaCorreo": "Linking your email is optional and only serves to recover your account if you change devices. One thing to know first: that email is stored in readable form in the sign-in system, tied to your account. Nobody in the community sees it and it never appears on any screen, but whoever administers the infrastructure can. If what you want is anonymity from everyone, do not link it: you can still get in.",
       "subtitulo": "No name, no email, no phone. You pick a pseudonym and you're in.",
       "titulo": "Come in without saying who you are"
     },
