@@ -301,3 +301,62 @@ test('el mensaje no suena a vigilancia', () => {
     assert.ok(!/hemos detectado/i.test(crisisMessage(level)))
   }
 })
+
+// ── El hueco de las formas conjugadas (2026-08-05) ──────────────────────────
+//
+// Estas frases devolvían `none` hasta que una auditoría las ejecutó una por una.
+// No eran ofuscación ni jerga: son las formas más directas del español. El
+// detector pedía infinitivo con clítico (`suicidarme`) y la gente escribe
+// conjugado (`me voy a suicidar`) o en presente (`me mato`).
+//
+// Esta suite existe para que ese hueco no pueda reabrirse en silencio. Si
+// alguien reescribe los patrones y una sola de estas vuelve a `none`, se pone
+// roja — y eso es lo único que separa este archivo de volver a fallar abierto.
+
+const FRASES_QUE_DEBEN_MARCAR: readonly string[] = [
+  'me voy a suicidar',
+  'me voy a matar',
+  'me mato',
+  'me suicido esta noche',
+  'hoy me quito la vida',
+  'me quiero matar',
+  'me quiero cortar',
+  'me voy a quemar',
+  'me voy a tirar por la ventana',
+  'me tiro del puente',
+  'me voy a matar a las 5',
+]
+
+test('🔴 las formas CONJUGADAS del español se detectan, no solo el infinitivo', () => {
+  for (const frase of FRASES_QUE_DEBEN_MARCAR) {
+    const r = assessCrisisRisk(frase)
+    assert.notEqual(r.risk_level, 'none', `«${frase}» NO se marcó. Es un falso negativo en una app de salud mental.`)
+    assert.equal(r.requiresIntervention, true, `«${frase}» debería exigir intervención`)
+  }
+})
+
+// El otro lado. Un detector que marca la peluquería enseña teléfonos de crisis
+// a quien habla de cortarse el pelo, y eso no es ruido inocuo: es lo que hace
+// que la gente deje de creerse el aviso el día que importa.
+const FRASES_QUE_NO_DEBEN_MARCAR: readonly string[] = [
+  'me voy a cortar el pelo',
+  'me voy a cortar las unas',
+  'me voy a tirar a la piscina',
+  'me voy a matar a estudiar este finde',
+  'me voy a matar a trabajar manana',
+  'hoy he dormido fatal y estoy agotado',
+]
+
+test('los modismos y la vida normal NO disparan el aviso', () => {
+  for (const frase of FRASES_QUE_NO_DEBEN_MARCAR) {
+    assert.equal(assessCrisisRisk(frase).risk_level, 'none', `«${frase}» no debería marcar`)
+  }
+})
+
+test('la exclusión del modismo es CERRADA, no un patrón abierto', () => {
+  // Si la exclusión fuese `(?! a .*)`, esta frase se colaría. Es la prueba de
+  // que la lista de continuaciones permitidas no se puede ensanchar sin darse
+  // cuenta.
+  assert.notEqual(assessCrisisRisk('me voy a matar a las 5').risk_level, 'none')
+  assert.notEqual(assessCrisisRisk('me voy a matar a la vuelta').risk_level, 'none')
+})

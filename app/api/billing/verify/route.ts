@@ -46,7 +46,6 @@ import { esquemaVerificar, parsear } from '@/lib/billing/validacion'
 import { logger } from '@/lib/logger'
 import { rateLimit } from '@/lib/rateLimit'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -54,13 +53,22 @@ export const revalidate = 0
 export async function POST(request: NextRequest) {
   return manejarRuta(async () => {
     const sesion = await requirePerfil()
-    const supabase = await createClient()
+    const admin = createAdminClient()
 
+    // ⛔ EL CLIENTE ADMIN, NO EL RLS. `check_rate_limit()` está REVOCADA a
+    // `authenticated` y concedida solo a `service_role` (0002_comunidad.sql).
+    // Con el cliente RLS, Postgres devuelve 42501, `rateLimit` lanza, y como
+    // aquí `failClosed: true` el resultado era un 429 SIEMPRE, para todo el
+    // mundo: ninguna compra se podía acreditar. Y el 429 lo disfrazaba de «vas
+    // muy rápido», así que el síntoma no llevaba a la causa.
+    //
+    // `failClosed` sigue en true y es correcto: si el limitador cae de verdad,
+    // una ruta de dinero debe cerrarse, no abrirse.
     const permitido = await rateLimit({
       key: `billing:verify:${sesion.userId}`,
       limit: LIMITES_PETICION.verify.limite,
       windowSeconds: LIMITES_PETICION.verify.ventanaSegundos,
-      supabase,
+      supabase: admin,
       failClosed: true,
     })
     if (!permitido.ok) throw new ErrorApi('demasiadas_peticiones', { retryAfter: permitido.retryAfter })
@@ -91,7 +99,6 @@ export async function POST(request: NextRequest) {
       throw new ErrorApi('entrada_invalida')
     }
 
-    const admin = createAdminClient()
     const resultado = await acreditarCompra(admin, {
       userId: sesion.userId,
       externalId: recibo.externalId,

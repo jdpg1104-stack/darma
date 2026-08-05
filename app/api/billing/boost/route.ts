@@ -66,20 +66,28 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   return manejarRuta(async () => {
     const sesion = await requirePerfil()
-    const supabase = await createClient()
+    const admin = createAdminClient()
 
+    // ⛔ EL CLIENTE ADMIN, NO EL RLS. `check_rate_limit()` está REVOCADA a
+    // `authenticated` y concedida solo a `service_role` (0002_comunidad.sql).
+    // Con el cliente RLS, Postgres devuelve 42501, `rateLimit` lanza, y como
+    // aquí `failClosed: true` el resultado era un 429 SIEMPRE, para todo el
+    // mundo: ninguna compra se podía acreditar. Y el 429 lo disfrazaba de «vas
+    // muy rápido», así que el síntoma no llevaba a la causa.
+    //
+    // `failClosed` sigue en true y es correcto: si el limitador cae de verdad,
+    // una ruta de dinero debe cerrarse, no abrirse.
     const permitido = await rateLimit({
       key: `billing:boost:${sesion.userId}`,
       limit: LIMITES_PETICION.boost.limite,
       windowSeconds: LIMITES_PETICION.boost.ventanaSegundos,
-      supabase,
+      supabase: admin,
       failClosed: true,
     })
     if (!permitido.ok) throw new ErrorApi('demasiadas_peticiones', { retryAfter: permitido.retryAfter })
 
     const datos = parsear(esquemaBoost, await leerCuerpo(request))
 
-    const admin = createAdminClient()
     const resultado = await impulsarPost(admin, {
       // De la SESIÓN. Aceptar un userId del body sería gastar el karma de otra
       // persona en el post que uno quiera (CONTRATOS §6).
