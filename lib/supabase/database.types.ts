@@ -2517,6 +2517,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      ventana_credito_repetido: { Args: never; Returns: string }
     }
     Enums: {
       admin_role: "soporte" | "moderador" | "operaciones" | "superadmin"
