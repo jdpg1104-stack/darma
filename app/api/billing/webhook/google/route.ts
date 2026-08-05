@@ -101,8 +101,13 @@ async function procesar(
   // El destinatario sale de `obfuscatedExternalAccountId`, que la app fija al
   // `profiles.id` al lanzar la compra. Sin él no se adivina a quién acreditar:
   // la persona lo recupera con `POST /api/billing/restore`, que sí tiene sesión.
-  const compra = await detalleCompra(aviso.sku, aviso.purchaseToken)
-  const userId = compra?.obfuscatedExternalAccountId
+  //
+  // Llega ya dentro del recibo. Aquí había una SEGUNDA llamada a
+  // `purchases.products.get`, idéntica a la que acaba de hacer
+  // `verificarRecibo()`, solo para releer este campo: existía porque el recibo
+  // lo descartaba, y lo descartaba porque nadie más lo comprobaba. Cerrar la
+  // titularidad en `verify` y `restore` se llevó por delante la llamada de más.
+  const userId = recibo.cuentaApp
   if (!userId) {
     logger.exception('billing:webhook_google_sin_destinatario', new Error('obfuscatedExternalAccountId ausente'), {
       external_id: recibo.externalId,
@@ -127,34 +132,5 @@ async function procesar(
         external_id: recibo.externalId,
       })
     }
-  }
-}
-
-/**
- * Segunda lectura de `purchases.products.get`, solo para el
- * `obfuscatedExternalAccountId`. Se aísla aquí para que `verificarRecibo`
- * siga devolviendo el tipo del contrato (`ReciboVerificado`) y no crezca con
- * campos que solo necesita el webhook.
- */
-async function detalleCompra(
-  sku: string,
-  purchaseToken: string,
-): Promise<{ obfuscatedExternalAccountId?: string } | null> {
-  const config = configGoogle()
-  if (!config) return null
-
-  const { accessToken } = await import('@/lib/billing/google')
-  const acceso = await accessToken(config)
-  if (!acceso) return null
-
-  try {
-    const url =
-      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(config.packageName)}` +
-      `/purchases/products/${encodeURIComponent(sku)}/tokens/${encodeURIComponent(purchaseToken)}`
-    const respuesta = await fetch(url, { headers: { Authorization: `Bearer ${acceso}` }, cache: 'no-store' })
-    if (!respuesta.ok) return null
-    return (await respuesta.json()) as { obfuscatedExternalAccountId?: string }
-  } catch {
-    return null
   }
 }

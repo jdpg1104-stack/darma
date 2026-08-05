@@ -275,11 +275,20 @@ export function claveDeIp(ip: string, pimienta: string | undefined, sha256: (v: 
 }
 
 /**
- * Primera IP de `x-forwarded-for`. La cabecera es una lista `cliente, proxy1,
- * proxy2` y la del cliente es la PRIMERA; tomar la última limita al proxy de
- * Vercel, es decir, a todo el mundo a la vez.
+ * ⛔ RETIRADA. Ver `origenDePeticion()` en `lib/auth/peticion.ts`.
+ *
+ * Esta función tomaba la PRIMERA IP de `x-forwarded-for`, y su comentario
+ * razonaba bien la mitad del problema: tomar la última limitaría al proxy de
+ * Vercel, o sea a todo el mundo a la vez. Lo que se le escapaba es que la
+ * primera la escribe el CLIENTE — mandar una cadena distinta en cada petición
+ * estrenaba cubo cada vez y el límite de 20/hora no limitaba nada.
+ *
+ * Las dos mitades se resuelven a la vez leyendo `x-vercel-forwarded-for`, que
+ * el borde sella y trae la IP real sin cadena que elegir. `peticion.ts` además
+ * agrega IPv6 a /64: sin eso, a cualquier abonado doméstico se le entrega un
+ * /64 —2^64 direcciones rotables— y el contador por IP completa era decorativo.
+ *
+ * Se deja este bloque en vez de borrar la función sin más porque el
+ * razonamiento equivocado era PLAUSIBLE, estaba escrito, y tenía una prueba que
+ * lo fijaba como correcto. Quien vuelva a pensarlo merece encontrar por qué no.
  */
-export function ipDeCabeceras(forwardedFor: string | null, realIp: string | null): string | null {
-  const primera = forwardedFor?.split(',')[0]?.trim()
-  return primera || realIp?.trim() || null
-}
