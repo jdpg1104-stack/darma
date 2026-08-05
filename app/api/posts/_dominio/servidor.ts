@@ -16,13 +16,17 @@ import { claveDeIp } from './publicar.ts'
 import { origenDePeticion } from '@/lib/auth/peticion'
 
 /**
- * Límites de B03. Los números salen de la ficha del bloque, no de
- * `RATE_LIMITS` de `lib/rateLimit.ts` (dueño F3), que fija `createPost` en 10/h.
+ * Límites de B03. Los números salen de la ficha del bloque.
  *
- * La divergencia es consciente y está anotada en HANDOFF/PEDIDOS.md: la ficha
- * B03 exige 5/h y su prueba nº 7 comprueba que la sexta publicación de la hora
- * se rechaza. Se respeta la ficha porque es la especificación de este bloque, y
- * porque 5 es el número que acompaña al gate 3:1 — publicar 5 veces en una hora
+ * Hubo un preset `createPost` de 10/h en `lib/rateLimit.ts`, y PEDIDOS.md lo
+ * trataba como una divergencia que había que resolver. No lo era: aquel preset
+ * no lo llamaba ninguna ruta, así que nunca hubo dos límites en vigor. Ya está
+ * borrado, y `lib/rateLimit.ts` solo conserva el índice de dónde vive la tabla
+ * de cada bloque, con una prueba que lo obliga a estar completo.
+ *
+ * La ficha B03 exige 5/h y su prueba nº 7 comprueba que la sexta publicación de
+ * la hora se rechaza. Se respeta la ficha porque es la especificación de este
+ * bloque, y porque 5 es el número que acompaña al gate 3:1 — publicar 5 veces en una hora
  * exige haber acompañado a 12 personas, que ya es mucho más de lo que un humano
  * hace en una hora. El gate sigue siendo el límite real; esto es la red.
  */

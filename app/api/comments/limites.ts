@@ -6,13 +6,17 @@
 // fijan los números de este bloque y se convierte el «no» en un `ErrorApi`:
 // devolver un booleano deja la puerta abierta a un `if` olvidado; lanzar no.
 //
-// ── POR QUÉ NO SE USA `RATE_LIMITS.createComment` DE lib/rateLimit.ts ──────
-// Aquel preset dice 30/h y la ficha de B04 fija 20/h. No es un descuido de
-// ninguno de los dos: 30/h se calibró como «velocidad de bot» en abstracto, y
-// 20/h es el número de este bloque porque aquí cada comentario dispara una
-// validación síncrona y, si pasa, un movimiento de karma. Un solo sitio manda,
-// y para las rutas de `/api/comments` es este archivo. Anotado en PEDIDOS.md
-// para que B00 decida si unifica.
+// ── POR QUÉ 20/h Y NO 30 ──────────────────────────────────────────────────
+// `lib/rateLimit.ts` tuvo un preset `createComment` de 30/h, calibrado como
+// «velocidad de bot» en abstracto. 20/h es el número de este bloque porque aquí
+// cada comentario dispara una validación síncrona y, si pasa, un movimiento de
+// karma: el coste de la acción lo conoce el bloque, no la utilidad genérica.
+//
+// Aquello estuvo anotado en PEDIDOS.md como «dos límites para la misma acción»
+// hasta que se comprobó que el preset no lo llamaba NADIE. No había dos
+// políticas: había esta y un señuelo, que ya se ha borrado. `lib/rateLimit.ts`
+// conserva el índice de dónde vive la tabla de cada bloque, con una prueba que
+// lo obliga a estar completo.
 //
 // ── POR QUÉ EL CLIENTE ADMIN, Y POR QUÉ NO CUENTA COMO UNA DE LAS TRES ─────
 // `check_rate_limit()` está concedida SOLO a `service_role` (final de 0002).
