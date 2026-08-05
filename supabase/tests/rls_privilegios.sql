@@ -214,9 +214,27 @@ select ok(
   not has_table_privilege('authenticated', 'public.content_views', 'DELETE'),
   'content_views: DELETE revocado'
 );
+-- Afirmaba INSERT a nivel de TABLA. 0004 lo revocó justo para cerrar R3 —nacer
+-- ya `completed = true` era karma gratis— y lo sustituyó por un grant de
+-- COLUMNA sobre `(content_id, user_id)`. `has_table_privilege` devuelve false
+-- ante un grant por columna, así que la prueba llevaba en rojo desde entonces
+-- afirmando algo MÁS DÉBIL de lo que el esquema hace: pedía que la puerta
+-- estuviera abierta del todo cuando lo correcto es que solo pasen dos columnas.
 select ok(
-  has_table_privilege('authenticated', 'public.content_views', 'INSERT'),
-  'content_views: INSERT permitido (la fila nace a cero; lo acota el with check de la política)'
+  not has_table_privilege('authenticated', 'public.content_views', 'INSERT'),
+  'content_views: INSERT de tabla revocado (R3: nacer completado era karma gratis)'
+);
+select ok(
+  has_column_privilege('authenticated', 'public.content_views', 'content_id', 'INSERT'),
+  'content_views: INSERT permitido SOLO por columna — content_id'
+);
+select ok(
+  has_column_privilege('authenticated', 'public.content_views', 'user_id', 'INSERT'),
+  'content_views: INSERT permitido SOLO por columna — user_id'
+);
+select ok(
+  not has_column_privilege('authenticated', 'public.content_views', 'completed', 'INSERT'),
+  'content_views: `completed` NO es insertable (es la mitad de R3 que se olvida)'
 );
 
 -- ── Encuestas · el voto es definitivo ───────────────────────────────────────

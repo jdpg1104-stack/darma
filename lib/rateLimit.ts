@@ -170,47 +170,36 @@ export async function rateLimit(options: RateLimitOptions): Promise<RateLimitRes
   return rateLimitPostgres(supabase, key, limit, windowSeconds, { failClosed })
 }
 
-// ── Presets ─────────────────────────────────────────────────────────────────
-/**
- * Límites por acción. Están AQUÍ y no repartidos por las rutas para que se
- * puedan leer todos juntos: un límite solo se entiende en relación con los
- * demás.
- *
- * Calibrados sobre el uso humano real, no sobre "lo que aguanta el servidor":
- * publicar 10 desahogos en una hora ya es una señal de que algo pasa, y el
- * gate 3:1 lo limita mucho antes que este contador.
- */
-export const RATE_LIMITS = {
-  /** Publicar. El gate 3:1 es el límite real; esto es la red de seguridad. */
-  createPost: { limit: 10, windowSeconds: 3600 },
-  /** Comentar. Escuchar mucho es bueno; 30/h ya es velocidad de bot. */
-  createComment: { limit: 30, windowSeconds: 3600 },
-  /** Votar. Barato, pero es la vía de manipulación del feed más obvia. */
-  vote: { limit: 120, windowSeconds: 3600 },
-  /** Reportar. Bajo a propósito: el reporte masivo es acoso coordinado. */
-  report: { limit: 20, windowSeconds: 86400 },
-  /** Alta de cuenta por IP. Es la barrera anti-multicuenta del lado de la app;
-   *  la otra es el contact_hash de identity_vault. */
-  signup: { limit: 5, windowSeconds: 86400 },
-  /** Llamadas al clasificador de IA (cuestan dinero por token). */
-  aiClassify: { limit: 60, windowSeconds: 3600 },
-} as const
-
-export type RateLimitAction = keyof typeof RATE_LIMITS
-
-/** Atajo para las rutas: `await limitAction('createPost', userId, supabase)`. */
-export async function limitAction(
-  action: RateLimitAction,
-  subject: string,
-  supabase?: SupabaseClient,
-  failClosed = false,
-): Promise<RateLimitResult> {
-  const preset = RATE_LIMITS[action]
-  return rateLimit({
-    key: `${action}:${subject}`,
-    limit: preset.limit,
-    windowSeconds: preset.windowSeconds,
-    supabase,
-    failClosed,
-  })
-}
+// ── DÓNDE VIVEN LOS NÚMEROS ────────────────────────────────────
+//
+// Aquí hubo una tabla central (`RATE_LIMITS`) con un atajo (`limitAction()`).
+// Se ha borrado porque **no la llamaba nadie**: las nueve rutas que limitan algo
+// declaran su propia tabla y llaman a `rateLimit()` directo. Dejarla era peor
+// que no tenerla — decía `createPost: 10/h` y `createComment: 30/h`, y los
+// números de verdad son otros, así que dos apuntes de PEDIDOS.md llevaban meses
+// pidiendo «unificar los dos límites» cuando nunca hubo dos políticas: había una
+// política y un señuelo.
+//
+// El argumento que tenía a favor era bueno y sigue siendo cierto: **un límite
+// solo se entiende en relación con los demás**. Lo que no era cierto es que
+// hiciera falta una tabla compartida para eso; basta con poder leerlos juntos.
+// Este índice es esa lectura, y `rateLimit.test.ts` comprueba que no se quede
+// corto: si aparece un `export const LIMITES_*` que no esté nombrado aquí, la
+// prueba falla. Un índice a mano que nadie obliga a actualizar vuelve a ser un
+// señuelo en cuanto alguien añade una ruta.
+//
+//   LIMITES_ADMIN       app/api/admin/_guard.ts
+//   LIMITES_HILO        app/api/comments/limites.ts
+//   LIMITES_B03         app/api/posts/_dominio/servidor.ts
+//   LIMITES_PRIVACIDAD  app/api/privacy/_dominio/comun.ts
+//   LIMITES_PUSH        app/api/push/limites.ts
+//   LIMITES_AUTH        lib/auth/limites.ts
+//   LIMITES_PETICION    lib/billing/limites.ts
+//   LIMITES_PETICION    lib/polls/limites.ts
+//   LIMITES_VIDEO       lib/video/limites.ts
+//
+// Por qué cada bloque fija los suyos: el número depende de lo que cuesta la
+// acción, y eso lo sabe el bloque. Comentar es 20/h y no 30 porque cada
+// comentario dispara una validación síncrona y un movimiento de karma; eso no se
+// puede calibrar desde aquí sin saberlo. El motivo de cada uno está escrito
+// junto a su tabla, que es donde se lee al cambiarlo.
