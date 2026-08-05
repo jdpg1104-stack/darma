@@ -24,10 +24,22 @@
 // ── FAIL-CLOSED, Y NUNCA LANZA ──────────────────────────────────────────────
 // Igual que `apple.ts`: `{ valido: false, motivo }`, motivo al log y nunca al
 // cliente.
+//
+// ── VERIFICAR NO ES ATRIBUIR ────────────────────────────────────────────────
+// `purchaseState === 0` dice «esta compra existió y se pagó». No dice de quién
+// es. Quien tenga un `purchaseToken` ajeno podía reclamarlo en su cuenta, igual
+// que pasaba con Apple. Por eso la compra sale de aquí con su `cuentaApp`
+// (`obfuscatedExternalAccountId`) y las rutas la pasan por `comprobarTitular()`.
+//
+// La POLÍTICA ante un titular AUSENTE es distinta de la de Apple, y a propósito:
+// allí «ausente» no acredita en `restore`; aquí sí. El motivo está escrito en
+// `restore/route.ts`, porque es una decisión de ruta y no de este módulo — en
+// resumen: el webhook de Google se NIEGA a acreditar sin ese id y manda a la
+// persona a `restore`, así que cerrar ahí también dejaría su dinero sin destino.
 // ============================================================================
 
 import { firmarJwt, obtenerJwks, verificarConJwks, vigente } from './jws.ts'
-import type { ReciboVerificado } from './apple.ts'
+import type { ReciboRestaurable, ReciboVerificado } from './apple.ts'
 
 export type { ReciboVerificado }
 
@@ -46,8 +58,8 @@ const URL_ANDROIDPUBLISHER = 'https://androidpublisher.googleapis.com/androidpub
 const URL_JWKS_GOOGLE = 'https://www.googleapis.com/oauth2/v3/certs'
 const SCOPE = 'https://www.googleapis.com/auth/androidpublisher'
 
-function noValido(motivo: string): ReciboVerificado {
-  return { valido: false, externalId: null, productId: null, motivo }
+function noValido(motivo: string): ReciboRestaurable {
+  return { valido: false, externalId: null, productId: null, motivo, cuentaApp: null }
 }
 
 export function configGoogle(env: NodeJS.ProcessEnv = process.env): ConfigGoogle | null {
@@ -129,6 +141,11 @@ export interface CompraGoogle {
   consumptionState?: number
   acknowledgementState?: number
   purchaseTimeMillis?: string
+  /**
+   * A quién dice Google que pertenece la compra. Lo fija la app al lanzar el
+   * flujo de pago (`setObfuscatedAccountId`) con el `profiles.id`, y Google lo
+   * devuelve tal cual: es el equivalente del `appAccountToken` de Apple.
+   */
   obfuscatedExternalAccountId?: string
 }
 
@@ -139,11 +156,21 @@ export interface CompraGoogle {
  * el 2 llegará otra vez cuando se confirme, y acreditarlo ahora sería regalar
  * cristales por un pago que puede no completarse nunca.
  */
-export function evaluarCompra(compra: CompraGoogle, productId: string): ReciboVerificado {
+export function evaluarCompra(compra: CompraGoogle, productId: string): ReciboRestaurable {
   if (compra.purchaseState !== 0) return noValido(`purchaseState ${String(compra.purchaseState)}`)
   if (!compra.orderId) return noValido('compra sin orderId')
 
-  return { valido: true, externalId: `google:${compra.orderId}`, productId, motivo: null }
+  return {
+    valido: true,
+    externalId: `google:${compra.orderId}`,
+    productId,
+    motivo: null,
+    // Sale de la MISMA respuesta que ya se está leyendo. Antes se descartaba
+    // aquí, y el webhook tenía que pedir la compra a Google POR SEGUNDA VEZ solo
+    // para recuperarlo; peor aún, ni `verify` ni `restore` lo pedían nunca, así
+    // que el camino de Google acreditaba sin comprobar de quién era la compra.
+    cuentaApp: compra.obfuscatedExternalAccountId ?? null,
+  }
 }
 
 /**
@@ -156,7 +183,7 @@ export function evaluarCompra(compra: CompraGoogle, productId: string): ReciboVe
 export async function verificarRecibo(
   token: string,
   config: ConfigGoogle | null = configGoogle(),
-): Promise<ReciboVerificado> {
+): Promise<ReciboRestaurable> {
   if (!config) return noValido('Google Play sin configurar')
 
   const separador = token.indexOf('|')

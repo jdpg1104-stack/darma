@@ -75,12 +75,12 @@ export async function POST(request: NextRequest) {
 
     const { plataforma, token } = parsear(esquemaVerificar, await leerCuerpo(request))
 
-    // Se guardan por separado además de unificados: solo el recibo de Apple
-    // trae `cuentaApp`, y estrechar aquí evita un cast más abajo — un `as` en el
-    // camino que decide si una compra se acredita a alguien es justo donde no
-    // se quiere estar afirmando cosas que el compilador no puede comprobar.
-    const reciboApple = plataforma === 'apple' ? await verificarApple(token) : null
-    const recibo = reciboApple ?? (await verificarGoogle(token))
+    // Las dos tiendas devuelven ya el MISMO tipo (`ReciboRestaurable`: recibo
+    // más titular declarado). Cuando solo Apple lo traía había que guardar el
+    // recibo por duplicado para estrechar el tipo, y ese apaño era también la
+    // forma de la omisión: la comprobación de titularidad colgaba de un
+    // `if (reciboApple !== null)`, así que Google la saltaba por construcción.
+    const recibo = plataforma === 'apple' ? await verificarApple(token) : await verificarGoogle(token)
 
     if (!recibo.valido || !recibo.externalId) {
       // El motivo describe nuestra validación (bundleId ajeno, entorno de
@@ -116,10 +116,11 @@ export async function POST(request: NextRequest) {
     // cierra con el mismo criterio, no con uno propio: `comprobarTitular()` es
     // la única función que decide esto en todo el repositorio.
     //
-    // ⚠️ Solo Apple. Google no expone aquí su `obfuscatedExternalAccountId`;
-    // queda anotado igual que en `restore`.
-    if (reciboApple !== null) {
-      const cuentaApp = reciboApple.cuentaApp
+    // Vale para LAS DOS tiendas: el titular de Apple es `appAccountToken` y el
+    // de Google `obfuscatedExternalAccountId`, y los dos llegan aquí como
+    // `cuentaApp`. Antes esto colgaba de un `if` que solo se cumplía con Apple.
+    {
+      const cuentaApp = recibo.cuentaApp
       const titular = comprobarTitular(cuentaApp, sesion.userId)
 
       if (titular === 'ajeno') {
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
         // otra persona y atarlo a esta sesión sería el cruce que CONTRATOS §2
         // declara inexistente.
         logger.warn('billing:verify_titular_ajeno', {
+          plataforma,
           user_id: sesion.userId,
           // `ajeno` implica que venía algo, pero el compilador no lo deduce y
           // no se lo afirmamos con un `!`: si alguna vez dejara de ser cierto,
@@ -143,7 +145,7 @@ export async function POST(request: NextRequest) {
       // rompería la compra recién hecha de quien use una versión antigua de la
       // app, así que se registra para poder medirlo y se acredita.
       if (titular === 'ausente') {
-        logger.warn('billing:verify_sin_titular', { user_id: sesion.userId })
+        logger.warn('billing:verify_sin_titular', { plataforma, user_id: sesion.userId })
       }
     }
 

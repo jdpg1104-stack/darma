@@ -48,11 +48,9 @@
 // patrón —una cuenta probando titulares distintos— sin guardar de quién es cada
 // uno, y sin volcar el recibo.
 //
-// ⚠️ La comprobación es de Apple. El camino de Google no la tiene: su
-// equivalente es `obfuscatedExternalAccountId` y vive en `lib/billing/google.ts`
-// (queda anotado). El riesgo no es el mismo — para restaurar por Google hay que
-// presentar el `purchaseToken` entero, que es un secreto largo y no algo que la
-// gente pegue en un foro— pero la puerta sigue sin cerrar.
+// Google tiene ahora la suya, con su equivalente `obfuscatedExternalAccountId`
+// y una política distinta ante el titular AUSENTE. Está en `recibosDeGoogle()`,
+// con las dos razones de la asimetría escritas al lado del código que la aplica.
 //
 // 🔴 Restaurar acredita cristales. Nunca karma.
 // ============================================================================
@@ -65,6 +63,7 @@ import { sobreOk } from '@/lib/auth/respuestas'
 import { requirePerfil } from '@/lib/auth/session'
 import {
   clasificarRestauracion,
+  comprobarTitular,
   historialTransacciones,
   huellaTitular,
   type ReciboVerificado,
@@ -160,10 +159,81 @@ async function recibosARestaurar(
   userId: string,
 ): Promise<ReciboVerificado[]> {
   if (plataforma === 'apple') return recibosDeApple(referencia, userId)
+  return recibosDeGoogle(referencia, userId)
+}
 
+/**
+ * Compras de Google, ya filtradas por titular.
+ *
+ * ── POR QUÉ NO REUTILIZA `clasificarRestauracion()` ─────────────────────────
+ * Esa función codifica una regla que es de Apple: «un `originalTransactionId`
+ * pertenece a UNA cuenta, luego un titular ajeno invalida el hilo entero». Aquí
+ * no hay hilo: la app manda N `purchaseToken` independientes que guardó en
+ * local. La regla se mantiene igual —un solo ajeno tumba la petición— pero por
+ * otra razón, y hacerla pasar por la de Apple sería afirmar algo falso sobre la
+ * forma del dato.
+ *
+ * ── LA ASIMETRÍA CON APPLE ANTE UN TITULAR AUSENTE ──────────────────────────
+ * En Apple, «ausente» no acredita. Aquí SÍ, y no es un descuido:
+ *
+ *  1. El webhook de Google (`webhook/google/route.ts`) se NIEGA a acreditar una
+ *     compra sin `obfuscatedExternalAccountId` y manda expresamente a la
+ *     persona a esta ruta, que es la que tiene sesión. Cerrar aquí también
+ *     dejaría ese dinero sin ningún destino posible: pagado, verificado por
+ *     Google, y sin forma de llegar a nadie.
+ *  2. Para llegar hasta aquí hay que presentar el `purchaseToken` ENTERO, que
+ *     es un secreto largo que la tienda solo entrega al dispositivo que compró.
+ *     No es el caso de Apple, donde el `originalTransactionId` circula en
+ *     capturas y correos de reembolso: allí poseerlo no prueba casi nada, aquí
+ *     poseerlo ya es la mayor parte de la prueba.
+ *
+ * Lo que NO cambia: un titular que viene y no coincide sigue siendo un ajeno, y
+ * eso se rechaza igual en las dos tiendas.
+ */
+async function recibosDeGoogle(referencia: string, userId: string): Promise<ReciboVerificado[]> {
   const tokens = referencia.split(',').map((t) => t.trim()).filter(Boolean).slice(0, MAX_RESTAURAR)
-  const verificados = await Promise.all(tokens.map((t) => verificarGoogle(t)))
-  return verificados.filter((r) => r.valido)
+  const verificados = (await Promise.all(tokens.map((t) => verificarGoogle(t)))).filter((r) => r.valido)
+
+  const ajenas: string[] = []
+  let sinTitular = 0
+
+  for (const recibo of verificados) {
+    switch (comprobarTitular(recibo.cuentaApp, userId)) {
+      case 'coincide':
+        break
+      case 'ausente':
+        sinTitular += 1
+        break
+      case 'ajeno': {
+        const huella = huellaTitular(recibo.cuentaApp ?? '')
+        if (!ajenas.includes(huella)) ajenas.push(huella)
+        break
+      }
+    }
+  }
+
+  if (ajenas.length > 0) {
+    logger.warn('billing:restore_titular_ajeno', {
+      plataforma: 'google',
+      user_id: userId,
+      huellas_titular: ajenas,
+      recibos_verificados: verificados.length,
+    })
+    throw new ErrorApi('sin_permiso')
+  }
+
+  if (sinTitular > 0) {
+    // Se acreditan (ver el porqué arriba), pero se cuentan: si este número crece
+    // es que hay clientes en la calle que no fijan el id, y eso es un fallo del
+    // cliente que aquí solo se está tapando.
+    logger.warn('billing:restore_sin_titular', {
+      plataforma: 'google',
+      user_id: userId,
+      recibos_sin_titular: sinTitular,
+    })
+  }
+
+  return verificados
 }
 
 /**

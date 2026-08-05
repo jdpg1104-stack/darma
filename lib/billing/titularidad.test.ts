@@ -1,5 +1,10 @@
 // ============================================================================
-// El camino de ATAQUE de `POST /api/billing/restore`
+// El camino de ATAQUE de las rutas que acreditan compras
+//
+// Cuatro casillas: {Apple, Google} × {`verify`, `restore`}. Empezó siendo solo
+// `restore` de Apple —que fue donde se encontró— y se fue completando a medida
+// que quedaba claro que el agujero no era de una ruta, sino de confundir dos
+// preguntas en todas ellas.
 //
 // El agujero que estas pruebas cierran: la ruta acreditaba a la sesión
 // cualquier recibo que Apple diera por bueno. Una firma válida dice «esta
@@ -21,6 +26,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
+import { evaluarCompra } from './google.ts'
 import {
   clasificarRestauracion,
   comprobarTitular,
@@ -260,3 +266,87 @@ test('la asimetría entre las dos rutas ante el titular AUSENTE es deliberada', 
   const verify = readFileSync(new URL('../../app/api/billing/verify/route.ts', import.meta.url), 'utf8')
   assert.match(verify, /verify_sin_titular/, 'verify debe REGISTRAR lo ausente aunque lo acredite')
 })
+
+// ── El camino de GOOGLE ─────────────────────────────────────────────────────
+//
+// La misma puerta, la otra tienda. Google no manda `appAccountToken` sino
+// `obfuscatedExternalAccountId`, que la app fija al `profiles.id` al lanzar la
+// compra y que Google devuelve dentro de `purchases.products.get`. Ese campo
+// llegaba a `evaluarCompra()` y se tiraba, así que ni `verify` ni `restore`
+// podían comprobar nada aunque hubieran querido.
+
+test('ATAQUE · la compra de Google lleva su titular hasta la ruta', () => {
+  const mia = evaluarCompra({ orderId: 'GPA.1', purchaseState: 0, obfuscatedExternalAccountId: YO }, 'app_darma_crystals_100')
+  assert.equal(mia.valido, true)
+  assert.equal(comprobarTitular(mia.cuentaApp, YO), 'coincide')
+
+  const ajena = evaluarCompra(
+    { orderId: 'GPA.2', purchaseState: 0, obfuscatedExternalAccountId: OTRA_PERSONA },
+    'app_darma_crystals_100',
+  )
+  // Sigue siendo una compra VÁLIDA —Google la pagó de verdad— y aun así no
+  // acredita: válida y tuya son dos preguntas distintas, y esta prueba existe
+  // para que nadie vuelva a confundirlas al leer `valido: true`.
+  assert.equal(ajena.valido, true)
+  assert.equal(comprobarTitular(ajena.cuentaApp, YO), 'ajeno')
+})
+
+test('una compra de Google sin titular queda AUSENTE, no ajena', () => {
+  const sinTitular = evaluarCompra({ orderId: 'GPA.3', purchaseState: 0 }, 'app_darma_crystals_100')
+
+  assert.equal(sinTitular.cuentaApp, null)
+  // `ausente` es lo que permite que `restore` la acredite igualmente: el webhook
+  // de Google se niega a acreditar sin este id y manda a la persona ahí, así que
+  // si `restore` también cerrase, ese pago no tendría ningún destino posible.
+  // La asimetría con Apple está razonada en `recibosDeGoogle()`.
+  assert.equal(comprobarTitular(sinTitular.cuentaApp, YO), 'ausente')
+})
+
+test('una compra de Google RECHAZADA no arrastra titular', () => {
+  // Si un recibo no válido saliera con `cuentaApp`, una ruta que comprobara el
+  // titular antes que la validez lo daría por bueno.
+  const cancelada = evaluarCompra(
+    { orderId: 'GPA.4', purchaseState: 1, obfuscatedExternalAccountId: YO },
+    'app_darma_crystals_100',
+  )
+  assert.equal(cancelada.valido, false)
+  assert.equal(cancelada.cuentaApp, null)
+})
+
+test('🔴 las DOS tiendas comprueban titularidad en las DOS rutas', () => {
+  // Cuatro casillas: {apple, google} × {verify, restore}. Durante un tiempo solo
+  // tres estaban cubiertas, y la que faltaba no se veía porque la comprobación
+  // colgaba de un `if (reciboApple !== null)`: leyendo la ruta parecía que
+  // estaba, y para Google no se ejecutaba nunca.
+  const verify = readFileSync(new URL('../../app/api/billing/verify/route.ts', import.meta.url), 'utf8')
+  const restore = readFileSync(new URL('../../app/api/billing/restore/route.ts', import.meta.url), 'utf8')
+
+  assert.match(verify, /comprobarTitular\(/, 'verify no comprueba titularidad')
+  assert.match(restore, /comprobarTitular\(/, 'restore no comprueba titularidad para Google')
+  assert.match(restore, /clasificarRestauracion\(/, 'restore no comprueba titularidad para Apple')
+
+  // Y que en `verify` no haya vuelto a colgar de la plataforma: la comprobación
+  // tiene que correr para el recibo, venga de donde venga.
+  //
+  // Se mira el CÓDIGO, no el archivo. Sin quitar los comentarios este guard
+  // saltaba con el comentario de arriba, que cita el `if` que describe — un
+  // guard que se dispara con la explicación de por qué existe es un guard que
+  // acaba desactivado.
+  assert.doesNotMatch(
+    soloCodigo(verify),
+    /if \(recibo(Apple|Google)\b/,
+    'la comprobación de titularidad vuelve a depender de la tienda',
+  )
+})
+
+/**
+ * Deja solo el código: fuera bloques `/* *\/` y todo lo que siga a `//`.
+ *
+ * Es deliberadamente tosca —no entiende cadenas que contengan `//`, como una
+ * URL— y basta: lo que se busca son formas sintácticas concretas, no analizar
+ * TypeScript. Si algún día hiciera falta precisión, el sitio correcto es el
+ * compilador, no una heurística más larga aquí.
+ */
+function soloCodigo(fuente: string): string {
+  return fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
+}
