@@ -19,6 +19,26 @@
       "revisadosPorPersona": "Reviewed by a person",
       "titulo": "Crisis review coverage"
     },
+    "curacion": {
+      "abrir": "Watch the video",
+      "aprobado": "Approved. It is now in Ánimo.",
+      "aprobar": "Approve",
+      "aviso": "Approving means someone will see this on their worst night. Watch it first.",
+      "error": "The decision could not be saved. Try again.",
+      "intro": "Content waiting for a human decision. Open it, watch it, and decide. Nothing reaches Ánimo without passing through here.",
+      "mostrando": "Showing the {n} oldest first.",
+      "motivo": "Why it is being discarded",
+      "motivoObligatorio": "Write why you are discarding it. A discard with no reason cannot be reviewed later.",
+      "motivoPlaceholder": "E.g.: not mental health, wrong tone, promises outcomes…",
+      "quedan": "{n, plural, =1 {1 left to decide} other {# left to decide}}",
+      "rechazado": "Discarded.",
+      "rechazar": "Discard",
+      "sinTema": "no topic",
+      "titulo": "Curation queue",
+      "vacia": "Nothing left to curate.",
+      "vaciaDetalle": "The queue is empty. When ingestion brings new content, it will show up here.",
+      "yaDecidido": "Someone else already decided on this one. Reload the queue."
+    },
     "economia": {
       "arppu": "ARPPU",
       "avisoEstimadoFuerte": "Revenue partially estimated.",
@@ -94,6 +114,7 @@
     "nav": {
       "activacion": "Activation",
       "crisis": "Crisis",
+      "curacion": "Curation",
       "economia": "Economy",
       "encuestas": "Polls",
       "moderacion": "Moderation",

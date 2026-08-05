@@ -169,6 +169,15 @@ export const ACCIONES = {
   rolesLista: 'admin.roles.lista',
   rolesConceder: 'admin.roles.conceder',
   rolesRevocar: 'admin.roles.revocar',
+  /**
+   * Curación de contenido. Se audita APROBAR y RECHAZAR por separado, y no como
+   * un genérico «curación», porque son la respuesta a preguntas distintas:
+   * «¿quién dejó pasar esto?» y «¿quién descartó aquello?». La primera es la que
+   * se hace después de un incidente.
+   */
+  curacionCola: 'admin.curacion.cola',
+  curacionAprobar: 'admin.curacion.aprobar',
+  curacionRechazar: 'admin.curacion.rechazar',
   /** El que de verdad importa: alguien intentó entrar y no pudo. */
   denegado: 'admin.denegado',
 } as const

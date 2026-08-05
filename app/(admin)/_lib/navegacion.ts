@@ -48,6 +48,10 @@ export const TABS_ADMIN: readonly TabAdmin[] = [
   { id: 'crisis',       ruta: '/panel/crisis',       etiquetaKey: 'admin.nav.crisis',       rolMinimo: 'moderador' },
   // Propiedad de B11. Este bloque solo enlaza la ruta; no toca su código.
   { id: 'moderacion',   ruta: '/moderacion',         etiquetaKey: 'admin.nav.moderacion',   rolMinimo: 'moderador' },
+  // Curación del catálogo de /animo. `moderador` y no `operaciones`: es una
+  // decisión de CONTENIDO, la misma clase que /moderacion, y pedir un rol más
+  // alto obligaría a dar permisos de más a quien solo cura vídeos.
+  { id: 'curacion',     ruta: '/panel/curacion',     etiquetaKey: 'admin.nav.curacion',     rolMinimo: 'moderador' },
   // Redacción de encuestas del feed. Sin esta entrada la página no es que
   // estuviera oculta: `puedeVerRuta()` falla cerrado ante rutas desconocidas,
   // así que estaba INACCESIBLE incluso para un superadmin. Es el comportamiento
