@@ -1,5 +1,10 @@
 import type { Locator } from '@playwright/test'
+import { obtenerTraductor } from '@/i18n/traductor'
 import { BasePage } from './BasePage'
+
+// El contexto se crea con `locale: 'es-ES'`: cuando un localizador afirma una
+// frase (el aviso del tope diario), la frase sale del catálogo, no de un spec.
+const t = obtenerTraductor('es')
 
 /**
  * `/animo` — el feed vertical de vídeo (nivel 1: solo recibir, sin escribir).
@@ -17,12 +22,12 @@ export class AnimoPage extends BasePage {
 
   /** Todas las tarjetas de vídeo montadas. */
   get tarjetas(): Locator {
-    return this.page.locator('article')
+    return this.page.getByTestId('video-tarjeta')
   }
 
   /** La tarjeta activa: la única con `data-activo`. */
   get tarjetaActiva(): Locator {
-    return this.page.locator('article[data-activo]')
+    return this.page.locator('[data-testid="video-tarjeta"][data-activo]')
   }
 
   /** El reproductor incrustado de la tarjeta activa. */
@@ -32,24 +37,29 @@ export class AnimoPage extends BasePage {
 
   /** Capa de toque de la tarjeta activa: reproducir o pausar. */
   get botonReproducir(): Locator {
-    return this.tarjetaActiva.getByRole('button', { name: /^Reproducir o pausar: / })
+    return this.tarjetaActiva.getByTestId('video-boton-reproducir')
   }
 
   get barraProgreso(): Locator {
-    return this.tarjetaActiva.getByRole('progressbar', { name: 'Progreso del vídeo' })
+    return this.tarjetaActiva.getByTestId('video-progreso')
   }
 
   /** La marca de completado que pinta la tarjeta cuando el karma se acredita. */
   get marcaCompletado(): Locator {
-    return this.tarjetaActiva.getByText('Completado')
+    return this.tarjetaActiva.getByTestId('video-completado')
   }
 
+  /** El aviso del tope diario, en el pie del feed y con la frase del catálogo:
+   *  aquí el TEXTO es parte de lo que se afirma (que se explica que el vídeo
+   *  cuenta igual), así que el copy se queda como aserción de contenido. */
   get avisoTopeDiario(): Locator {
-    return this.page.getByText('Hoy ya has llegado al máximo de karma. El vídeo cuenta igual.')
+    return this.page
+      .getByTestId('video-pie-estado')
+      .filter({ hasText: t('contenido.topeDiario') })
   }
 
   get estadoVacio(): Locator {
-    return this.page.getByRole('heading', { name: 'Todavía no hay vídeos para ti' })
+    return this.page.getByTestId('video-vacio')
   }
 
   /** Baja al siguiente item del feed vertical. */
@@ -68,7 +78,9 @@ export class AnimoPage extends BasePage {
    * exactamente el gesto que haría una persona.
    */
   async arrancar(): Promise<void> {
-    const yaSonando = this.page.locator('article[data-activo][data-reproduciendo]')
+    const yaSonando = this.page.locator(
+      '[data-testid="video-tarjeta"][data-activo][data-reproduciendo]',
+    )
     try {
       await yaSonando.waitFor({ state: 'attached', timeout: 8_000 })
       return

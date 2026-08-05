@@ -46,9 +46,12 @@ export function EstadoValidacion({
 }: EstadoValidacionProps) {
   const t = useTraductor()
 
+  // Los `data-testid` por estado (B18): el e2e localizaba estos sellos por el
+  // copy, que cambia con el idioma y con cada retoque de texto. El rol y los
+  // textos no cambian; el testid es adicional.
   if (estado === 'en_revision') {
     return (
-      <div className={estilos.acciones} role="status">
+      <div className={estilos.acciones} role="status" data-testid="hilo-validacion-en-revision">
         <Chip tono="neutro">{t('hilo.comprobando')}</Chip>
       </div>
     )
@@ -56,7 +59,7 @@ export function EstadoValidacion({
 
   if (estado === 'no_valido') {
     return (
-      <div className={estilos.acciones} role="status">
+      <div className={estilos.acciones} role="status" data-testid="hilo-validacion-no-valido">
         <Chip tono="aviso">{t('hilo.noContada')}</Chip>
         {motivo ? <p className={estilos.aviso}>{motivo}</p> : null}
       </div>
@@ -64,7 +67,15 @@ export function EstadoValidacion({
   }
 
   return (
-    <div className={estilos.acciones} role="status">
+    <div
+      className={estilos.acciones}
+      role="status"
+      data-testid="hilo-validacion-valido"
+      // La escucha CONTADA (crédito ganado) frente al mero «publicado»: el dato
+      // ya decide qué chip se pinta; el atributo lo hace legible para un test
+      // sin depender de la frase del chip.
+      data-escucha-contada={creditoGanado > 0 || undefined}
+    >
       <Chip tono="logro">{creditoGanado > 0 ? t('hilo.validado') : t('hilo.publicado')}</Chip>
       {karmaGanado > 0 ? (
         <Chip tono="logro">{t('hilo.karmaGanado', { n: karmaGanado })}</Chip>

@@ -260,7 +260,7 @@ function ComposerHidratado({
   if (publicado) {
     return (
       <div className={estilos.publicado}>
-        <p className={estilos.confirmacion} role="status">
+        <p className={estilos.confirmacion} role="status" data-testid="composer-confirmacion">
           {t('publicar.hecho')}
         </p>
 
@@ -314,6 +314,7 @@ function ComposerHidratado({
         </label>
         <textarea
           id="composer-body"
+          data-testid="composer-cuerpo"
           className={estilos.textarea}
           value={body}
           onChange={(evento) => setBody(evento.target.value)}
@@ -357,6 +358,7 @@ function ComposerHidratado({
         </label>
         <select
           id="composer-topic"
+          data-testid="composer-tema"
           className={estilos.select}
           value={topic}
           onChange={(evento) => setTopic(evento.target.value as TemaDarma)}
@@ -371,13 +373,16 @@ function ComposerHidratado({
 
       {/* ── Aviso de datos de contacto (cortesía; la barrera es el servidor) ─ */}
       {aviso ? (
-        <p className={estilos.aviso} role="status">
+        <p className={estilos.aviso} role="status" data-testid="composer-aviso-pii">
           <Chip tono="aviso">{t('publicar.revisaEsto')}</Chip> {aviso}
         </p>
       ) : null}
 
       {/* ── Estado de reciprocidad ────────────────────────────────────────── */}
-      <p className={estilos.reciprocidad}>
+      {/* El `data-testid` es el ancla que B18 pidió en PEDIDOS.md: este párrafo
+          no tenía id, ni role, ni nada, y el Page Object lo localizaba solo por
+          el copy. El texto sigue saliendo del catálogo, sin cambios. */}
+      <p className={estilos.reciprocidad} data-testid="composer-reciprocidad">
         {mensajeReciprocidad}
         {!puedePublicar ? (
           <>
@@ -391,7 +396,7 @@ function ComposerHidratado({
 
       {/* ── Error del servidor ────────────────────────────────────────────── */}
       {error ? (
-        <p className={estilos.error} role="alert">
+        <p className={estilos.error} role="alert" data-testid="composer-error">
           {error}
           {necesitaEscuchar ? (
             <>
@@ -409,6 +414,7 @@ function ComposerHidratado({
         variante="primario"
         tamano="lg"
         bloque
+        data-testid="composer-boton-publicar"
         cargando={enviando}
         // SOLO la longitud. Nunca la reciprocidad (ver cabecera del archivo).
         disabled={fueraDeRango || enviando}

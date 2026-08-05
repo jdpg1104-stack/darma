@@ -87,6 +87,7 @@ export default async function PaginaAnimo() {
           <EstadoVacio
             titulo={t('contenido.vacioTitulo')}
             descripcion={t('contenido.vacioDescripcion')}
+            data-testid="video-vacio"
           />
         </div>
       ) : (

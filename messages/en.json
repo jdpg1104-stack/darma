@@ -561,6 +561,37 @@
         },
         "titulo": "Boost this post"
       },
+      "cosmeticos": {
+        "comprar": "Buy",
+        "comprarEtiqueta": "Buy {etiqueta}",
+        "coste": "{n, plural, one {# crystal} other {# crystals}}",
+        "enTuPerfil": "On your profile",
+        "error": "We couldn't complete the purchase. Try again in a moment.",
+        "explicacion": "Decoration for your profile, paid with crystals. It doesn't change your karma or how you're listened to: only how your corner looks.",
+        "marco_marea": {
+          "descripcion": "An edge that ripples slowly.",
+          "etiqueta": "Tide"
+        },
+        "marco_niebla": {
+          "descripcion": "A soft halo around your avatar.",
+          "etiqueta": "Mist"
+        },
+        "paleta_amanecer": {
+          "descripcion": "Warm tones for your profile.",
+          "etiqueta": "Dawn"
+        },
+        "paleta_musgo": {
+          "descripcion": "Muted greens, low light.",
+          "etiqueta": "Moss"
+        },
+        "proximamente": "Coming soon",
+        "sinCristales": "Not enough crystals",
+        "tema_nocturno_profundo": {
+          "descripcion": "A dark mode that is darker still.",
+          "etiqueta": "Deep night"
+        },
+        "titulo": "Decoration"
+      },
       "cupoGratis": "You get one free boost a day. It's paid for by the karma you already earned listening to other people: being read never depends on paying.",
       "explicacionCristales": "Crystals pay for decoration and a little reach, for a while. They don't raise your karma, they don't put you ahead of anyone in a queue, and they don't change the order in which someone in crisis is attended to.",
       "explicacionRegalo": "A gift is a visible gesture in the thread. Part of it stays with Darma to keep it going and the rest reaches the person, in crystals. It gives them no karma: karma is earned by listening.",

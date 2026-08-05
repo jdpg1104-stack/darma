@@ -137,6 +137,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
       {error && (
         <p
           role="alert"
+          data-testid="auth-error"
           style={{
             margin: 0,
             padding: '12px 14px',
@@ -167,6 +168,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
           id="edad-minima"
           name="edad-minima"
           type="checkbox"
+          data-testid="auth-casilla-edad"
           checked={edadDeclarada}
           onChange={(evento) => {
             setEdadDeclarada(evento.target.checked)
@@ -193,6 +195,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
         className="btn btn--primary"
         onClick={entrarAnonimo}
         disabled={ocupado}
+        data-testid="auth-boton-anonimo"
         style={{ width: '100%' }}
       >
         {ocupado ? t('auth.entrada.enviando') : t('auth.entrada.botonAnonimo')}
@@ -201,7 +204,11 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
       <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: 0 }} />
 
       {estado === 'enlaceEnviado' ? (
-        <p role="status" style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+        <p
+          role="status"
+          data-testid="auth-enlace-enviado"
+          style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}
+        >
           {t('auth.entrada.enlaceEnviadoInicio')}{' '}
           <strong style={{ color: 'var(--ink)' }}>{enmascarado}</strong>
           {t('auth.entrada.enlaceEnviadoFin')}
@@ -215,6 +222,7 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
             id="correo"
             name="correo"
             type="email"
+            data-testid="auth-campo-correo"
             inputMode="email"
             autoComplete="email"
             required
@@ -232,7 +240,12 @@ export function PanelEntrada({ errorInicial }: { errorInicial?: string }) {
               font: 'inherit',
             }}
           />
-          <button type="submit" className="btn btn--ghost" disabled={ocupado}>
+          <button
+            type="submit"
+            className="btn btn--ghost"
+            disabled={ocupado}
+            data-testid="auth-boton-enlace"
+          >
             {t('auth.entrada.botonEnlace')}
           </button>
           <p style={{ color: 'var(--muted)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>

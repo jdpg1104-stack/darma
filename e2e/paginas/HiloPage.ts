@@ -1,11 +1,9 @@
 import type { Locator } from '@playwright/test'
-import { obtenerTraductor } from '@/i18n/traductor'
 import { BasePage } from './BasePage'
 
-// El contexto se crea con locale es-ES: el copy se resuelve del catálogo, no
-// se escribe a mano (el «Enviar» fijado a mano nunca existió: el botón real
-// dice «Responder», y este PO jamás había corrido contra la app de verdad).
-const t = obtenerTraductor('es')
+// Los anclajes de esta pantalla son `data-testid` (B18): el copy vive en el
+// catálogo y cambia con el idioma. Cuando un spec quiera afirmar una frase
+// concreta, que la resuelva de `obtenerTraductor('es')` en el propio spec.
 
 /**
  * `/post/[id]` — donde se escucha de verdad.
@@ -28,25 +26,31 @@ export class HiloPage extends BasePage {
   }
 
   get textareaRespuesta(): Locator {
-    return this.page.getByLabel('Escríbele algo')
+    return this.page.getByTestId('hilo-campo-respuesta')
   }
 
   get botonEnviar(): Locator {
-    return this.page.getByRole('button', { name: t('hilo.responder'), exact: true })
+    return this.page.getByTestId('hilo-boton-responder')
   }
 
+  /** SOLO los comentarios: el post del hilo tiene su propio `hilo-post`. */
   get comentarios(): Locator {
-    return this.page.getByRole('article')
+    return this.page.getByTestId('hilo-comentario')
   }
 
-  /** Chip que indica que el comentario ya cuenta como escucha. */
+  /**
+   * El estado «tu escucha ha contado». El testid llega al estado `valido` y el
+   * atributo `data-escucha-contada` distingue «contó» (crédito ganado) de un
+   * mero «publicado» sin fijar la frase del chip. El texto en sí, cuando un
+   * spec quiera afirmarlo, sale del catálogo (`hilo.validado`).
+   */
   get selloEscuchaContada(): Locator {
-    return this.page.getByText('Ha contado como escucha')
+    return this.page.locator('[data-testid="hilo-validacion-valido"][data-escucha-contada]')
   }
 
-  /** Chip de comentario aún sin validar. */
+  /** Estado de comentario aún sin validar. */
   get selloEnRevision(): Locator {
-    return this.page.getByText(/Comprobando tu mensaje|En revisión/)
+    return this.page.getByTestId('hilo-validacion-en-revision')
   }
 
   /**

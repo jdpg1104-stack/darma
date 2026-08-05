@@ -51,7 +51,12 @@ export function BotonSalir() {
   }
 
   return (
-    <Boton variante="secundario" cargando={ocupado} onClick={() => void salir()}>
+    <Boton
+      variante="secundario"
+      cargando={ocupado}
+      onClick={() => void salir()}
+      data-testid="perfil-boton-salir"
+    >
       {t('auth.salir')}
     </Boton>
   )

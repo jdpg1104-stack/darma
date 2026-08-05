@@ -8,10 +8,28 @@
 // problema de captación: o el clasificador se ha puesto duro, o el onboarding
 // no explica qué cuenta como escucha.
 //
+// ── QUÉ AÑADE ESTA VERSIÓN (hallazgo del crítico: «nada mide activación… ni
+// el éxito del pilar 1») ────────────────────────────────────────────────────
+//   · El embudo COMPARADO en ventanas de 7 y 30 días, con tasas sobre el
+//     registro — derivado de las mismas filas de rollup que ya se leían.
+//   · «Volvió tras su primer día», de `admin_embudo_daily` (0218): dos cifras
+//     que acotan la verdad (actividad medible y cota por last_seen), porque
+//     no hay tabla de sesiones y NO se añade tracking nuevo.
+//   · El pilar 1: vídeos completados por día y personas distintas, agregados
+//     de `content_views` vía rollup — jamás en vivo.
+// DOS consultas por render (rollup 90 días + embudo 30 días), bajo el
+// presupuesto de 3 de CONTRATOS §11. Cero JS de cliente.
+//
 // ── TODO ENMASCARADO POR DEBAJO DE 20 ──────────────────────────────────────
-// Cada celda pasa por `enmascarar()`. Un embudo de un día flojo puede tener
-// cortes de 3 personas, y un agregado con n=3 más un poco de contexto externo
-// señala a alguien concreto. Aquí se muestra «<20» y no se discute.
+// Cada conteo de PERSONAS pasa por `enmascarar()`. Un embudo de un día flojo
+// puede tener cortes de 3 personas, y un agregado con n=3 más un poco de
+// contexto externo señala a alguien concreto. Aquí se muestra «<20» y no se
+// discute. Los vídeos completados son EVENTOS y van sin máscara, como los
+// posts y los comentarios en el resto del panel.
+//
+// ── COPY NUEVO EN ESPAÑOL DIRECTO ──────────────────────────────────────────
+// Vive en `logica.ts` (TEXTOS): los catálogos messages/*.json son de otro
+// bloque. Mismo criterio documentado en panel/privacidad/logica.ts.
 // ============================================================================
 
 import { obtenerTraductor, resolverLocale } from '@/i18n'
@@ -20,6 +38,7 @@ import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
 import {
   DIAS_VENTANA_DETALLE,
+  aDiaUtc,
   enmascarar,
   getEmbudoActivacion,
   leerRollup,
@@ -27,7 +46,16 @@ import {
   ventanaDias,
 } from '../../_lib/dashboard.ts'
 import { TablaSerie } from '../../_componentes/TablaSerie.tsx'
-import { porcentaje } from '../../_componentes/Formato.ts'
+import { entero, porcentaje } from '../../_componentes/Formato.ts'
+import {
+  DIAS_VENTANA_EMBUDO,
+  TEXTOS,
+  embudoDeVentana,
+  escalonesDeVentana,
+  filtrarUltimosDias,
+  leerEmbudoDiario,
+  resumenPilar1,
+} from './logica.ts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -37,8 +65,30 @@ export default async function PaginaActivacion() {
 
   const t = obtenerTraductor(await resolverLocale())
   const admin = createAdminClient()
-  const filas = await leerRollup(admin, ventanaDias(DIAS_VENTANA_DETALLE))
+  const [filas, filasEmbudo] = await Promise.all([
+    leerRollup(admin, ventanaDias(DIAS_VENTANA_DETALLE)),
+    leerEmbudoDiario(admin, ventanaDias(DIAS_VENTANA_EMBUDO)),
+  ])
   const embudo = getEmbudoActivacion(filas)
+
+  // Las ventanas comparadas se derivan de las MISMAS filas ya leídas: filtrar
+  // en memoria 90 filas no es una consulta nueva.
+  const hoy = aDiaUtc(new Date().toISOString())
+  const ventana7 = embudoDeVentana(
+    7,
+    filtrarUltimosDias(filas, 7, hoy),
+    filtrarUltimosDias(filasEmbudo, 7, hoy),
+  )
+  const ventana30 = embudoDeVentana(
+    30,
+    filtrarUltimosDias(filas, 30, hoy),
+    filtrarUltimosDias(filasEmbudo, 30, hoy),
+  )
+  const escalones7 = escalonesDeVentana(ventana7)
+  const escalones30 = escalonesDeVentana(ventana30)
+
+  const pilar7 = resumenPilar1(7, filtrarUltimosDias(filasEmbudo, 7, hoy))
+  const pilar30 = resumenPilar1(30, filtrarUltimosDias(filasEmbudo, 30, hoy))
 
   const escalones = [
     { etiqueta: t('admin.embudo.e1'), n: embudo.registrados },
@@ -54,6 +104,59 @@ export default async function PaginaActivacion() {
       <h1>{t('admin.activacion.titulo')}</h1>
       <p>{t('admin.activacion.cohorte', { dias: DIAS_VENTANA_DETALLE })}</p>
       <p>{t('admin.activacion.notaMedicion')}</p>
+
+      <TablaSerie
+        titulo={TEXTOS.tituloVentanas}
+        columnas={[
+          { clave: 'escalon', etiqueta: TEXTOS.colEscalon },
+          { clave: 'p7', etiqueta: TEXTOS.colPersonas7 },
+          { clave: 't7', etiqueta: TEXTOS.colTasa7 },
+          { clave: 'p30', etiqueta: TEXTOS.colPersonas30 },
+          { clave: 't30', etiqueta: TEXTOS.colTasa30 },
+        ]}
+        filas={escalones7.map((e7, i) => ({
+          escalon: e7.etiqueta,
+          p7: enmascarar(e7.personas),
+          // Las tasas se calculan sobre los números reales, no sobre los
+          // enmascarados: enmascarar es de presentación, no de cálculo.
+          t7: porcentaje(e7.sobreRegistro),
+          p30: enmascarar(escalones30[i].personas),
+          t30: porcentaje(escalones30[i].sobreRegistro),
+        }))}
+      />
+
+      <p>{TEXTOS.notaCuentas}</p>
+      <p>
+        {TEXTOS.notaVueltaD1a} <strong>{enmascarar(ventana7.vueltaD1Cota)}</strong>{' '}
+        {TEXTOS.notaVueltaD1b} <strong>{enmascarar(ventana30.vueltaD1Cota)}</strong>{' '}
+        {TEXTOS.notaVueltaD1c}
+      </p>
+      {filasEmbudo.length === 0 ? <p>{TEXTOS.sinRollupEmbudo}</p> : null}
+
+      <h2>{TEXTOS.tituloPilar1}</h2>
+      <p>{TEXTOS.introPilar1}</p>
+      <p>
+        {TEXTOS.resumenPilar1a} <strong>{entero(pilar7.videosCompletados)}</strong>{' '}
+        {TEXTOS.resumenPilar1b} <strong>{enmascarar(pilar7.personasCompletaronCota)}</strong>{' '}
+        {TEXTOS.resumenPilar1c} <strong>{entero(pilar30.videosCompletados)}</strong>{' '}
+        {TEXTOS.resumenPilar1d} <strong>{enmascarar(pilar30.personasCompletaronCota)}</strong>{' '}
+        {TEXTOS.resumenPilar1e}
+      </p>
+      <p>{TEXTOS.notaPilar1}</p>
+
+      <TablaSerie
+        titulo={TEXTOS.tituloSeriePilar1}
+        columnas={[
+          { clave: 'dia', etiqueta: TEXTOS.colDia },
+          { clave: 'videos', etiqueta: TEXTOS.colVideos },
+          { clave: 'personas', etiqueta: TEXTOS.colPersonas },
+        ]}
+        filas={pilar30.serie.map((p) => ({
+          dia: p.dia,
+          videos: entero(p.videos),
+          personas: enmascarar(p.personas),
+        }))}
+      />
 
       <TablaSerie
         titulo={t('admin.activacion.tablaEmbudo')}

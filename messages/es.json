@@ -561,6 +561,37 @@
         },
         "titulo": "Impulsar este post"
       },
+      "cosmeticos": {
+        "comprar": "Comprar",
+        "comprarEtiqueta": "Comprar {etiqueta}",
+        "coste": "{n, plural, one {# cristal} other {# cristales}}",
+        "enTuPerfil": "En tu perfil",
+        "error": "No hemos podido completar la compra. Vuelve a intentarlo en un momento.",
+        "explicacion": "Decoración para tu perfil, pagada con cristales. No cambia tu karma ni cómo se te escucha: solo cómo se ve tu rincón.",
+        "marco_marea": {
+          "descripcion": "Un borde que se ondula despacio.",
+          "etiqueta": "Marea"
+        },
+        "marco_niebla": {
+          "descripcion": "Un halo difuso alrededor de tu avatar.",
+          "etiqueta": "Niebla"
+        },
+        "paleta_amanecer": {
+          "descripcion": "Tonos cálidos para tu perfil.",
+          "etiqueta": "Amanecer"
+        },
+        "paleta_musgo": {
+          "descripcion": "Verdes apagados, poca luz.",
+          "etiqueta": "Musgo"
+        },
+        "proximamente": "Próximamente",
+        "sinCristales": "Te faltan cristales",
+        "tema_nocturno_profundo": {
+          "descripcion": "Un modo oscuro más oscuro todavía.",
+          "etiqueta": "Nocturno profundo"
+        },
+        "titulo": "Decoración"
+      },
       "cupoGratis": "Tienes un impulso gratis al día. Lo paga el karma que ya ganaste escuchando a otras personas: que te lean nunca depende de que pagues.",
       "explicacionCristales": "Los cristales pagan decoración y un poco de alcance, durante un rato. No suben tu karma, no te ponen antes en la cola de nadie y no cambian el orden en el que se atiende a quien está en crisis.",
       "explicacionRegalo": "Un regalo es un gesto visible en el hilo. Parte se queda en Darma para sostenerlo y el resto llega a quien lo recibe, en cristales. No le da karma: el karma se gana escuchando.",

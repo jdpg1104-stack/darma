@@ -10,6 +10,12 @@ export interface EstadoVacioProps {
   /** `'cuidado'` para vacíos que duelen (sin respuestas, sin almas afines). */
   tono?: 'neutro' | 'cuidado'
   accion?: ReactNode
+  /**
+   * Ancla estable para el e2e (B18). Declarada a mano porque este componente
+   * no hace spread de props: sin esto, un `data-testid` pasado desde fuera se
+   * perdería en silencio. No cambia nada del render ni de la accesibilidad.
+   */
+  'data-testid'?: string
 }
 
 /**
@@ -27,11 +33,17 @@ export interface EstadoVacioProps {
  * Recordatorio de copy (Trampa #5 de B16.md): aquí no se dice «crédito», ni
  * «puntos», ni «racha». Se dice «personas a las que has acompañado».
  */
-export function EstadoVacio({ titulo, descripcion, tono = 'neutro', accion }: EstadoVacioProps) {
+export function EstadoVacio({
+  titulo,
+  descripcion,
+  tono = 'neutro',
+  accion,
+  'data-testid': testId,
+}: EstadoVacioProps) {
   const conIlustracion = mostrarIlustracion(tono)
 
   return (
-    <div className={clsx(estilos.vacio, estilos[tono])}>
+    <div className={clsx(estilos.vacio, estilos[tono])} data-testid={testId}>
       {conIlustracion ? (
         // Tres círculos concéntricos incompletos: una forma abierta, sin cara y
         // sin emoción. Decorativa, luego aria-hidden.

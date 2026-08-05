@@ -6,23 +6,23 @@ export class FeedPage extends BasePage {
   readonly ruta = '/feed'
 
   get carriles(): Locator {
-    return this.page.getByRole('navigation', { name: 'Carriles del feed' })
+    return this.page.getByTestId('feed-carriles')
   }
 
-  /** Todas las tarjetas de post del feed. */
+  /** Todas las tarjetas de post del feed (solo posts: la encuesta va aparte). */
   get tarjetas(): Locator {
-    return this.page.getByRole('article')
+    return this.page.getByTestId('feed-tarjeta-post')
   }
 
   /** Enlaces «Abrir el hilo de {alias}»: la vía real de entrar a escuchar. */
   get enlacesAHilo(): Locator {
-    return this.page.getByRole('link', { name: /^Abrir el hilo de / })
+    return this.page.getByTestId('feed-abrir-hilo')
   }
 
   /** Abre el hilo del post cuyo cuerpo contiene este texto. */
   async abrirHiloConTexto(fragmento: string): Promise<void> {
     const tarjeta = this.tarjetas.filter({ hasText: fragmento }).first()
-    await tarjeta.getByRole('link', { name: /^Abrir el hilo de / }).click()
+    await tarjeta.getByTestId('feed-abrir-hilo').click()
     await this.page.waitForURL(/\/post\//)
   }
 

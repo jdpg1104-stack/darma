@@ -52,6 +52,10 @@ export function TarjetaRecursos({ datos }: TarjetaRecursosProps) {
       // usa lector de pantalla, en este momento concreto, es un sobresalto.
       aria-live="polite"
       aria-labelledby="recursos-titulo"
+      // El testid UNIFICADO que pidió B18 (PEDIDOS.md): las tarjetas de recursos
+      // del composer, del hilo y del refugio comparten `tarjeta-recursos` para
+      // que el e2e las localice igual en las tres superficies. Solo aditivo.
+      data-testid="tarjeta-recursos"
     >
       <h2 id="recursos-titulo" className={estilos.titulo}>
         {datos.titulo}

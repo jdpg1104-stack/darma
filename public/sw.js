@@ -209,8 +209,11 @@ self.addEventListener('push', (evento) => {
          * para que lo mires. */
         silent: !esCrisis,
         requireInteraction: esCrisis,
-        icon: '/icono-darma.svg',
-        badge: '/icono-darma.svg',
+        /* PNG y no SVG: el soporte de SVG en el icono de una notificación
+         * Android es irregular (en varios lanzadores sale en blanco). El PNG
+         * lo genera scripts/design/generarAssets.ts con los mismos tokens. */
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
         /* `data` lleva SOLO la ruta. Nada de ids ni de alias: lo que no viaja no
          * se puede reconstruir desde el dispositivo. */
         data: { url: carga.url },

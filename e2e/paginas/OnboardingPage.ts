@@ -11,27 +11,31 @@ import { BasePage } from './BasePage'
 export class OnboardingPage extends BasePage {
   readonly ruta = '/onboarding'
 
+  // Localizadores por `data-testid` (B18): el copy de esta pantalla vive en el
+  // catálogo y cambia con el idioma; los roles y etiquetas siguen en el DOM y
+  // los afirman los specs que hablan de accesibilidad, no estos anclajes.
   get barraProgreso(): Locator {
-    return this.page.getByRole('progressbar', { name: 'Progreso del onboarding' })
+    return this.page.getByTestId('auth-progreso-onboarding')
   }
 
   // ── Paso 1 · alias ────────────────────────────────────────────────────────
   get campoAlias(): Locator {
-    return this.page.getByLabel('Tu alias')
+    return this.page.getByTestId('auth-campo-alias')
   }
 
   /** «Otro»: pide al servidor otro seudónimo generado. */
   get botonOtroAlias(): Locator {
-    return this.page.getByRole('button', { name: 'Otro', exact: true })
+    return this.page.getByTestId('auth-boton-otro-alias')
   }
 
+  /** Solo hay UN «Continuar» montado a la vez (los pasos son excluyentes). */
   get botonContinuar(): Locator {
-    return this.page.getByRole('button', { name: 'Continuar' })
+    return this.page.getByTestId('auth-boton-continuar')
   }
 
   // ── Paso 3 · confirmación ─────────────────────────────────────────────────
   get botonEntrar(): Locator {
-    return this.page.getByRole('button', { name: 'Entrar en Darma' })
+    return this.page.getByTestId('auth-boton-entrar-darma')
   }
 
   /**
@@ -40,7 +44,7 @@ export class OnboardingPage extends BasePage {
    * (ARCHITECTURE §2, «cero terceros en el navegador»).
    */
   get avatar(): Locator {
-    return this.page.getByRole('img', { name: 'Avatar generado' })
+    return this.page.getByTestId('auth-avatar')
   }
 
   /** Alias que el servidor propuso, tal y como está en el campo. */

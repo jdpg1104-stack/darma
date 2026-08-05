@@ -113,7 +113,7 @@ export function FeedVertical({ inicial, idioma }: FeedVerticalProps) {
         />
       ))}
 
-      <div className={estilos.pie} ref={centinela} aria-live="polite">
+      <div className={estilos.pie} ref={centinela} aria-live="polite" data-testid="video-pie-estado">
         {aviso ??
           (cargando ? t('contenido.cargandoMas') : cursor ? '' : t('contenido.finDelDia'))}
       </div>
