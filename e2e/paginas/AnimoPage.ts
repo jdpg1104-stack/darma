@@ -58,21 +58,39 @@ export class AnimoPage extends BasePage {
   }
 
   /**
-   * Arranca la reproducción con un click real.
+   * Asegura que la reproducción está en marcha.
    *
-   * En Chromium basta con `--autoplay-policy=no-user-gesture-required`, pero en
-   * WebKit no hay flag equivalente: hace falta el gesto. Se hace en los dos
-   * proyectos para que el recorrido sea el mismo — y porque un click es lo que
-   * hace una persona.
+   * En Chromium con `--autoplay-policy=no-user-gesture-required` el vídeo
+   * arranca solo en cuanto la tarjeta es la activa; un click a ciegas aquí lo
+   * PAUSARÍA (el toque es un conmutador). Por eso primero se espera a que la
+   * tarjeta declare `data-reproduciendo`; solo si no llega (WebKit, sin flag
+   * de autoplay; o `prefers-reduced-motion`) se hace el click — que es
+   * exactamente el gesto que haría una persona.
    */
   async arrancar(): Promise<void> {
-    await this.botonReproducir.click()
+    const yaSonando = this.page.locator('article[data-activo][data-reproduciendo]')
+    try {
+      await yaSonando.waitFor({ state: 'attached', timeout: 8_000 })
+      return
+    } catch {
+      await this.botonReproducir.click()
+    }
   }
 
-  /** Espera a que la app registre la sesión de reproducción del item activo. */
+  /**
+   * Espera la señal de que la app está acreditando la reproducción.
+   *
+   * Vale tanto la apertura de sesión como un latido: la sesión se abre UNA vez
+   * (en el primer latido) y puede haber ocurrido antes de registrar esta
+   * espera; los latidos se repiten cada 5 s mientras reproduce, así que
+   * siempre hay uno que cazar.
+   */
   async esperarSesionAbierta(): Promise<void> {
     await this.page.waitForResponse(
-      (r) => /\/api\/content\/[^/]+\/sesion/.test(r.url()) && r.request().method() === 'POST',
+      (r) =>
+        /\/api\/content\/[^/]+\/(sesion|latido)/.test(r.url()) &&
+        r.request().method() === 'POST',
+      { timeout: 15_000 },
     )
   }
 

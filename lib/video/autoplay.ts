@@ -69,7 +69,17 @@ export interface Visibilidad {
 }
 
 /**
- * Devuelve el id de la ÚNICA tarjeta que debe reproducir, o `null`.
+ * Devuelve el id de la ÚNICA tarjeta SELECCIONADA (la actual), o `null`.
+ *
+ * ── SELECCIÓN ≠ REPRODUCCIÓN ───────────────────────────────────────────────
+ * Esta función ya NO mira las preferencias (`prefers-reduced-motion`,
+ * `saveData`): esas apagan el arranque AUTOMÁTICO (`autoplayPermitido()`, que
+ * evalúa la tarjeta al decidir si envía `playVideo`), nunca la selección.
+ * Cuando las miraba, con movimiento reducido no había tarjeta activa, y como
+ * el bucle de latidos solo corre en la activa, quien pedía menos movimiento
+ * podía ver el vídeo ENTERO tocando play a mano y no recibir jamás su +1: la
+ * preferencia de accesibilidad lo expulsaba de la economía del nivel 1 en
+ * silencio. Lo encontró el primer recorrido e2e real (spec 06, camino 11).
  *
  * Desempate por id (orden lexicográfico) y no "la primera que llegó": con dos
  * tarjetas exactamente igual de visibles —que ocurre al parar el scroll justo
@@ -79,11 +89,8 @@ export interface Visibilidad {
  */
 export function elegirActivo(
   visibilidades: ReadonlyArray<Visibilidad>,
-  preferencias: PreferenciasReproduccion,
   umbral: number = UMBRAL_VISIBILIDAD,
 ): string | null {
-  if (!autoplayPermitido(preferencias)) return null
-
   let mejor: Visibilidad | null = null
   for (const v of visibilidades) {
     // El UMBRAL se sigue evaluando sobre `razon`: «¿se ve lo bastante de ESTA
