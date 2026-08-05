@@ -20,6 +20,7 @@
 
 import { z } from 'zod'
 import { ErrorApi } from './errores.ts'
+import { EDAD_MINIMA } from '../privacy/avisos.ts'
 import type { Disponibilidad, NivelEntrada } from './session.ts'
 
 /** Copia LITERAL del CHECK de `profiles.alias` en 0001_core.sql. */
@@ -47,6 +48,23 @@ const esquemaDisponibilidad = z.enum(['disponible', 'necesito_hablar', 'ausente'
 const esquemaCodigoTotp = z.string().trim().regex(/^\d{6}$/)
 const esquemaCodigoRecuperacion = z.string().trim().min(8).max(20)
 
+/**
+ * Cuerpo de POST /api/auth/anonimo: la declaración de edad mínima, y nada más.
+ *
+ * `.strict()` a propósito, y `literal(true)` en vez de `boolean()`: la casilla
+ * es el único gate de edad que tiene el alta, así que «no viene», «viene en
+ * false» y «viene con campos de más» son los tres la misma cosa — un cliente
+ * que no ha mostrado la casilla — y los tres reciben 422 sin llegar a crear el
+ * usuario.
+ */
+const esquemaAltaAnonima = z
+  .object({
+    edadMinimaDeclarada: z.literal(true),
+  })
+  .strict()
+
+export type CuerpoAltaAnonima = z.infer<typeof esquemaAltaAnonima>
+
 /** Mensajes de cara a la persona. Explican qué hacer; no regañan y no filtran
  *  ni el patrón ni el nombre de la columna. */
 const MENSAJES = {
@@ -57,6 +75,7 @@ const MENSAJES = {
   disponibilidad: 'Ese estado no existe.',
   codigoTotp: 'El código son 6 dígitos.',
   codigoRecuperacion: 'Ese no es un código de recuperación válido.',
+  edadMinima: `Para crear tu cuenta necesitas confirmar que tienes ${EDAD_MINIMA} años o más.`,
   json: 'No hemos podido leer lo que has enviado.',
 } as const
 
@@ -96,6 +115,25 @@ export function validarCodigoTotp(valor: unknown): string {
 
 export function validarCodigoRecuperacion(valor: unknown): string {
   return aplicar(esquemaCodigoRecuperacion, valor, MENSAJES.codigoRecuperacion)
+}
+
+/**
+ * Valida el cuerpo del alta anónima. No usa `aplicar()` porque este error sí
+ * lleva `mensajeClave`: el alta es la primera pantalla de la app y quien la lee
+ * puede hacerlo en cualquiera de los dos idiomas — el mensaje resuelto en
+ * español queda como respaldo y para el log (ver errores.ts).
+ */
+export function validarAltaAnonima(cuerpo: unknown): CuerpoAltaAnonima {
+  const resultado = esquemaAltaAnonima.safeParse(cuerpo)
+  if (!resultado.success) {
+    throw new ErrorApi('entrada_invalida', {
+      mensaje: MENSAJES.edadMinima,
+      mensajeClave: 'auth.entrada.errorEdadMinima',
+      mensajeParams: { edad: EDAD_MINIMA },
+      causa: resultado.error,
+    })
+  }
+  return resultado.data
 }
 
 /** Cuerpo de PATCH /api/me. Los dos campos son opcionales, pero al menos uno

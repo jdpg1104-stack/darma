@@ -164,8 +164,8 @@ function leerUso(respuesta: RespuestaIA): UsoTokens {
  * Clasifica el nombre del error del proveedor sin acoplarse a sus clases.
  *
  * Se mira `name` y `status` en vez de `instanceof Anthropic.RateLimitError`
- * porque el SDK no está instalado y porque un `instanceof` contra un módulo
- * cargado dinámicamente falla cuando hay dos copias del paquete en el árbol.
+ * porque un `instanceof` falla cuando hay dos copias del paquete en el árbol,
+ * y porque los dobles de test no construyen errores del SDK.
  */
 function esRateLimit(causa: unknown): boolean {
   if (typeof causa !== 'object' || causa === null) return false
@@ -200,7 +200,7 @@ export async function clasificarDetallado(
     cacheAcertada,
   })
 
-  const cliente = deps.cliente ?? (await obtenerCliente())
+  const cliente = deps.cliente ?? obtenerCliente()
   if (!cliente) {
     // Estado NORMAL hoy: no hay MODERATION_API_KEY. No es un error, es el modo
     // degradado. El contenido se publicará igual; simplemente no se validará.

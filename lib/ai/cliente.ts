@@ -14,15 +14,16 @@
 // MODERATION_API_KEY configurada.
 //
 // ── EL PUERTO ──────────────────────────────────────────────────────────────
-// `ClienteIA` es una interfaz estructural nuestra, no el tipo del SDK. Dos
-// razones:
-//   1. `@anthropic-ai/sdk` todavía no está en package.json (no es un archivo
-//      de este bloque; pedido anotado en HANDOFF/PEDIDOS.md), así que un
-//      `import` estático no compilaría.
-//   2. Los tests inyectan un cliente falso por `deps.cliente`. Con un puerto,
-//      el doble es un objeto literal de diez líneas en vez de un mock del SDK
-//      entero. Ninguna prueba de este bloque toca la red ni exige clave.
+// `ClienteIA` es una interfaz estructural nuestra, no el tipo del SDK. La
+// razón que sigue en pie ahora que `@anthropic-ai/sdk` YA está en package.json
+// y el import es estático: los tests inyectan un cliente falso por
+// `deps.cliente`. Con un puerto, el doble es un objeto literal de diez líneas
+// en vez de un mock del SDK entero. Ninguna prueba de este bloque toca la red
+// ni exige clave.
 // ============================================================================
+
+import Anthropic from '@anthropic-ai/sdk'
+import { MAX_REINTENTOS, TIMEOUT_MS } from './modelo.ts'
 
 /** Bloque de contenido de la respuesta. Solo lo que este bloque mira. */
 export interface BloqueContenido {
@@ -32,12 +33,18 @@ export interface BloqueContenido {
   parsed?: unknown
 }
 
-/** Uso de tokens tal y como lo devuelve la API (snake_case). */
+/**
+ * Uso de tokens tal y como lo devuelve la API (snake_case).
+ *
+ * `number | null` y no solo `number`: el SDK real declara los contadores de
+ * caché como anulables, y el puerto tiene que aceptar el objeto del SDK sin
+ * mentir. Quien lee estos campos ya usa `?? 0`.
+ */
 export interface UsoRespuesta {
-  input_tokens?: number
-  output_tokens?: number
-  cache_read_input_tokens?: number
-  cache_creation_input_tokens?: number
+  input_tokens?: number | null
+  output_tokens?: number | null
+  cache_read_input_tokens?: number | null
+  cache_creation_input_tokens?: number | null
 }
 
 export interface RespuestaIA {
@@ -78,19 +85,20 @@ let memoizado: ClienteIA | null = null
 let intentado = false
 
 /**
- * Cliente memoizado, o `null` si no hay clave (o si el SDK no está instalado).
+ * Cliente memoizado, o `null` si no hay clave.
  *
- * Es `async` porque el SDK se carga con `import()` dinámico. La firma de la
- * ficha era síncrona, pero un import estático de un paquete ausente no
- * compila; en cuanto `@anthropic-ai/sdk` esté en package.json esto se puede
- * volver síncrono sin que cambie ningún llamante (todos ya hacen `await`).
+ * SÍNCRONA desde que `@anthropic-ai/sdk` entró en package.json (cierra la
+ * mitad (a) del pedido «De B11 → B00 / F4» de HANDOFF/PEDIDOS.md). Era `async`
+ * solo por el `import()` dinámico de cuando el paquete no existía; ningún
+ * llamante cambió porque todos ya hacían `await`, que sobre un valor no
+ * promesa es un no-op.
  *
  * @throws si se invoca en el navegador. Misma guarda que
  *   `lib/supabase/admin.ts`: es la última red, no la primera. Si esto se
  *   ejecuta en un navegador, la clave YA está en el bundle y lo único útil que
  *   podemos hacer es romper de forma estruendosa.
  */
-export async function obtenerCliente(): Promise<ClienteIA | null> {
+export function obtenerCliente(): ClienteIA | null {
   if (typeof window !== 'undefined') {
     throw new Error(
       '[darma][SEGURIDAD] lib/ai/cliente.ts se ha cargado en el NAVEGADOR. ' +
@@ -107,28 +115,22 @@ export async function obtenerCliente(): Promise<ClienteIA | null> {
   if (!clave) return null
 
   try {
-    const { TIMEOUT_MS, MAX_REINTENTOS } = await import('./modelo.ts')
-    // Especificador en variable a propósito: el paquete aún no está instalado
-    // y un import literal haría fallar `tsc` en todo el repo. Cuando entre en
-    // package.json, esta línea puede pasar a ser un import normal.
-    const especificador = '@anthropic-ai/sdk'
-    const modulo = await import(/* webpackIgnore: true */ especificador)
-    const Anthropic = (modulo.default ?? modulo.Anthropic) as new (opciones: {
-      apiKey: string
-      timeout: number
-      maxRetries: number
-    }) => ClienteIA
-
-    memoizado = new Anthropic({
+    const cliente = new Anthropic({
       apiKey: clave,
       // En el SDK de TypeScript el timeout va en MILISEGUNDOS.
       timeout: TIMEOUT_MS,
       maxRetries: MAX_REINTENTOS,
     })
+    // El puerto solo NOMBRA lo que este bloque lee, así que el objeto real lo
+    // satisface en runtime; estructuralmente no son asignables porque el SDK
+    // tipa `create()` con sus uniones propias y el puerto con
+    // `Record<string, unknown>`. El doble cast es el precio, contenido aquí,
+    // de que los tests no dependan de los tipos del SDK.
+    memoizado = cliente as unknown as ClienteIA
   } catch (causa) {
-    // Sin SDK instalado, o con un fallo de construcción: exactamente el mismo
-    // estado que "sin clave". No se lanza: quedarse sin clasificador no puede
-    // impedir que alguien publique.
+    // Un fallo de construcción es exactamente el mismo estado que "sin clave".
+    // No se lanza: quedarse sin clasificador no puede impedir que alguien
+    // publique.
     console.warn('[darma][b11] clasificador no disponible; se degrada', {
       motivo: causa instanceof Error ? causa.name : 'desconocido',
     })

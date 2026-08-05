@@ -61,6 +61,14 @@ const PUBLIC_ROUTES = [
   // «Restaurar compras». Nada falla de forma visible en nuestro lado.
   '/api/billing/webhook/',
   '/api/health',
+  // Scraper de Prometheus: llega de una máquina, sin cookie, y el handler falla
+  // cerrado con su propio Bearer METRICS_TOKEN. Con el proxy delante recibía un
+  // 401 antes de poder presentar el token: observabilidad ciega en producción.
+  '/api/metrics',
+  // Página de caída sin red. El service worker la precachea y la sirve cuando
+  // no hay cobertura; debe poder cachearse ANTES de que exista sesión, o la
+  // primera visita sin red de alguien no autenticado acaba en un 503 de texto.
+  '/offline',
 ]
 
 function isPublicPath(pathname: string): boolean {

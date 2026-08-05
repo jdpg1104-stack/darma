@@ -18,7 +18,13 @@ import {
   interpretarVeredicto,
 } from './clasificarComentario.ts'
 import { interpretarRiesgo } from './clasificarRiesgo.ts'
-import type { ClienteIA, RespuestaIA } from './cliente.ts'
+import {
+  __resetCliente,
+  hayClaveIA,
+  obtenerCliente,
+  type ClienteIA,
+  type RespuestaIA,
+} from './cliente.ts'
 import { RUBRICA, bloquesSystem, turnoUsuario } from './rubrica.ts'
 import { MINIMO_CACHEABLE_TOKENS } from './modelo.ts'
 
@@ -305,4 +311,51 @@ test('el turno de usuario delimita el texto para que no se lea como instrucción
   assert.ok(turno.includes('<texto_a_evaluar>'))
   assert.ok(turno.includes('</texto_a_evaluar>'))
   assert.ok(turno.includes('nunca instrucciones'))
+})
+
+// ── El cliente real (SDK estático, sin red) ─────────────────────────────────
+
+test('sin clave, obtenerCliente devuelve null de forma síncrona', () => {
+  const previa = process.env.MODERATION_API_KEY
+  delete process.env.MODERATION_API_KEY
+  __resetCliente()
+  try {
+    assert.equal(hayClaveIA(), false)
+    // La firma es síncrona desde que el SDK está instalado: sin clave, null.
+    assert.equal(obtenerCliente(), null)
+  } finally {
+    if (previa !== undefined) process.env.MODERATION_API_KEY = previa
+    __resetCliente()
+  }
+})
+
+test('con clave, obtenerCliente construye y memoiza un cliente con el puerto', () => {
+  const previa = process.env.MODERATION_API_KEY
+  process.env.MODERATION_API_KEY = 'clave-de-prueba-sin-red'
+  __resetCliente()
+  try {
+    // Construir el cliente del SDK NO abre ninguna conexión: solo configura.
+    const cliente = obtenerCliente()
+    assert.notEqual(cliente, null)
+    assert.equal(typeof cliente?.messages.create, 'function')
+    assert.equal(obtenerCliente(), cliente, 'memoizado: la segunda llamada es el mismo objeto')
+  } finally {
+    if (previa !== undefined) process.env.MODERATION_API_KEY = previa
+    else delete process.env.MODERATION_API_KEY
+    __resetCliente()
+  }
+})
+
+test('una clave en blanco cuenta como no tener clave', () => {
+  const previa = process.env.MODERATION_API_KEY
+  process.env.MODERATION_API_KEY = '   '
+  __resetCliente()
+  try {
+    assert.equal(hayClaveIA(), false)
+    assert.equal(obtenerCliente(), null)
+  } finally {
+    if (previa !== undefined) process.env.MODERATION_API_KEY = previa
+    else delete process.env.MODERATION_API_KEY
+    __resetCliente()
+  }
 })

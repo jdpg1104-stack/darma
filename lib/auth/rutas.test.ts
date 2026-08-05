@@ -11,11 +11,18 @@ import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { __resetMemoryBuckets } from '../rateLimit.ts'
+import { EDAD_MINIMA } from '../privacy/avisos.ts'
 import { ErrorApi, esErrorApi } from './errores.ts'
 import { LIMITES_AUTH, limitar } from './limites.ts'
 import { procesarMagicLink } from './magicLink.ts'
 import { sobreDeError, sobreOk } from './respuestas.ts'
-import { PATRON_ALIAS, validarAlias, validarEmail, validarParcheMe } from './validacion.ts'
+import {
+  PATRON_ALIAS,
+  validarAlias,
+  validarAltaAnonima,
+  validarEmail,
+  validarParcheMe,
+} from './validacion.ts'
 
 beforeEach(() => {
   __resetMemoryBuckets()
@@ -98,6 +105,65 @@ describe('validarEmail', () => {
 
   it('normaliza a minúsculas y sin espacios', () => {
     assert.equal(validarEmail('  Ana@Gmail.COM '), 'ana@gmail.com')
+  })
+})
+
+// ── Gate de edad mínima en el alta anónima ──────────────────────────────────
+
+describe('validarAltaAnonima', () => {
+  it('acepta la declaración marcada y nada más', () => {
+    assert.deepEqual(validarAltaAnonima({ edadMinimaDeclarada: true }), {
+      edadMinimaDeclarada: true,
+    })
+  })
+
+  // «No viene», «viene en false» y «viene con campos de más» son los tres la
+  // misma cosa: un cliente que no mostró la casilla. Ninguno crea usuario.
+  const sinDeclaracion: readonly [string, unknown][] = [
+    ['sin cuerpo (null)', null],
+    ['cuerpo vacío', {}],
+    ['casilla desmarcada', { edadMinimaDeclarada: false }],
+    ['un string en vez de un booleano', { edadMinimaDeclarada: 'true' }],
+    ['campos de más (.strict)', { edadMinimaDeclarada: true, alias: 'colado' }],
+    ['un array', [true]],
+  ]
+
+  for (const [nombre, cuerpo] of sinDeclaracion) {
+    it(`rechaza ${nombre} con entrada_invalida (422)`, () => {
+      assert.throws(
+        () => validarAltaAnonima(cuerpo),
+        (error: unknown) => {
+          assert.ok(esErrorApi(error))
+          const fallo = error as ErrorApi
+          assert.equal(fallo.code, 'entrada_invalida')
+          assert.equal(fallo.status, 422)
+          // El mensaje dice qué hacer sin filtrar el detalle de zod.
+          assert.ok(fallo.message.includes(String(EDAD_MINIMA)))
+          assert.equal(fallo.message.toLowerCase().includes('zod'), false)
+          assert.equal(fallo.message.includes('edadMinimaDeclarada'), false)
+          return true
+        },
+      )
+    })
+  }
+
+  it('el 422 llega al cuerpo público con su clave de catálogo y el detalle interno no', () => {
+    try {
+      validarAltaAnonima({})
+      assert.fail('debería haber lanzado')
+    } catch (error) {
+      const sobre = sobreDeError(error)
+      assert.equal(sobre.status, 422)
+      assert.equal(sobre.cuerpo.ok, false)
+      if (sobre.cuerpo.ok === false) {
+        assert.equal(sobre.cuerpo.code, 'entrada_invalida')
+        // La clave permite pintar el error en el idioma de quien lee.
+        assert.equal(sobre.cuerpo.mensajeClave, 'auth.entrada.errorEdadMinima')
+        assert.deepEqual(sobre.cuerpo.mensajeParams, { edad: EDAD_MINIMA })
+      }
+      // La causa (el ZodError, con las rutas de los campos) no se serializa.
+      assert.equal(JSON.stringify(sobre).includes('invalid_type'), false)
+    }
   })
 })
 

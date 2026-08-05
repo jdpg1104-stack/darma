@@ -12,6 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t('auth.landing.metaTitulo'),
     description: t('auth.landing.metaDescripcion'),
+    // La portada es la única URL que se comparte fuera. El canónico (resuelto
+    // contra `metadataBase` del layout) hace que las variantes con parámetros
+    // de campaña cuenten como la misma página y no se indexen por separado.
+    alternates: { canonical: '/' },
   }
 }
 

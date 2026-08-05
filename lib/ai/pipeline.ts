@@ -31,7 +31,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { assessCrisisRisk, escalate, requiresIntervention, type RiskLevel } from '../crisis.ts'
 import { validateComment } from '../moderation.ts'
 import { clasificarDetallado, type ClasificacionDetallada } from './clasificarComentario.ts'
-import { indeterminado, type NivelRiesgo } from './esquemas.ts'
+import { indeterminado, type NivelRiesgo, type VeredictoCalidad } from './esquemas.ts'
 import { USO_CERO } from './modelo.ts'
 import { limitarUsuario, reservarLlamada, type DepsPresupuesto } from './presupuesto.ts'
 import { abrirFlag, registrarDecision, type RefTipo } from './auditoria.ts'
@@ -58,6 +58,18 @@ export interface SalidaModeracion {
   publicable: boolean
   /** true ⇒ acredita karma y crédito de reciprocidad. */
   validado: boolean
+  /**
+   * Veredicto de calidad detrás de los dos booleanos. Lo necesita el
+   * `ValidadorIA` de B04 para traducir el resultado a un motivo humano
+   * ('toxico' y 'relleno' no se explican igual). 'indeterminado' ⇔ degradado.
+   */
+  calidad: VeredictoCalidad
+  /**
+   * Puntuación [0,1] del veredicto, o `null` si no lo hubo (degradación).
+   * OJO: en un veredicto del modelo es su CONFIANZA en la calidad dictada, no
+   * una nota; en la criba de reglas sí es el score de `lib/moderation.ts`.
+   */
+  puntuacion: number | null
   riesgo: NivelRiesgo
   /** No nulo EXACTAMENTE cuando el riesgo es 'high' | 'critical'. */
   tarjetaAyuda: TarjetaAyuda | null
@@ -200,6 +212,8 @@ export async function evaluarContenido(
         // que un comentario no acredite karma no es motivo para silenciarlo.
         publicable: !largoInvalido,
         validado: false,
+        calidad: 'relleno',
+        puntuacion: calidadReglas.score,
         riesgo: riesgoReglas,
         tarjetaAyuda: tarjeta,
         degradado: false,
@@ -320,6 +334,8 @@ export async function evaluarContenido(
     publicable: resultado.calidad !== 'toxico',
     // La economía falla CERRADA: solo un 'valido' explícito acredita karma.
     validado: resultado.calidad === 'valido' && entrada.tipo === 'comment',
+    calidad: resultado.calidad,
+    puntuacion: resultado.puntuacion,
     riesgo: riesgoFinal,
     tarjetaAyuda: requiresIntervention(riesgoFinal as RiskLevel) ? tarjeta : null,
     degradado: resultado.degradado,

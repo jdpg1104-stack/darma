@@ -14,10 +14,9 @@
 //     el cliente añadiría una cascada de red antes del primer fotograma.
 // Ninguna más. `BotonCrisis` y el resto de la capa no consultan nada.
 //
-// `BotonCrisis` se monta AQUÍ y no en el layout de `app/(app)` porque ese
-// layout todavía no existe (es de F4). CONTRATOS §9 exige que esté visible en
-// todas las pantallas de `app/(app)`; anotado en PEDIDOS.md para que se mueva
-// al layout cuando exista y deje de estar duplicado.
+// `BotonCrisis` NO se monta aquí: llega desde `app/(app)/layout.tsx`, que lo
+// pinta flotante para todo el grupo, como exige CONTRATOS §9. Esta página no
+// lo duplica.
 // ============================================================================
 
 import { createClient } from '@/lib/supabase/server'

@@ -38,3 +38,6 @@ export type { TarjetaCrisisProps } from './TarjetaCrisis'
 
 export { BotonHablarEnPrivado } from './BotonHablarEnPrivado'
 export type { BotonHablarEnPrivadoProps } from './BotonHablarEnPrivado'
+
+export { CrearCirculo } from './CrearCirculo'
+export type { CrearCirculoProps } from './CrearCirculo'

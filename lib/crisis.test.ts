@@ -360,3 +360,94 @@ test('la exclusión del modismo es CERRADA, no un patrón abierto', () => {
   assert.notEqual(assessCrisisRisk('me voy a matar a las 5').risk_level, 'none')
   assert.notEqual(assessCrisisRisk('me voy a matar a la vuelta').risk_level, 'none')
 })
+
+// ── El mismo hueco, en tercera persona e impersonal (2026-08-05) ────────────
+//
+// El arreglo de las formas conjugadas cerró la primera persona, pero su gemelo
+// exacto seguía abierto: «mi amigo se va a matar esta noche» devolvía `none`.
+// Y quien está peor rara vez habla de sí mismo: pregunta por «alguien», cuenta
+// lo de «mi amigo», busca «cómo suicidarse». Esta suite fija las dos capas:
+// la impersonal en infinitivo (que ya existía y nadie había fijado aquí) y la
+// tercera persona conjugada con el clítico adelantado (nueva).
+
+const FRASES_IMPERSONALES_QUE_DEBEN_MARCAR: readonly string[] = [
+  // Impersonal en infinitivo: la pregunta que tantea el terreno.
+  '¿alguien ha pensado en suicidarse?',
+  'cómo suicidarse',
+  '¿es normal pensar en quitarse la vida cuando todo va mal?',
+  'mi amigo quiere matarse',
+  // Tercera persona conjugada, clítico adelantado: el relato de la crisis de otro.
+  'mi amigo se va a matar',
+  'mi hermana se quiere suicidar',
+  'dice que se va a quitar la vida',
+  'mi amigo se va a matar esta noche',
+  'mi amiga se quiere morir',
+  'mi amiga quiere morirse',
+  'me ha dicho que se suicida',
+  // Autolesión ajena.
+  'mi hermano se autolesiona',
+  'se hace cortes en los brazos',
+  'mi hermana se hace dano a proposito',
+  'mi hermana se corta y no sabe que lo he visto',
+  // Precipitación ajena.
+  'mi amigo dice que se va a tirar por la ventana',
+  'se tira del puente',
+]
+
+test('🔴 las formas IMPERSONALES y de tercera persona se detectan (es)', () => {
+  for (const frase of FRASES_IMPERSONALES_QUE_DEBEN_MARCAR) {
+    const r = assessCrisisRisk(frase)
+    assert.notEqual(r.risk_level, 'none', `«${frase}» NO se marcó. Quien está peor rara vez habla de sí mismo.`)
+    assert.equal(r.requiresIntervention, true, `«${frase}» debería exigir intervención`)
+  }
+})
+
+const FRASES_IMPERSONALES_EN: readonly string[] = [
+  'my friend wants to kill himself',
+  'she wants to die',
+  'how to kill yourself',
+  'my sister talks about ending her life',
+  'he is going to kill himself',
+]
+
+test('🔴 las formas de tercera y segunda persona se detectan (en)', () => {
+  for (const frase of FRASES_IMPERSONALES_EN) {
+    const r = assessCrisisRisk(frase)
+    assert.notEqual(r.risk_level, 'none', `"${frase}" NO se marcó`)
+    assert.equal(r.requiresIntervention, true)
+  }
+})
+
+test('la cobertura de tercera persona SUBE niveles, nunca los baja', () => {
+  // La señal ajena entra como 'high': la modulación existente (solo
+  // critical → high) no puede tocarla, y ningún nivel previo puede bajar
+  // porque el resultado es un máximo. Se fija con el caso más completo.
+  const r = assessCrisisRisk('mi amigo se va a matar esta noche')
+  assert.equal(r.risk_level, 'high')
+  assert.equal(r.thirdPartyContext, true)
+  assert.equal(r.requiresIntervention, true)
+  // Y la primera persona crítica sigue siendo crítica con los patrones nuevos
+  // conviviendo en la misma tabla.
+  assert.equal(assessCrisisRisk('esta noche voy a acabar con todo').risk_level, 'critical')
+})
+
+// El otro lado, que en tercera persona es aún más traicionero: el «se»
+// impersonal está en media lengua cotidiana (la luz se corta, la llamada se
+// corta, se tira a la piscina) y marcarlo enseñaría teléfonos de crisis a
+// quien habla de su wifi.
+const FRASES_TERCERA_QUE_NO_DEBEN_MARCAR: readonly string[] = [
+  'se corta la luz cada dos por tres',
+  'la llamada se corta todo el rato',
+  'mi hermana se corta el pelo ella misma',
+  'se va a matar a estudiar para el examen',
+  'se tira a la piscina de cabeza',
+  // Pronóstico, no volición: esto es duelo anticipado, uno de los temas
+  // centrales de Darma, y no puede acabar en la cola de riesgo alto.
+  'mi abuelo se va a morir y no se como afrontarlo',
+]
+
+test('el «se» cotidiano y el duelo anticipado NO disparan el aviso', () => {
+  for (const frase of FRASES_TERCERA_QUE_NO_DEBEN_MARCAR) {
+    assert.equal(assessCrisisRisk(frase).risk_level, 'none', `«${frase}» no debería marcar`)
+  }
+})

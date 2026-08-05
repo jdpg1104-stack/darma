@@ -21,11 +21,27 @@
 // recorren de MÁS ANTIGUO A MÁS NUEVO y se descarta lo que no sea estrictamente
 // posterior al cursor. Al ser monótono creciente: un corte a mitad no repite lo
 // hecho, y lo que se publique mañana sigue entrando por ser mayor.
+//
+// ── DESCUBRIMIENTO: DATA API PRIMERO, FEED ATOM COMO RESPALDO (B21 §1) ──────
+// Las fuentes `youtube_playlist` y `youtube_channel` se leen con
+// `playlistItems.list` (1 unidad de cuota; NUNCA `search.list`, que cuesta 100)
+// a través de `descubrir.ts`. El feed Atom —gratis, sin clave, ~15 ítems— NO se
+// retira: es el respaldo para CUALQUIER motivo por el que la API no conteste
+// (sin clave, cuota cortada, HTTP roto, cuerpo ilegible). La API es una mejora,
+// no una dependencia: quitarle la clave a este pipeline lo devuelve exactamente
+// al comportamiento anterior, no lo apaga.
+//
+// La cuota se contabiliza con UN `crearContadorCuota()` por corrida, alimentado
+// por el cupo diario PERSISTENTE de Postgres (`ingest_reservar_cuota_youtube`,
+// 0214): se reserva al empezar, se corta ANTES de agotar y el sobrante se
+// devuelve al terminar. El resumen del contador se emite con `ingesta_ejecutada`
+// — los `cortes` son la alarma temprana de que la cuota se está agotando.
 // ============================================================================
 
 import { logger } from '../logger.ts'
 import type {
   CandidatoContenido,
+  EntradaCruda,
   EstadoContenido,
   FuenteIngesta,
   ResultadoEjecucion,
@@ -46,6 +62,13 @@ import {
 } from './idiomaAudio.ts'
 import { crearConsultaMetadatos, type ConsultaMetadatos, type MetadatosVideo, type OpcionesMetadatos } from './metadatosVideo.ts'
 import { sondaEmbed, type OpcionesSonda } from './embebible.ts'
+import { descubrirDeFuente, type OpcionesDescubrimiento } from './descubrir.ts'
+import {
+  crearContadorCuota,
+  PRESUPUESTO_POR_CORRIDA,
+  TOPE_DIARIO_PERSISTENTE,
+  type ContadorCuota,
+} from './cuota.ts'
 import { crearAlmacenSupabase, CLAVE_CURSOR_REVERIFICACION, type AlmacenIngesta } from './almacen.ts'
 
 /** Presupuesto de reloj por ejecución. Con `maxDuration = 60`, deja 15 s de margen. */
@@ -79,6 +102,18 @@ export interface DependenciasIngesta {
   idioma?: OpcionesIdiomaAudio
   /** La consulta compartida a `videos.list` (B21). Inyectable para probar sin red. */
   metadatos?: OpcionesMetadatos
+  /**
+   * Descubrimiento por la Data API (B21 §1), SIN el contador: el contador lo
+   * crea la corrida — uno solo para todas las fuentes, que es lo que hace que el
+   * presupuesto signifique algo. Inyectable para probar sin red.
+   */
+  descubrir?: Omit<OpcionesDescubrimiento, 'cuota'>
+  /**
+   * Contador de cuota de la corrida. Los tests inyectan el suyo para afirmar
+   * sobre el gasto; producción no pasa nada y la corrida reserva del cupo
+   * diario persistente (`reservarCuotaYoutube`).
+   */
+  cuota?: ContadorCuota
 }
 
 export interface OpcionesIngesta {
@@ -146,8 +181,44 @@ export async function ejecutarIngesta(opciones: OpcionesIngesta): Promise<Result
     return almacen.consumirCupoModelo()
   }
 
-  // UNA por corrida: su caché evita que dos fuentes con el mismo vídeo paguen dos veces.
-  const consultaMetadatos = crearConsultaMetadatos(deps.metadatos)
+  // ── La cuota de la Data API: UN contador por corrida (B21 §1) ──
+  //
+  // Si NO hay clave, no se reserva nada: la reserva costaría un round-trip para
+  // un presupuesto que ninguna llamada va a tocar (sin clave, `descubrir.ts` y
+  // `metadatosVideo.ts` salen ANTES de cobrar). Es el caso real de hoy.
+  //
+  // Con clave y sin contador inyectado, se reserva del cupo diario persistente.
+  // `reservarCuotaYoutube` es fail-closed: si el contador de Postgres no
+  // responde, concede 0, la corrida no puede gastar y el descubrimiento cae al
+  // feed Atom — el feed NO se apaga, solo pierde la mejora de la API.
+  const hayClaveMetadatos = ((deps.metadatos?.apiKey ?? process.env.YOUTUBE_API_KEY) ?? '').trim().length > 0
+  const hayClaveDescubrir = ((deps.descubrir?.claveApi ?? process.env.YOUTUBE_API_KEY) ?? '').trim().length > 0
+
+  let cuota: ContadorCuota
+  let reservadas = 0
+  if (deps.cuota) {
+    cuota = deps.cuota
+  } else if (opciones.tipo === 'videos' && (hayClaveMetadatos || hayClaveDescubrir)) {
+    reservadas = await almacen.reservarCuotaYoutube(PRESUPUESTO_POR_CORRIDA, TOPE_DIARIO_PERSISTENTE)
+    cuota = crearContadorCuota({ presupuesto: reservadas })
+  } else {
+    cuota = crearContadorCuota({ presupuesto: 0 })
+  }
+
+  // UNA por corrida: su caché evita que dos fuentes con el mismo vídeo paguen
+  // dos veces. Se envuelve para que cada `videos.list` REAL pase por el
+  // contador: sin clave la consulta base no toca la red y no se cobra nada, y
+  // un corte de cuota se convierte en `null` («no lo sé»), nunca en excepción.
+  const consultaBase = crearConsultaMetadatos(deps.metadatos)
+  const cobrados = new Set<string>()
+  const consultaMetadatos: ConsultaMetadatos = async (videoId) => {
+    if (!hayClaveMetadatos) return consultaBase(videoId)
+    if (!cobrados.has(videoId)) {
+      if (cuota.intentarGastar('videos.list') !== null) return null
+      cobrados.add(videoId)
+    }
+    return consultaBase(videoId)
+  }
 
   let itemsProcesados = 0
 
@@ -163,6 +234,8 @@ export async function ejecutarIngesta(opciones: OpcionesIngesta): Promise<Result
       consumirCupo,
       restantes: () => maxItems - itemsProcesados,
       consultaMetadatos,
+      cuota,
+      hayClaveMetadatos,
     })
     itemsProcesados += resultado.procesados
 
@@ -179,7 +252,16 @@ export async function ejecutarIngesta(opciones: OpcionesIngesta): Promise<Result
     }
   }
 
+  // Lo reservado y no gastado vuelve al cupo del día: así el gasto contable se
+  // pega al real y seis corridas no «consumen» 2.400 unidades para gastar 200.
+  // Best-effort: si la devolución falla, el día pierde cupo contable — el lado
+  // seguro del error.
+  if (reservadas > 0 && cuota.restantes() > 0) {
+    await almacen.devolverCuotaYoutube(cuota.restantes())
+  }
+
   r.msTranscurridos = ahora() - inicio
+  const resumenCuota = cuota.resumen()
   logger.info('ingesta_ejecutada', {
     tipo: opciones.tipo,
     completado: r.completado,
@@ -189,6 +271,16 @@ export async function ejecutarIngesta(opciones: OpcionesIngesta): Promise<Result
     pendientes: r.pendientes,
     errores: r.errores,
     ms: r.msTranscurridos,
+    // El resumen del contador viaja con el evento (pedido de PEDIDOS.md): los
+    // `cortes` que suben de corrida en corrida son la alarma de cuota, y verla
+    // aquí evita enterarse por un 403 del proveedor, que es enterarse tarde.
+    cuota: {
+      presupuesto: resumenCuota.presupuesto,
+      gastadas: resumenCuota.gastadas,
+      restantes: resumenCuota.restantes,
+      llamadas: { ...resumenCuota.llamadas },
+      cortes: { ...resumenCuota.cortes },
+    },
   })
   return r
 }
@@ -205,38 +297,66 @@ interface ContextoFuente {
   restantes: () => number
   /** Memoizada POR CORRIDA: dos guardas, una sola unidad de cuota. */
   consultaMetadatos?: ConsultaMetadatos
+  /** EL contador de la corrida. Toda llamada a la Data API pasa por él. */
+  cuota: ContadorCuota
+  /**
+   * ¿Hay clave para `videos.list`? Distingue «no está configurado» (se sigue
+   * como antes de las guardas) de «pregunté y no hubo respuesta» (cola humana).
+   */
+  hayClaveMetadatos: boolean
 }
 
 async function procesarFuente(ctx: ContextoFuente): Promise<{ completa: boolean; procesados: number }> {
   const { fuente, almacen, deps, r } = ctx
-  const fetchFn = deps.fetchImpl ?? globalThis.fetch
 
-  // ── Descarga ──
-  let xml: string | null = null
-  let status: number | null = null
-  try {
-    const res = await fetchFn(urlDeFuente(fuente), { headers: { accept: 'application/xml, text/xml, */*' } })
-    status = typeof res?.status === 'number' ? res.status : null
-    if (status != null && status >= 200 && status < 300) xml = await res.text()
-  } catch {
-    // Sin detalle en el log: el mensaje de un fallo HTTP puede llevar la URL.
-    status = null
+  // ── Obtención de candidatos: Data API primero, feed Atom de respaldo ──
+  //
+  // `descubrirDeFuente` lee playlist y canal por `playlistItems.list` (1 unidad,
+  // hasta 50 ítems) y devuelve además `channelId`, que el feed Atom no da y que
+  // la allowlist necesita. CUALQUIER motivo de fallo —sin clave, corte del
+  // contador, HTTP, cuerpo ilegible— cae al feed Atom en la MISMA pasada: el
+  // camino de fallo de la fuente sigue siendo uno solo (el del feed), y la API
+  // no puede dejar al catálogo peor de lo que estaba sin ella.
+  let crudas: EntradaCruda[] | null = null
+  if (fuente.kind !== 'rss') {
+    const api = await descubrirDeFuente(fuente, { cuota: ctx.cuota, ...deps.descubrir })
+    if (api.motivo === null) {
+      // Lista vacía INCLUIDA: la API contestó bien y no hay nada en la ventana.
+      // No se confunde con el «200 ilegible» del feed — aquí no hay fallo.
+      crudas = api.items
+    }
   }
 
-  if (xml == null) {
-    await aplicarFallo(ctx, status)
-    r.errores++
-    return { completa: true, procesados: 0 }
-  }
+  if (crudas === null) {
+    // ── Descarga del feed (Atom para YouTube, RSS para artículos) ──
+    const fetchFn = deps.fetchImpl ?? globalThis.fetch
+    let xml: string | null = null
+    let status: number | null = null
+    try {
+      const res = await fetchFn(urlDeFuente(fuente), { headers: { accept: 'application/xml, text/xml, */*' } })
+      status = typeof res?.status === 'number' ? res.status : null
+      if (status != null && status >= 200 && status < 300) xml = await res.text()
+    } catch {
+      // Sin detalle en el log: el mensaje de un fallo HTTP puede llevar la URL.
+      status = null
+    }
 
-  const crudas = fuente.kind === 'rss' ? parsearFeedRss(xml) : parsearFeedYoutube(xml)
-  if (crudas.length === 0) {
-    // 200 con cuerpo ilegible: se trata como fallo reintentable (`clasificarFalloHttp`
-    // devuelve 'reintentar' para 2xx) porque puede ser una página de error
-    // servida con 200, que es un clásico de los proveedores bajo carga.
-    await aplicarFallo(ctx, status)
-    r.errores++
-    return { completa: true, procesados: 0 }
+    if (xml == null) {
+      await aplicarFallo(ctx, status)
+      r.errores++
+      return { completa: true, procesados: 0 }
+    }
+
+    const parseadas = fuente.kind === 'rss' ? parsearFeedRss(xml) : parsearFeedYoutube(xml)
+    if (parseadas.length === 0) {
+      // 200 con cuerpo ilegible: se trata como fallo reintentable (`clasificarFalloHttp`
+      // devuelve 'reintentar' para 2xx) porque puede ser una página de error
+      // servida con 200, que es un clásico de los proveedores bajo carga.
+      await aplicarFallo(ctx, status)
+      r.errores++
+      return { completa: true, procesados: 0 }
+    }
+    crudas = parseadas
   }
 
   // ── Orden y cursor ──
@@ -337,20 +457,46 @@ async function procesarCandidato(ctx: ContextoFuente, candidato: CandidatoConten
     return
   }
 
-  // ── Procedencia e idioma (solo vídeo), ANTES que nada que cueste ──
+  // ── El ORDEN de las guardas de vídeo: embed → canal → idioma → clasificar ──
   //
-  // Va delante del cribado de seguridad a propósito: ese llama al modelo y
-  // consume cupo. Descartar aquí un vídeo de un canal ajeno o con audio en otro
-  // idioma ahorra esa llamada entera, y son las dos guardas más baratas del
-  // pipeline (1 unidad de cuota de YouTube cada una, y hoy ninguna se llama si
-  // falta `YOUTUBE_API_KEY`).
+  // Está elegido por lo que cuesta cada una, de gratis a caro:
+  //   1. sonda de embed — oEmbed, CERO cuota de la Data API.
+  //   2. canal + idioma — UNA llamada a `videos.list` (1 unidad) para las dos.
+  //   3. clasificar     — determinista, gratis, pero abre paso al cribado.
+  //   4. cribado        — el modelo de moderación, el recurso más caro.
+  // Un vídeo que el dueño no deja incrustar muere en (1) sin gastar cuota; uno
+  // de un canal ajeno muere en (2) sin pagar al modelo.
+  let meta: MetadatosVideo | null = null
   if (candidato.platform === 'youtube') {
-    const parada = await guardasDeVideo(ctx, candidato)
+    // (1) Reproducibilidad, lo primero porque es gratis.
+    const embed = await sondaEmbed(candidato.externalId, { ...deps.sonda })
+
+    if (embed === 'no_embebible' || embed === 'ausente_o_privado') {
+      if (await guardar(ctx, candidato, 'rejected', 'rejected_embed', embed)) r.rechazados.embed++
+      return
+    }
+    if (embed === 'desconocido') {
+      // «No sé» NO es «no». Se queda pendiente y el barrido diario lo reintenta.
+      // Confundirlo con un rechazo archivaría contenido bueno en silencio.
+      if (await guardar(ctx, candidato, 'pending', 'inserted', 'embed_desconocido')) r.pendientes++
+      return
+    }
+
+    // (2) UNA sola consulta a `videos.list` para las dos guardas — y de paso la
+    // duración (`contentDetails` viaja gratis en la misma unidad de cuota).
+    meta = ctx.consultaMetadatos ? await ctx.consultaMetadatos(candidato.externalId) : null
+    const parada = await guardasDeVideo(ctx, candidato, meta)
     if (parada) return
   }
 
   const clasificacion = clasificar(candidato, fuente.language)
-  const item: CandidatoContenido = { ...candidato, ...clasificacion }
+  let item: CandidatoContenido = { ...candidato, ...clasificacion }
+
+  // La duración real. El feed Atom no la trae y sin ella la acreditación de
+  // escucha asume 60 s: el +1 se concedería a los ~54 s de cualquier vídeo.
+  if (item.durationSeconds == null && meta?.durationSeconds != null) {
+    item = { ...item, durationSeconds: meta.durationSeconds }
+  }
 
   // ── Filtro de seguridad ──
   const veredicto = await cribarSeguridad(item, {
@@ -372,23 +518,8 @@ async function procesarCandidato(ctx: ContextoFuente, candidato: CandidatoConten
     return
   }
 
-  // ── Reproducibilidad (solo vídeo) ──
-  if (item.platform === 'youtube') {
-    const embed = await sondaEmbed(item.externalId, { ...deps.sonda })
-
-    if (embed === 'no_embebible' || embed === 'ausente_o_privado') {
-      if (await guardar(ctx, item, 'rejected', 'rejected_embed', embed)) r.rechazados.embed++
-      return
-    }
-    if (embed === 'desconocido') {
-      // «No sé» NO es «no». Se queda pendiente y el barrido diario lo reintenta.
-      // Confundirlo con un rechazo archivaría contenido bueno en silencio.
-      if (await guardar(ctx, item, 'pending', 'inserted', 'embed_desconocido')) r.pendientes++
-      return
-    }
-  }
-
-  // 'approved' solo aquí: cribado 'seguro' Y embed 'embebible' (o artículo).
+  // 'approved' solo aquí: embed 'embebible' (comprobado arriba para vídeo),
+  // guardas de canal e idioma pasadas Y cribado 'seguro' (o artículo).
   if (await guardar(ctx, item, 'approved', 'inserted', null)) r.insertados++
 }
 
@@ -426,6 +557,23 @@ function veredictoDeMetadatos(meta: MetadatosVideo): VeredictoIdiomaAudio {
 }
 
 /**
+ * Veredicto de idioma cuando la consulta compartida a `videos.list` no trajo
+ * nada. NO se pregunta otra vez (ver el comentario en `guardasDeVideo`); lo que
+ * se decide es CÓMO leer la ausencia, y esa lectura es la política que ya
+ * aplica este orquestador en las dos guardas:
+ *   · sin clave      → `sin_clave_api`  — configuración, el pipeline sigue.
+ *   · con clave      → `sin_respuesta`  — «pregunté y no hubo respuesta», cola.
+ */
+function sinConsultaDeIdioma(hayClave: boolean): VeredictoIdiomaAudio {
+  return {
+    decision: 'desconocido',
+    motivo: hayClave ? 'sin_respuesta' : 'sin_clave_api',
+    codigoDeclarado: null,
+    campo: null,
+  }
+}
+
+/**
  * Las dos guardas de vídeo de B21: procedencia del canal e idioma del audio.
  *
  * Devuelve `true` si el candidato NO debe seguir el pipeline — porque se rechazó
@@ -445,21 +593,27 @@ function veredictoDeMetadatos(meta: MetadatosVideo): VeredictoIdiomaAudio {
  * disciplina que ya aplica `embebible.ts` con su `desconocido`, y por la que ese
  * tipo tiene cuatro valores y no un booleano.
  */
-async function guardasDeVideo(ctx: ContextoFuente, candidato: CandidatoContenido): Promise<boolean> {
+async function guardasDeVideo(
+  ctx: ContextoFuente,
+  candidato: CandidatoContenido,
+  meta: MetadatosVideo | null,
+): Promise<boolean> {
   const { deps, r } = ctx
 
-  // UNA sola consulta a `videos.list` para las dos guardas: `channelId` y los
-  // dos campos de idioma viven en el mismo `snippet`. Pedirlos por separado
-  // costaría 2 unidades de cuota para traer exactamente lo mismo.
-  const meta = ctx.consultaMetadatos ? await ctx.consultaMetadatos(candidato.externalId) : null
-
   // (1) Procedencia.
+  //
+  // De dónde sale el channelId, por orden de autoridad: `videos.list` primero
+  // (habla del vídeo, hoy), y si esa consulta no está —sin clave, cuota
+  // cortada, red caída—, el `videoOwnerChannelId` que trajo el descubrimiento
+  // (`candidato.channelId`, que sobrevive a `normalizar()` a propósito). Ninguno
+  // se deduce ni se inventa: si ninguno consta, NO hay resolutor.
   //
   // El resolutor SOLO se pasa si hay de dónde sacar la respuesta. Pasar uno que
   // siempre devuelve `null` sería mentir: el módulo lo leería como «pregunté y
   // no hubo respuesta» —«no pude»— y mandaría todo a la cola humana. Sin él, el
   // veredicto es `sin_resolutor`, que es la verdad: no hay forma de comprobarlo.
-  const resolutor = meta !== null ? async (): Promise<string | null> => meta.channelId : undefined
+  const canalConocido = meta?.channelId ?? candidato.channelId ?? null
+  const resolutor = canalConocido !== null ? async (): Promise<string | null> => canalConocido : undefined
   const canal = await verificarCanalDeEmbed(candidato.url, {
     ...(resolutor ? { resolutor } : {}),
     ...deps.canal,
@@ -491,13 +645,22 @@ async function guardasDeVideo(ctx: ContextoFuente, candidato: CandidatoContenido
 
   // (2) Idioma del audio.
   //
-  // Si la consulta de arriba trajo datos, se reutilizan: `resolverIdiomaAudio`
+  // Si la consulta compartida trajo datos, se reutilizan: `resolverIdiomaAudio`
   // haría su propia llamada para leer los mismos dos campos. Solo se cae a la
   // consulta independiente cuando un test inyecta `deps.idioma` a propósito.
+  //
+  // Y si NO trajo datos, TAMPOCO se hace una segunda llamada (antes sí se
+  // hacía): repetir la consulta que acaba de fallar gastaría cuota fuera del
+  // contador para obtener casi siempre el mismo fallo. El veredicto se deriva
+  // del hecho: sin clave es `sin_clave_api` (configuración → se sigue como
+  // antes de la guarda); con clave y sin respuesta es `sin_respuesta` («no
+  // pude» → cola humana). La distinción es la misma que la de `sin_resolutor`.
   const idioma =
-    meta !== null && deps.idioma === undefined
-      ? veredictoDeMetadatos(meta)
-      : await resolverIdiomaAudio(canal.videoId ?? candidato.externalId, { ...deps.idioma })
+    deps.idioma !== undefined
+      ? await resolverIdiomaAudio(canal.videoId ?? candidato.externalId, { ...deps.idioma })
+      : meta !== null
+        ? veredictoDeMetadatos(meta)
+        : sinConsultaDeIdioma(ctx.hayClaveMetadatos)
 
   if (idioma.decision === 'no_es_espanol') {
     if (await guardar(ctx, candidato, 'rejected', 'rejected_language', idioma.motivo)) {

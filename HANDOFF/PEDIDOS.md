@@ -12,9 +12,6 @@ Formato: `- [ ] **De B0X → B0Y** · qué necesitas · por qué · quién lo pi
       de escritura en `content_views`: la migración `0002` ya no concede UPDATE
       al cliente ni deja insertar filas con `completed = true`. Sin esa RPC, el
       karma de `content_completed` no se otorga nunca · 2026-08-03
-- [ ] **De B11 → B19** · nadie escribe `crisis_events.human_reviewed` todavía;
-      la métrica de cobertura del 100 % del panel depende de que B11 lo marque
-      al cerrar cada caso · 2026-08-03
 
 ### B17 · Internacionalización
 
@@ -32,18 +29,6 @@ Formato: `- [ ] **De B0X → B0Y** · qué necesitas · por qué · quién lo pi
       agrupada por país, está en [`VERIFICACION-TELEFONOS.md`](./VERIFICACION-TELEFONOS.md).**
       Son 11 llamadas, no 24: los otros 13 son emergencias, SMS, chat y web, que
       se confirman leyendo la fuente · 2026-08-04
-- [ ] **De B17 → CI** · `tablaListaParaProduccion()` **no está cableada a ningún
-      paso de CI**: hoy devuelve `false` y no lo comprueba nadie, así que el
-      único freno al despliegue es que alguien se acuerde. Hace falta un paso
-      que falle el despliegue a producción mientras siga en `false`. Verificado
-      el 2026-08-04: cero apariciones en `.github/**` y en `scripts/**` · 2026-08-04
-- [ ] **De B17 → F4 / B01 / B16** · seis archivos tienen copy escrito a pelo y no
-      se puede traducir: `app/layout.tsx`, `app/page.tsx`,
-      `components/auth/AsistenteOnboarding.tsx`, `components/auth/AvatarSemilla.tsx`,
-      `components/auth/PanelEntrada.tsx`, `components/ui/MedidorKarma.tsx`
-      (37 literales). Están anotados como deuda conocida en
-      `i18n/literales.test.ts`; el guard ya falla ante cualquier archivo NUEVO.
-      El catálogo con las 15 raíces de dominio está listo en `messages/` · 2026-08-03
 
 ## Cerrados
 
@@ -89,6 +74,56 @@ estaban. Se verificaron uno a uno contra el código antes de moverlos aquí.
       locale —una cadena de dos letras— y deja que `obtenerTraductor()` resuelva.
       El razonamiento largo está en ese archivo · 2026-08-04
 
+### Cierre de documentación · 2026-08-05
+
+Estos pedidos seguían descritos como abiertos cuando el código ya los resolvía
+(la deriva llegó a contaminar dos análisis). Cada uno se verificó contra el
+código antes de moverlo aquí; lo que no se pudo verificar desde esta sesión
+sigue abierto donde estaba.
+
+- [x] **B17 → CI** · gate de los teléfonos cableado · verificado: `package.json`
+      ejecuta `scripts/security/gateTelefonos.ts` en `prebuild` (detiene el
+      build de producción mientras `tablaListaParaProduccion()` siga en `false`)
+      y `.github/workflows/ci.yml` deja el recuento a la vista en cada PR, con
+      el porqué de que ese paso sea solo informativo escrito en el propio
+      workflow · 2026-08-05
+- [x] **B11 → B19** · `crisis_events.human_reviewed` ya se escribe · verificado:
+      `POST /api/moderation/crisis/attend` (`app/api/moderation/crisis/attend/route.ts`)
+      llama a `atenderCrisis()`, que escribe `attended_at`, `human_reviewed`,
+      `outcome` y `reviewer_id`. Sigue abierto el matiz que anotó B19 más abajo:
+      es el ÚNICO camino que lo escribe, así que la cobertura del 100 % depende
+      de que la cola cierre cada caso · 2026-08-05
+- [x] **B17 → F4 / B01 / B16** · los seis archivos con copy a pelo (37
+      literales) ya están en el catálogo · verificado: `DEUDA_LITERALES_CONOCIDA`
+      de `i18n/literales.test.ts` está VACÍA y el guard recorre `app/**` y
+      `components/**` enteros · 2026-08-05
+- [x] **migración i18n → `i18n/literales.test.ts`** · podar
+      `DEUDA_LITERALES_CONOCIDA` · hecho: la lista quedó vacía, incluidas las
+      cuatro entradas del falso positivo del ternario (el escáner aprendió a
+      distinguir ese caso) · 2026-08-05
+- [x] **B01 → F4** · `/api/auth/` es pública en `proxy.ts` · verificado:
+      `PUBLIC_ROUTES` la incluye, con el razonamiento («las rutas que CREAN la
+      sesión») en el propio archivo · 2026-08-05
+- [x] **B13 → F4** · `manifest.json` excluido del matcher de `proxy.ts` ·
+      verificado: va nombrado aparte en el `matcher`, y el comentario explica
+      por qué no se excluye la extensión `.json` entera · 2026-08-05
+- [x] **B13 → B15 / B00** · `web-push` instalado · verificado: `package.json`
+      lo lleva en `dependencies` (`^3.6.7`) · 2026-08-05
+- [x] **B02 y B04 → B03** · la ruta de voto existe · verificado:
+      `app/api/posts/[id]/voto/route.ts` exporta `POST` y `DELETE`. Sigue
+      vigente el contrato: ese voto solo mueve `posts.upvote_count` — un apoyo
+      no da karma y no cuenta como escucha · 2026-08-05
+- [x] **B02 / B03 / B04 / B05 / B06 / B07 / B10 / B18 → F4 / B00** ·
+      `app/(app)/layout.tsx` existe · verificado: monta `BotonCrisis`,
+      `RegistroServiceWorker` y `AvisoSinConexion`, con `app/(app)/layout.test.ts`
+      vigilando los tres; y ningún layout ni página del grupo monta ya un
+      `<BotonCrisis>` propio (solo quedan comentarios que apuntan al del grupo).
+      Sigue vigente el aviso de B10: dentro de `/refugios/[id]` el acceso a
+      recursos va DENTRO del redactor a propósito y no se quita · 2026-08-05
+- [x] **B13 → F4** · `/offline` existe y es pública · verificado:
+      `app/offline/page.tsx` existe, y `proxy.ts` lleva `/offline` y
+      `/api/metrics` en `PUBLIC_ROUTES` · 2026-08-05
+
 ---
 
 ## Bugs vistos fuera de tu bloque
@@ -128,13 +163,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 
 ## Pedidos añadidos por B01 (2026-08-03)
 
-- [ ] **De B01 → F4** · `proxy.ts` debe declarar `/api/auth/` como ruta pública.
-      Hoy `PUBLIC_ROUTES` solo lleva `/auth/`, así que `POST /api/auth/anonimo`,
-      `POST /api/auth/magic-link` y `GET /api/auth/callback` reciben un 401 del
-      proxy ANTES de llegar al handler: entrar en Darma es imposible. Las tres
-      llegan por definición sin sesión. `/api/auth/salir`, `/api/auth/perfil`,
-      `/api/auth/alias-libre`, `/api/auth/2fa/*` y `/api/me` sí exigen sesión y
-      deben seguir cerradas · 2026-08-03
 - [ ] **De B01 → F4** · `.env.example` necesita `IDENTITY_PEPPER` (HMAC del
       contacto en `identity_vault`) y `TOTP_ENC_KEY` (32 bytes hex, AES-256-GCM
       del secreto de 2FA). Hoy solo está `IDENTITY_HASH_SALT`, que ningún módulo
@@ -320,10 +348,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `POST/PATCH/DELETE /api/posts` la necesitan (igual que `/api/me` de B01):
       sin ella las rutas devuelven `error_interno`. Se copia a mano desde el
       panel de Supabase · 2026-08-03
-- [ ] **De B03 → F4/B00** · `app/(app)/layout.tsx` todavía no existe. B03 monta
-      `BotonCrisis` en `app/(app)/publicar/layout.tsx` para cumplir CONTRATOS §9.
-      Cuando exista el layout común, el de `publicar` sobra y se retira en una
-      línea · 2026-08-03
 - [ ] **De B03 → F4** · `/publicar` debe estar en las rutas privadas de
       `proxy.ts` (exige sesión) y `/ayuda` en las públicas, que es a donde apunta
       la acción inmediata de la tarjeta de recursos · 2026-08-03
@@ -338,17 +362,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       pueden calcular mirando solo el texto. Una implementación con la firma
       exacta de la ficha sigue siendo asignable, así que B11 puede ignorarlo ·
       2026-08-03
-- [ ] **De B04 → B03** · `components/thread/BotonApoyo.tsx` llama a
-      `POST/DELETE /api/posts/[id]/voto`, que todavía no existe. El componente
-      es optimista y revierte si la respuesta no es 2xx, así que no rompe la
-      pantalla mientras tanto. Recordatorio del contrato: ese voto solo mueve
-      `posts.upvote_count`; **un apoyo no da karma y no cuenta como escucha** ·
-      2026-08-03
-- [ ] **De B04 → F4 / el dueño de `app/(app)/layout.tsx`** · ese layout no
-      existe aún y CONTRATOS §9 exige `BotonCrisis` en todos los de `app/(app)`.
-      B04 lo ha puesto en `app/(app)/post/layout.tsx` para no dejar el hilo sin
-      él. Cuando llegue el layout del grupo con su propio `BotonCrisis`, borrad
-      el de `post/` o saldrán dos · 2026-08-03
 - [ ] **De B04 → B00 / F3** · dos límites para la misma acción:
       `RATE_LIMITS.createComment` de `lib/rateLimit.ts` dice 30/h y la ficha B04
       dice 20/h. Manda `app/api/comments/limites.ts` (20/h) para las rutas de
@@ -407,11 +420,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       configurado. Hace falta una vía de rate limiting que no obligue a
       `service_role` — conceder la RPC a `authenticated` es defendible, porque
       cuenta y no lee datos de nadie · 2026-08-03
-- [ ] **De B05 → F4 / B02** · no existe `app/(app)/layout.tsx`. B05 no lo crea
-      (crear el layout del grupo desde un bloque impone navegación a las cinco
-      rutas hermanas), así que ha puesto un `app/(app)/perfil/layout.tsx` con
-      `BotonCrisis` para cumplir CONTRATOS §9. Cuando exista el del grupo, los
-      dos se anidan y basta con borrar el `<BotonCrisis>` del de B05 · 2026-08-03
 - [ ] **De B05 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       `0105_1_b05_perfil.sql`: hoy no contiene `profiles.streak_days`,
       `profiles.streak_last_date`, `mi_resumen_karma()` ni
@@ -432,10 +440,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       que exige el contrato de la ficha. Es la misma divergencia que ya anotó
       B08 desde el otro lado; al resolverla, B05 tiene tres rutas y una Server
       Action que cambiar · 2026-08-03
-- [ ] **De B07 → F4** · `app/(app)/layout.tsx` no existe todavía. CONTRATOS §9
-      exige `BotonCrisis` en TODOS los layouts de `app/(app)`, así que
-      `app/(app)/animo/page.tsx` lo monta él mismo. Cuando exista el layout, hay
-      que quitarlo de la página para que no salga duplicado · 2026-08-03
 - [ ] **De B07 → B01 / B17** · el feed de `/animo` filtra por `content_items.language`
       y hoy usa `'es'` fijo (parámetro `?idioma=` opcional). Hace falta un
       `idiomaDeSesion()` —o un campo de idioma en `mi_sesion()`— para servir el
@@ -516,13 +520,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `on profiles (id) where shadow_banned` para que la función sea un
       index-only scan diminuto en vez de depender del tamaño de la tabla.
       No lo añade B02: `profiles` no es suyo · 2026-08-03
-- [ ] **De B02 → B03** · falta `POST/DELETE /api/posts/:id/voto`. El botón de
-      voto de `components/feed/BotonVoto.tsx` es optimista y ya llama a esa ruta;
-      mientras no exista recibe un 404, revierte y la tarjeta se queda como
-      estaba (se degrada a «no se pudo votar», nunca a un contador que miente).
-      El feed ya trae `heVotado` resuelto en la propia consulta de posts, así que
-      la ruta solo tiene que insertar/borrar en `post_votes`: el contador lo
-      mantiene el trigger `post_votes_sync` · 2026-08-03
 - [ ] **De B02 → B03 / B04** · las tarjetas enlazan a `/post/{id}` (hilo, B04) y
       el estado vacío del feed a `/publicar` (B03). Ninguna de las dos rutas
       existe todavía: hoy son 404 · 2026-08-03
@@ -539,11 +536,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       Mientras tanto, `app/api/feed/consulta.ts` declara a mano `FilaFeedPost`,
       `FilaFeedContenido` y `FilaFeedEncuesta`, con el comentario que dice por
       qué y qué las sustituye · 2026-08-03
-- [ ] **De B02 → F4 / B00** · el layout de `app/(app)` no existe, así que B02 ha
-      puesto `BotonCrisis` en `app/(app)/feed/layout.tsx` para no servir la
-      pantalla más cargada de la app sin acceso a recursos de ayuda
-      (CONTRATOS §9). Cuando exista `app/(app)/layout.tsx` con el botón, el
-      layout del feed puede quedarse solo con el `<main>` · 2026-08-03
 - [ ] **De B02 → B17 / B01** · el idioma del contenido curado sale hoy de la
       cabecera `Accept-Language` (`idiomaDeContenido()` en
       `app/api/feed/validacion.ts`). Debería salir de la preferencia GUARDADA de
@@ -572,22 +564,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 
 ## Pedidos añadidos por B13 · Push y PWA (2026-08-03)
 
-- [ ] **De B13 → F4 (bloqueante para la instalación)** · `proxy.ts` no excluye
-      `manifest.json` del matcher. La lista excluye por EXTENSIÓN
-      (`svg|png|…|txt|xml`) y **`.json` no está**, así que `/manifest.json` entra
-      en el proxy, no está en `PUBLIC_ROUTES` y un visitante **sin sesión**
-      recibe una redirección a `/entrar` en vez del manifiesto: la PWA no se
-      puede instalar desde la landing y el fallo es mudo (Chrome solo dice
-      «manifest fetch failed»). Arreglo de una palabra — añadir `manifest.json`
-      junto a `manifest.webmanifest` en el `matcher`, o `json` a la lista de
-      extensiones. `sw.js` sí está excluido y funciona · 2026-08-03
-- [ ] **De B13 → B15 / B00** · `package.json` (que B13 no toca porque lo
-      comparten cinco sesiones) necesita la dependencia **`web-push`** (^3.6).
-      Mientras tanto `lib/push/enviar.ts` la carga con `import()` de
-      especificador variable —mismo patrón que `lib/ai/cliente.ts` de B11—, de
-      modo que `tsc` pasa sin el paquete y el envío degrada a `'error'` en
-      silencio. Al instalarla, ese `import()` puede volverse estático sin que
-      cambie ningún llamante · 2026-08-03
 - [ ] **De B13 → F4** · faltan cinco variables en `.env.example`. **Ninguna
       salvo la última lleva prefijo `NEXT_PUBLIC_`**: `VAPID_PUBLIC_KEY`,
       `VAPID_PRIVATE_KEY` (⚠️ **SECRETA**: una privada VAPID filtrada permite a
@@ -624,14 +600,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `idx_kindred_reverse` y ya filtra `blocks`). Y `mensaje_refugio` con
       `avisar({..., tipo: 'mensaje_refugio', refugeId })`, que respeta
       `refuge_members.muted` · 2026-08-03
-- [ ] **De B13 → F4** · falta la ruta `/offline` (una página estática con el
-      enlace a `/ayuda`). Está en el precache de `public/sw.js` y es la caída de
-      la navegación sin red; mientras no exista, el SW responde un 503 de texto
-      plano. También hay que montar `<RegistroServiceWorker />` y
-      `<AvisoSinConexion />` (de `@/components/pwa`) en `app/(app)/layout.tsx`,
-      que sigue sin existir: **sin el registro del service worker, `/ayuda` NO
-      funciona sin cobertura**, que es la razón por la que este bloque tiene
-      service worker · 2026-08-03
 - [ ] **De B13 → B16** · `public/icono-darma.svg` y
       `public/icono-darma-maskable.svg` son provisionales (SVG, con los tokens
       de `globals.css`, sin un solo hex inventado). Chrome acepta SVG en el
@@ -900,13 +868,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       sobres; que el bloqueo hace desaparecer la sala para las dos partes; y que
       ninguna de las columnas cerradas en `0110_1` §4 se puede escribir. Merece
       entrar en `scripts/security/` junto a `intrusion.mjs` · 2026-08-03
-- [ ] **De B10 → F4 / B00** · `app/(app)/layout.tsx` sigue sin existir, así que
-      `app/(app)/refugios/layout.tsx` monta su propio `BotonCrisis` (igual que
-      B02, B03, B04, B05 y B07). Cuando exista el del grupo hay que quitar el de
-      aquí o saldrán dos. **Ojo con el hilo**: dentro de `/refugios/[id]` el
-      acceso a los recursos va DENTRO del redactor a propósito, no flotando —un
-      elemento fijo al viewport se va detrás del teclado en móvil, que es justo
-      cuando hace falta— y ese no se debe quitar · 2026-08-03
 - [ ] **De B10 → F4** · `/refugios` y `/refugios/[id]` deben estar en las rutas
       PRIVADAS de `proxy.ts`: exigen sesión · 2026-08-03
 - [ ] **De B10 → B17 (deuda de traducción)** · todo el copy de
@@ -1066,12 +1027,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       internet. `maxDuration` 60 y presupuesto interno de 50 s; si un corte no
       cabe, la respuesta trae `completado:false` + `ultimoUsuario` y el disparo
       siguiente continúa desde ahí · 2026-08-03
-- [ ] **De B06 → F4 / B16** · `app/(app)/layout.tsx` sigue sin existir, así que
-      B06 ha puesto `BotonCrisis` en `app/(app)/ranking/layout.tsx` (mismo
-      criterio que B02 y B05). `/ranking` es la pantalla donde más invita a
-      compararse con los demás y donde más falta hace la salida. Cuando exista el
-      layout del grupo con el botón, este archivo se queda solo con el `<main>` ·
-      2026-08-03
 - [ ] **De B06 → B05 y B13** · ya está disponible `obtenerPosicionDe(userId,
       periodo): Promise<FilaRanking | null>` en `lib/ranking/index.ts`. Usa el
       cliente RLS (no el admin) y lee por PK, así que sirve para «tu posición» en
@@ -1326,13 +1281,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       propio o por `[data-nivel]`; el panel privado, por
       `section[aria-labelledby="titulo-panel-privado"]`. Funciona, pero son
       anclas de implementación · 2026-08-03
-- [ ] **De B18 → F4 / B00 · no existe `app/(app)/layout.tsx`.** Cada ruta monta
-      su `BotonCrisis` por su cuenta (7 sitios distintos, y en `/animo` está en
-      la PÁGINA, no en un layout). CONTRATOS §9 dice que **todos** los layouts de
-      `app/(app)` deben incluirlo: hoy eso se cumple por repetición, así que la
-      pantalla que se añada mañana se quedará sin él y nadie se enterará. La
-      prueba nº 12 de B18 recorre las seis rutas precisamente por esto ·
-      2026-08-03
 - [ ] **De B18 → B01 · el registro por API rechaza los dominios sintéticos.**
       Comprobado contra `darma-dev`: `signup` devuelve `email_address_invalid`
       para `.test`, `.local` y `.example.com`, y `over_email_send_rate_limit`
@@ -1501,15 +1449,6 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       devuelve `MENSAJES` a los dos imports de siempre. El guard de paridad
       (`i18n/claves.test.ts`) ya compara el catálogo FUSIONADO, así que la
       operación es verificable · 2026-08-03
-- [ ] **De la migración i18n → quien mantenga `i18n/literales.test.ts` · toca
-      podar `DEUDA_LITERALES_CONOCIDA`.** El test «la deuda conocida sigue ahí»
-      falla, que es la buena noticia que él mismo anuncia: los archivos migrados
-      ya no tienen literales. Ningún dueño puede borrar su línea sin editar ese
-      archivo, y es de un solo dueño. Cuatro entradas SÍ deben quedarse
-      (`components/refuge/TarjetaCrisis.tsx`, `components/polls/TarjetaEncuesta.tsx`,
-      `components/video/TarjetaVideo.tsx`, `components/economia/SelectorRegalo.tsx`):
-      están limpias, pero el guard da falso positivo con el `) : cond ? (` de un
-      ternario en JSX y las sigue viendo sucias · 2026-08-03
 - [x] **CERRADO · una sola fuente para la frase de la línea roja.**
       `lib/billing/textos.ts` ya no guarda texto: guarda las CLAVES
       (`CLAVE_LINEA_ROJA`, …). `/api/billing/catalog` y `/api/billing/boost`

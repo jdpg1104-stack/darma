@@ -70,8 +70,23 @@ export interface AlmacenIngesta {
 
   /** Consume una llamada del cupo diario del modelo. `false` = sin cupo. */
   consumirCupoModelo(): Promise<boolean>
+  /**
+   * Reserva unidades del cupo diario PERSISTENTE de la Data API (B21 §1,
+   * migración 0214). Devuelve cuántas se concedieron: `min(pedidas, restantes)`,
+   * y 0 —fail-closed— si el contador no responde. La corrida crea su contador
+   * en memoria con lo concedido y devuelve el sobrante al terminar.
+   */
+  reservarCuotaYoutube(unidades: number, tope: number): Promise<number>
+  /** Devuelve al cupo diario lo reservado y NO gastado. Best-effort: si falla,
+   *  las unidades quedan como gastadas, que es el lado seguro del error. */
+  devolverCuotaYoutube(unidades: number): Promise<void>
   /** Purga de `ingest_log`. Devuelve cuántas filas se borraron. */
   purgarLog(diasRetencion: number, maxFilas: number): Promise<number>
+
+  /** Vídeos de YouTube sin `duration_seconds`, keyset por `id`. Para el backfill. */
+  videosSinDuracion(cursor: string | null, limite: number): Promise<Array<{ id: string; externalId: string }>>
+  /** Escribe la duración SOLO si sigue NULL: el backfill jamás pisa un dato ya escrito. */
+  guardarDuracion(id: string, segundos: number): Promise<void>
 
   /** Upsert de la semilla. No pisa `enabled`, `cursor` ni `cooldown_until`. */
   sembrarFuentes(semilla: readonly SemillaFuente[]): Promise<number>
@@ -294,6 +309,29 @@ export function crearAlmacenSupabase(cliente?: SupabaseClient): AlmacenIngesta {
       return data === true
     },
 
+    async reservarCuotaYoutube(unidades, tope) {
+      const { data, error } = await db.rpc('ingest_reservar_cuota_youtube', {
+        p_unidades: unidades,
+        p_tope: tope,
+      })
+      // Fail-closed, igual que el cupo del modelo: sin respuesta no hay cuota.
+      // La corrida NO se queda muda por eso — el descubrimiento cae al feed
+      // Atom, que no necesita cuota; solo pierde la mejora de la Data API.
+      if (error) {
+        logger.warn('ingest_cuota_no_reservada', { unidades })
+        return 0
+      }
+      return typeof data === 'number' && Number.isFinite(data) && data > 0 ? Math.floor(data) : 0
+    },
+
+    async devolverCuotaYoutube(unidades) {
+      if (!Number.isFinite(unidades) || unidades <= 0) return
+      const { error } = await db.rpc('ingest_devolver_cuota_youtube', { p_unidades: Math.floor(unidades) })
+      // Best-effort: si falla, el día pierde esas unidades del cupo contable.
+      // Es el lado seguro — nunca puede llevar a gastar de más.
+      if (error) logger.warn('ingest_cuota_no_devuelta', { unidades: Math.floor(unidades) })
+    },
+
     async purgarLog(diasRetencion, maxFilas) {
       const limite = new Date(Date.now() - diasRetencion * 24 * 60 * 60 * 1000).toISOString()
       // Se seleccionan los ids primero para poder ACOTAR el borrado: un `delete`
@@ -312,6 +350,42 @@ export function crearAlmacenSupabase(cliente?: SupabaseClient): AlmacenIngesta {
       const { error } = await db.from('ingest_log').delete().in('id', ids)
       if (error) return 0
       return ids.length
+    },
+
+    async videosSinDuracion(cursor, limite) {
+      // `approved` Y `pending`: los pendientes también acabarán delante de una
+      // persona y su duración importa igual. Los `rejected` no — pagar cuota por
+      // completar un dato que nadie va a leer sería gasto puro.
+      let consulta = db
+        .from('content_items')
+        .select('id, external_id')
+        .eq('platform', 'youtube')
+        .in('state', ['approved', 'pending'])
+        .is('duration_seconds', null)
+        .order('id', { ascending: true })
+        .limit(limite)
+      if (cursor) consulta = consulta.gt('id', cursor)
+
+      const { data, error } = await consulta
+      if (error) throw new Error('content_items_sin_duracion_failed')
+      return ((data ?? []) as Array<{ id: string; external_id: string }>).map((f) => ({
+        id: f.id,
+        externalId: f.external_id,
+      }))
+    },
+
+    async guardarDuracion(id, segundos) {
+      // Espejo del CHECK de content_items (`>= 0`) más la política propia: un 0
+      // no se escribe nunca (un directo con `P0D` completaría al primer latido).
+      if (!Number.isFinite(segundos) || segundos <= 0) return
+      const { error } = await db
+        .from('content_items')
+        .update({ duration_seconds: Math.floor(segundos) })
+        .eq('id', id)
+        // Idempotencia: solo se rellena el hueco. Si alguien escribió una
+        // duración a mano entre el select y este update, se respeta la suya.
+        .is('duration_seconds', null)
+      if (error) logger.warn('content_item_duracion_no_escrita', { content_id: id })
     },
 
     async sembrarFuentes(semilla) {

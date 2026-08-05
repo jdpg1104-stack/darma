@@ -9,7 +9,11 @@
 // veinticuatro horas sin que nadie incumpla nada.
 //
 // Las dos piezas de Postgres ya existían y no las llamaba nadie
-// (`0201_1_b20_privacidad.sql`). Este archivo es solo el brazo.
+// (`0201_1_b20_privacidad.sql`). Este archivo es solo el brazo. Desde
+// `0215_1_b00_circulos_privacidad.sql` el trabajo de retención barre además
+// las solicitudes `pending_confirm` cuyo token caducó — mismo brazo, misma
+// razón: una función de Postgres sin nadie que la llame es un plazo que no se
+// cumple.
 // ============================================================================
 
 import type { ContextoTrabajo, ResultadoTrabajo, Trabajo } from '../tipos.ts'
@@ -19,6 +23,10 @@ export const LOTE_BORRADOS = 50
 
 /** Filas por lote de purga. Igual que el defecto de `purgar_retencion`. */
 export const LOTE_RETENCION = 1_000
+
+/** Solicitudes caducadas por lote. Igual que el defecto de
+ *  `barrer_solicitudes_caducadas` (0215; tope duro de 500 en la función). */
+export const LOTE_CADUCADAS = 200
 
 /** Tablas que `purgar_retencion()` devuelve en su jsonb. */
 const TABLAS_PURGA = [
@@ -118,7 +126,16 @@ export async function ejecutarBorradosRgpd(ctx: ContextoTrabajo): Promise<Result
 }
 
 /**
- * Purga de retención por lotes acotados.
+ * Purga de retención por lotes acotados, precedida por el barrido de
+ * solicitudes `pending_confirm` caducadas.
+ *
+ * ── POR QUÉ EL BARRIDO VIVE EN ESTE TRABAJO Y NO EN UNO NUEVO ─────────────
+ * Un trabajo nuevo exigiría su hueco en el reparto de `plan.ts`, cuya suma
+ * cierra justa en 52 s, para una operación que en el día normal toca cero o
+ * una fila (la tabla tiene una fila por solicitud de privacidad, no por post).
+ * Es higiene del mismo dominio que la purga —hacer verdad los plazos escritos—
+ * y va ANTES de ella porque es diminuta y acotada: si el presupuesto muere en
+ * la purga, el panel de privacidad ya quedó sin madera muerta.
  *
  * Encadena pasadas mientras algo se borre y quede presupuesto. Una sola pasada
  * de 1 000 filas no vacía un backlog de meses, y un `delete` sin `limit` sobre
@@ -126,6 +143,23 @@ export async function ejecutarBorradosRgpd(ctx: ContextoTrabajo): Promise<Result
  * `purgar_retencion()` está escrita con `where ctid in (… limit N)`.
  */
 export async function ejecutarRetencionRgpd(ctx: ContextoTrabajo): Promise<ResultadoTrabajo> {
+  // ── Barrido de `pending_confirm` caducadas (0215) ─────────────────────────
+  // Idempotente y por lotes: un lote lleno significa que seguro queda más.
+  let caducadas = 0
+  let quedanCaducadas = false
+
+  while (!ctx.agotado()) {
+    const { data, error } = await ctx.admin.rpc('barrer_solicitudes_caducadas', {
+      p_limite: LOTE_CADUCADAS,
+    })
+    if (error) throw new Error(error.message)
+
+    const n = Number(data ?? 0)
+    caducadas += n
+    quedanCaducadas = n >= LOTE_CADUCADAS
+    if (!quedanCaducadas) break
+  }
+
   const totales: Record<string, number> = Object.fromEntries(TABLAS_PURGA.map((t) => [t, 0]))
   let pasadas = 0
   let quedaCola = false
@@ -152,8 +186,9 @@ export async function ejecutarRetencionRgpd(ctx: ContextoTrabajo): Promise<Resul
   }
 
   return {
-    estado: quedaCola ? 'parcial' : 'ok',
-    detalle: { pasadas, ...totales },
+    estado: quedaCola || quedanCaducadas ? 'parcial' : 'ok',
+    // `solicitudes_caducadas` es un CONTEO, nunca ids: misma regla que arriba.
+    detalle: { pasadas, solicitudes_caducadas: caducadas, ...totales },
   }
 }
 

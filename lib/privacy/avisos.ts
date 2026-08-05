@@ -1,5 +1,6 @@
 // ============================================================================
-// Avisos permanentes: «Darma no sustituye a la terapia» y la edad mínima.
+// Avisos permanentes: «Darma no sustituye a la terapia», la edad mínima y el
+// correo de contacto del responsable.
 //
 // ── POR QUÉ EL TEXTO CORTO ESTÁ AQUÍ Y NO EN EL COMPONENTE QUE LO PINTA ────
 // Este aviso aparece en el pie de toda la app, en la tarjeta de recursos de
@@ -39,6 +40,20 @@ export const EDAD_MINIMA = 16 as const
  * más bajo). Ver `/legal/menores`.
  */
 export const EDAD_ADULTA = 18 as const
+
+/**
+ * Correo de contacto del responsable del tratamiento (RGPD arts. 13-14).
+ * Es el buzón al que apuntan todos los «escríbenos» de los textos legales:
+ * un derecho que se ejerce «escribiéndonos» sin decir a dónde no se puede
+ * ejercer.
+ *
+ * ⚠️ Hoy es el correo personal del titular del proyecto. ANTES de abrir Darma
+ * al público debe sustituirse por un buzón propio de la entidad legal (nunca
+ * un gmail personal). Y al cambiarlo, ojo: los cuerpos legales lo interpolan,
+ * así que cambiar este valor cambia sus sha256 y obliga a subir sus versiones
+ * — `textos.test.ts` lo recordará poniéndose rojo.
+ */
+export const CONTACTO_EMAIL = 'jdpg1104@gmail.com'
 
 /**
  * ¿La fecha de nacimiento declarada llega a la edad mínima?

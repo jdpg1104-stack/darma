@@ -330,12 +330,11 @@ tocar el proxy otra vez.
   debe estar en la misma región — si no, cada consulta paga la latencia
   transatlántica y el beneficio se pierde.
 - `git.deploymentEnabled` solo para `main`: las ramas no despliegan solas.
-- `crons: []` a propósito. Vercel valida las rutas al desplegar y un cron que
-  apunte a un endpoint inexistente rompe el despliegue; las entradas previstas
-  (ingesta de contenido curado, cola de riesgo, reconciliación de karma) están
-  documentadas en el README listas para pegar cuando existan los handlers. Cada
-  handler se autentica solo con `CRON_SECRET`, porque el proxy los deja pasar
-  sin sesión (llegan de una máquina, no de un navegador).
+- **Crons**: `vercel.json` declara tres — `/api/cron/diario` (`11 4 * * *`),
+  `/api/cron/frecuente` (`7 * * * *`) y `/api/health/deep` (`0 * * * *`) — y
+  los tres handlers existen bajo `app/api/`. Cada handler se autentica solo con
+  `CRON_SECRET`, porque el proxy los deja pasar sin sesión (llegan de una
+  máquina, no de un navegador).
 - La landing es `force-static`: se sirve desde el CDN y no toca el servidor.
 
 ---

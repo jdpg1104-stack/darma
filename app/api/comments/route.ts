@@ -22,7 +22,8 @@
 //
 // Lo importante del orden: nada caro ocurre antes del rate limit, nada se
 // persiste antes de la comprobación de PII, y el karma se LEE en vez de
-// asumirse.
+// asumirse. Y desde el enganche de B11, la crisis se registra UNA sola vez:
+// la ruta O el pipeline, nunca ambos (ver `laRegistraElPipeline` abajo).
 //
 // ── POR QUÉ LA VALIDACIÓN ES SÍNCRONA Y NO UNA COLA ────────────────────────
 // Porque la persona necesita saber AL MOMENTO si su escucha contó. Diferirlo a
@@ -34,7 +35,10 @@
 // ── LOS TRES USOS DEL CLIENTE ADMIN EN TODO EL BLOQUE ──────────────────────
 //  (1) `is_validated` + `quality_score`  ← aquí abajo.
 //  (2) `is_helpful`                      ← `[id]/util/route.ts`.
-//  (3) `crisis_events` y `moderation_flags` ← aquí y en `crisisHilo.ts`.
+//  (3) `crisis_events` y `moderation_flags` ← aquí, en `crisisHilo.ts` y,
+//      desde el enganche de B11, dentro del pipeline al que este MISMO admin
+//      viaja vía `ContextoValidacionIA` (presupuesto, auditoría y crisis):
+//      es el uso (3) entrando por otra puerta.
 // No hay una cuarta. (El cliente admin que reciben los límites no escribe en
 // ninguna tabla de dominio; ver `limites.ts`.)
 // ============================================================================
@@ -48,10 +52,15 @@ import { exigirPerfil, getContextoSesion } from '@/lib/auth/session'
 import { perfilPublicoDesde } from '@/lib/auth/perfil'
 import { assertNoPii, PiiDetectedError } from '@/lib/anonymity'
 import { paisDePeticion } from '@/lib/auth/peticion'
+import { hayClaveIA } from '@/lib/ai/cliente'
 
 import { limitarHilo } from './limites.ts'
 import { evaluar, registrar } from './crisisHilo.ts'
-import { validadorPorDefecto } from './validador.ts'
+import {
+  ValidadorHeuristico,
+  validadorPorDefecto,
+  type ContextoValidacionIA,
+} from './validador.ts'
 import { leerHilo } from './consulta.ts'
 import { decodificarCursor } from './cursor.ts'
 import {
@@ -75,6 +84,13 @@ import type {
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+/**
+ * Suelo heurístico con el que se decide QUIÉN registra la crisis (la ruta o el
+ * pipeline de B11). Es la MISMA implementación que el validador usa por dentro:
+ * pura, determinista y sin estado, así que instanciarla una vez es gratis.
+ */
+const sueloHeuristico = new ValidadorHeuristico()
 
 /** Contexto de sesión con perfil ya creado. Una sola consulta, memoizada. */
 async function contextoConPerfil() {
@@ -160,10 +176,44 @@ export async function POST(request: Request) {
 
     if (errorInsert || !creado) throw new ErrorApi('error_interno', { causa: errorInsert })
 
-    await registrar(admin, evaluacion, userId, creado.id, pais)
+    // ── Contexto COMPLETO del validador (el enganche que pedía B11):
+    // `autorId` SIEMPRE de la sesión (jamás del body), `refId` del comentario
+    // YA insertado, el `admin` de esta ruta para presupuesto/auditoría/crisis
+    // del pipeline, y el `pais` ya resuelto en el borde para que el pipeline no
+    // viaje a `identity_vault`. Sin `autorId` el validador cae a heurística a
+    // propósito.
+    const contextoIA: ContextoValidacionIA = {
+      postBody: post.body,
+      autorId: userId,
+      refId: creado.id,
+      admin,
+      pais,
+    }
+
+    // ── QUIÉN registra la crisis: la ruta O el pipeline, nunca ambos.
+    // Con `admin` en el contexto, `evaluarContenido()` (B11) escribe
+    // `crisis_events` por su cuenta — y su registro es mejor: añade la escalada
+    // por LLM. El pipeline corre EXACTAMENTE cuando hay clave y el suelo
+    // heurístico aprueba (ver `ValidadorIA.validar`); en ese camino la ruta NO
+    // registra, porque escribiría la fila dos veces. Si el pipeline corre y
+    // luego DEGRADA (timeout, refusal, presupuesto), su registro por reglas ya
+    // quedó escrito ANTES de tocar la red, así que tampoco se pierde. En todos
+    // los demás caminos —sin clave, que es el estado real de hoy, o con el
+    // suelo en contra— el pipeline no llega a correr y el registro sigue
+    // siendo de esta ruta. El suelo es puro y determinista
+    // (`lib/moderation.ts`): evaluarlo aquí y dentro del validador da el mismo
+    // veredicto. Vigilado por `enganche.test.ts`.
+    const laRegistraElPipeline =
+      evaluacion.tarjeta !== null &&
+      hayClaveIA() &&
+      (await sueloHeuristico.validar(entrada.body, contextoIA)).valido
+
+    if (!laRegistraElPipeline) {
+      await registrar(admin, evaluacion, userId, creado.id, pais)
+    }
 
     // ── Validación de calidad, síncrona.
-    const veredicto = await validadorPorDefecto.validar(entrada.body, { postBody: post.body })
+    const veredicto = await validadorPorDefecto.validar(entrada.body, contextoIA)
 
     let validacion: ResultadoValidacion
     let creditoGanado = 0

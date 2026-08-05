@@ -7,6 +7,7 @@ import {
   CUOTA_DIARIA,
   PRESUPUESTO_POR_CORRIDA,
   RESERVA_VERIFICACION,
+  TOPE_DIARIO_PERSISTENTE,
   TOPE_LLAMADAS_POR_CORRIDA,
   crearContadorCuota,
   esVerificacion,
@@ -51,6 +52,16 @@ test('el presupuesto por corrida cabe en la cuota diaria aunque el cron se dispa
   assert.ok(
     PRESUPUESTO_POR_CORRIDA * CORRIDAS_MAX_POR_DIA <= CUOTA_DIARIA,
     `${PRESUPUESTO_POR_CORRIDA} × ${CORRIDAS_MAX_POR_DIA} supera las ${CUOTA_DIARIA} unidades diarias`,
+  )
+})
+
+test('el tope diario persistente deja la MAYOR parte de la clave compartida a DataLaps', () => {
+  // La clave es HOY la misma que la de DataLaps (PEDIDOS.md), que ya la agotó
+  // una vez (429 real, 2026-07-29). Darma no puede poder dejarla a cero solo.
+  assert.equal(TOPE_DIARIO_PERSISTENTE, 6 * PRESUPUESTO_POR_CORRIDA, '6 reservas completas: 4 del cron + 2 de margen')
+  assert.ok(
+    CUOTA_DIARIA - TOPE_DIARIO_PERSISTENTE >= CUOTA_DIARIA / 2,
+    `quedar por debajo de media cuota (${CUOTA_DIARIA - TOPE_DIARIO_PERSISTENTE} libres) estrangularía al otro proyecto`,
   )
 })
 

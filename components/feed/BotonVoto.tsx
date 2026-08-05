@@ -11,11 +11,6 @@
 // La reversión es al valor EXACTO que había antes, no un `-1`: si mientras tanto
 // llegó otro render con un contador distinto, restar uno dejaría el número mal
 // para siempre.
-//
-// ⚠️ DEPENDENCIA PENDIENTE: `POST /api/posts/:id/voto` es de B03 y todavía no
-// existe. Mientras no exista, el fetch devuelve 404, el componente revierte y la
-// tarjeta se queda como estaba: se degrada a «no se pudo votar», nunca a un
-// contador que miente. Anotado en HANDOFF/PEDIDOS.md.
 // ============================================================================
 
 import { useState, useTransition } from 'react'

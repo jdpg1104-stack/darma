@@ -14,7 +14,14 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { escanearTexto, escanearArbol, esJwtServiceRole, formatearInforme } from './guardSecretos.ts'
+import {
+  escanearTexto,
+  escanearArbol,
+  esJwtServiceRole,
+  formatearInforme,
+  ENV_LOCAL_RE,
+  esEnvLocalIgnorado,
+} from './guardSecretos.ts'
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
 const RAIZ = join(AQUI, '..', '..')
@@ -90,6 +97,32 @@ test('detecta un .p8 de Apple por la extensión del archivo', () => {
   const h = escanearTexto('cualquier contenido', 'claves/AuthKey_ABC123.p8')
   assert.equal(h.length, 1)
   assert.equal(h[0]!.tipo, 'apple_p8_key')
+})
+
+// ── La exención de .env.local ───────────────────────────────────────────────
+// El archivo existe PARA guardar secretos reales y .gitignore lo excluye del
+// repositorio: denunciarlo convierte cada máquina configurada en un falso
+// positivo permanente. La exención exige que git de verdad lo ignore.
+
+test('ENV_LOCAL_RE reconoce exactamente las variantes de .env.local', () => {
+  assert.ok(ENV_LOCAL_RE.test('.env.local'))
+  assert.ok(ENV_LOCAL_RE.test('.env.development.local'))
+  assert.ok(ENV_LOCAL_RE.test('apps/web/.env.local'))
+  // Lo que NO se exime: la plantilla (se versiona), un .env a secas y un backup.
+  assert.ok(!ENV_LOCAL_RE.test('.env.example'))
+  assert.ok(!ENV_LOCAL_RE.test('.env'))
+  assert.ok(!ENV_LOCAL_RE.test('.env.local.bak'))
+})
+
+test('.env.local del repo real está ignorado por git (la condición de la exención)', () => {
+  // En este repo .gitignore cubre .env*.local; si alguien lo saca de ahí, este
+  // test y el escaneo del árbol se ponen rojos A LA VEZ, que es lo que se quiere.
+  assert.equal(esEnvLocalIgnorado(RAIZ, '.env.local'), true)
+})
+
+test('un archivo que no es .env.local nunca entra por la exención', () => {
+  assert.equal(esEnvLocalIgnorado(RAIZ, '.env.example'), false)
+  assert.equal(esEnvLocalIgnorado(RAIZ, 'lib/crisis.ts'), false)
 })
 
 // ── El árbol real ───────────────────────────────────────────────────────────

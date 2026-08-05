@@ -12,7 +12,12 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { AVISO_NO_TERAPIA, AVISO_NO_TERAPIA_LARGO, EDAD_MINIMA } from './avisos.ts'
+import {
+  AVISO_NO_TERAPIA,
+  AVISO_NO_TERAPIA_LARGO,
+  CONTACTO_EMAIL,
+  EDAD_MINIMA,
+} from './avisos.ts'
 import {
   DOCUMENTOS_LEGALES,
   ORDEN_DOCUMENTOS,
@@ -112,6 +117,29 @@ test('el documento de privacidad explica la política de borrado CON ESAS PALABR
   assert.match(cuerpo, /un solo uso/)
   // Y la irreversibilidad de la bóveda de identidad.
   assert.match(cuerpo, /clave secreta/)
+})
+
+test('el documento de privacidad identifica al responsable del tratamiento', () => {
+  // RGPD arts. 13-14: identidad y datos de contacto del responsable. Sin
+  // entidad jurídica que declarar, la fórmula honesta es la real: el titular
+  // del proyecto, con su buzón.
+  const cuerpo = DOCUMENTOS_LEGALES.privacidad.cuerpo
+  assert.match(cuerpo, /responsable del tratamiento/i)
+  assert.match(cuerpo, /titular del proyecto Darma/)
+  assert.ok(cuerpo.includes(CONTACTO_EMAIL), 'la política no da el correo del responsable')
+})
+
+test('ningún «escríbenos» apunta al vacío: siempre lleva el buzón de contacto', () => {
+  // Un derecho que se ejerce «escribiéndonos» sin decir a dónde no se puede
+  // ejercer. Cada variante de la palabra debe ir seguida de «a CONTACTO_EMAIL».
+  const buzon = CONTACTO_EMAIL.replaceAll('.', '\\.')
+  const huerfana = new RegExp(`escr(?:íbenos|ibirnos|ibiéndonos)(?!\\s+a\\s+${buzon})`, 'iu')
+  for (const documento of Object.values(DOCUMENTOS_LEGALES)) {
+    assert.ok(
+      !huerfana.test(documento.cuerpo),
+      `«${documento.titulo}» pide que le escriban sin decir a qué dirección`,
+    )
+  }
 })
 
 test('el documento de menores razona la edad y el consentimiento parental', () => {

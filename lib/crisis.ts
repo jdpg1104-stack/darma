@@ -167,7 +167,52 @@ const HIGH_PATTERNS: readonly CrisisPattern[] = [
   // Método por precipitación. Pide verbo Y lugar: `tirarme` a secas aparece en
   // «me voy a tirar a la piscina».
   { id: 'es_jump', level: 'high', re: /\b(me (voy a )?(tiro|tirar|lanzo|lanzar)|tirarme|saltar)\b[^.]{0,25}\b(ventana|puente|balcon|azotea|terraza|tren|via|acantilado|vacio)\b/ },
+  // ── EL MISMO HUECO DE ARRIBA, EN TERCERA PERSONA (2026-08-05) ──────────────
+  // El arreglo de las formas conjugadas cerró la primera persona («me voy a
+  // matar») pero dejó abierto su gemelo exacto: `es_ideation_impersonal` solo ve
+  // el infinitivo con clítico (`matarse`, `suicidarse`), y quien cuenta la
+  // crisis de otro escribe conjugado, con el clítico adelantado. Medido
+  // ejecutando `assessCrisisRisk()` antes de este cambio:
+  //
+  //     «mi amigo se va a matar»           → none
+  //     «mi hermana se quiere suicidar»     → none
+  //     «dice que se va a quitar la vida»   → none
+  //     «mi hermano se autolesiona»         → none
+  //     «mi amigo se va a matar esta noche» → none
+  //
+  // Y quien está peor rara vez habla de sí mismo: «mi amigo» es muchas veces la
+  // forma de tantear antes de decir «yo». Aunque el tercero sea real, quien lo
+  // acompaña también necesita los recursos. La modulación de tercera persona ya
+  // limita estas señales a 'high' por diseño; añadirlas SOLO puede subir
+  // niveles, nunca bajarlos (el nivel es un máximo).
+  //
+  // La exclusión de `a estudiar|…` es la MISMA lista cerrada del patrón de
+  // primera persona: «se va a matar a estudiar» es el mismo modismo vivo.
+  { id: 'es_ideation_tercera_conjugada', level: 'high', re: /\bse (va a|quiere|piensa|iba a|queria|puede|tiene que) (matar|suicidar|quitar la vida)\b(?! a (estudiar|trabajar|currar|entrenar|limpiar|correr))/ },
+  // Volición de morir en tercera persona. A PROPÓSITO no incluye «se va a
+  // morir»: eso es un pronóstico —«mi abuelo se va a morir»— y el duelo es uno
+  // de los temas centrales de Darma; marcar como riesgo alto cada post sobre un
+  // familiar enfermo inundaría la cola de revisión y desgastaría el aviso. La
+  // volición («se quiere morir») sí es el relato clásico de una ideación ajena.
+  { id: 'es_ideation_tercera_morir', level: 'high', re: /\b(se quiere morir|se queria morir|quiere morirse|desea morirse)\b/ },
+  // Presente de indicativo en tercera persona («me ha dicho que se suicida»).
+  { id: 'es_ideation_tercera_presente', level: 'high', re: /\b(se suicida|se quita la vida)\b/ },
+  // Autolesión en tercera persona. «se corta» A SECAS no marca: es de las
+  // frases más polisémicas del idioma (la luz, la llamada, la leche, el pelo).
+  // Se exige un ancla: o el verbo inequívoco (`se autolesiona`, `se hace
+  // cortes`), o la parte del cuerpo, o un sujeto de parentesco/amistad delante
+  // —«mi hermana se corta»— con la misma exclusión de peluquería que la
+  // primera persona.
+  { id: 'es_selfharm_tercera', level: 'high', re: /\bse (autolesiona|hace cortes|hace dano a proposito)\b|\bse (corta|quema)( en)? (los brazos|las munecas|los muslos|las piernas|la piel|las venas)\b|\b(hermana|hermano|amiga|amigo|hija|hijo|madre|padre|pareja|novia|novio|prima|primo|companera|companero) se corta\b(?! (el pelo|las unas|el flequillo|la barba))/ },
+  // Precipitación en tercera persona. Igual que `es_jump`: verbo Y lugar, para
+  // que «se tira a la piscina» no marque.
+  { id: 'es_jump_tercera', level: 'high', re: /\b(se (va a )?(tira|tirar|lanza|lanzar)|tirarse|lanzarse)\b[^.]{0,25}\b(ventana|puente|balcon|azotea|terraza|tren|via|acantilado|vacio)\b/ },
   { id: 'en_ideation_impersonal', level: 'high', re: /\b(suicide|killing themsel(f|ves)|kill themsel(f|ves)|taking their (own )?life|self.?harming)\b/ },
+  // Tercera y segunda persona en inglés. `kill yourself` cubre también el «cómo
+  // suicidarse» inglés («how to kill yourself»), que se escribe en segunda
+  // persona; `himself`/`herself` son el relato de un tercero concreto que
+  // `en_ideation_impersonal` (solo `themself/themselves`) no veía.
+  { id: 'en_ideation_tercera', level: 'high', re: /\b(kill(ing)? (yourself|himself|herself|themself|themselves)|end(ing)? (his|her|their|your) (own )?life|wants to die|hurt(ing)? (himself|herself) on purpose)\b/ },
   { id: 'es_end_life', level: 'high', re: /\b(acabar con (mi vida|todo esto)|terminar con (mi vida|todo)|quitarme la vida|no quiero (seguir viviendo|vivir mas|estar aqui)|dejar de existir)\b/ },
   { id: 'es_selfharm', level: 'high', re: /\b(me (corto|he cortado|autolesiono|hago dano|hago cortes)|cortarme|autolesion(arme|es)?|quemarme a proposito)\b/ },
   { id: 'es_better_dead', level: 'high', re: /\b(estarian mejor sin mi|todos estarian mejor|no le importo a nadie y ya no|sobro en este mundo|no merezco (vivir|estar aqui))\b/ },

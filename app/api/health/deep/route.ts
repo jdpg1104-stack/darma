@@ -17,10 +17,8 @@
 // que algún día se silencien las dos juntas, y una de las dos significa que hay
 // personas esperando a que alguien lea lo que escribieron.
 //
-// PENDIENTE (anotado en HANDOFF/PEDIDOS.md): que F4 añada a vercel.json
+// El cron ya está declarado en vercel.json:
 //   { "path": "/api/health/deep", "schedule": "0 * * * *" }
-// El orden correcto es "primero se despliega la ruta, luego se activa el cron":
-// un cron apuntando a un endpoint inexistente rompe el despliegue entero.
 // ============================================================================
 
 import { NextResponse } from 'next/server'

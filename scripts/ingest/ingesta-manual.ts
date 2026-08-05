@@ -32,7 +32,7 @@ for (let i = 1; i <= pasadas; i++) {
   console.warn(
     `pasada ${i}/${pasadas} · completado=${r.completado} fuentes=${r.fuentesVistas} ` +
       `insertados=${r.insertados} duplicados=${r.duplicados} pendientes=${r.pendientes} ` +
-      `rechazados(seg/embed/cal)=${r.rechazados.seguridad}/${r.rechazados.embed}/${r.rechazados.calidad} ` +
+      `rechazados(seg/embed/cal/canal/idioma)=${r.rechazados.seguridad}/${r.rechazados.embed}/${r.rechazados.calidad}/${r.rechazados.canal}/${r.rechazados.idioma} ` +
       `errores=${r.errores} ms=${r.msTranscurridos}`,
   )
   // Si una pasada no encontró nada nuevo, seguir es gastar peticiones para nada.

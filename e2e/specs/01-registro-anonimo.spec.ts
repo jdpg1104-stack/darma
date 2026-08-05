@@ -68,6 +68,9 @@ test.describe('(a) Registro anónimo y onboarding', () => {
     const respuesta = page.waitForResponse(
       (r) => r.url().includes('/api/auth/anonimo') && r.request().method() === 'POST',
     )
+    // Click directo (no `registrarseAnonimo()`) para capturar la respuesta,
+    // así que la casilla de edad hay que marcarla aquí a mano.
+    await entrar.casillaEdad.check()
     await entrar.botonAnonimo.click()
     const cuerpo = (await (await respuesta).json()) as { data?: { userId?: string } }
     const userId = cuerpo.data?.userId
@@ -87,5 +90,25 @@ test.describe('(a) Registro anónimo y onboarding', () => {
     expect(visible).not.toMatch(
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
     )
+  })
+})
+
+// ── Camino de fallo nº 0: la casilla de edad, sin marcar ────────────────────
+// FUERA del describe con `omitirSinAdmin()` a propósito: la guarda es del
+// cliente (pulsar sin marcar ni siquiera lanza la petición), así que esta
+// prueba se ejecuta y pasa también sin SUPABASE_SERVICE_ROLE_KEY.
+test.describe('(a) Casilla de edad mínima', () => {
+  test('pulsar sin marcarla no navega y pinta el porqué', async ({ page }) => {
+    const entrar = new EntrarPage(page)
+    await entrar.ir()
+
+    await expect(entrar.casillaEdad).not.toBeChecked()
+    await entrar.botonAnonimo.click()
+
+    // El botón no se deshabilita: responde con el porqué, con el copy del
+    // catálogo (auth.entrada.errorEdadMinima)…
+    await expect(entrar.errorEdadMinima).toBeVisible()
+    // …y la persona sigue en /entrar: no hubo POST ni navegación.
+    await expect(page).toHaveURL(/\/entrar/)
   })
 })
