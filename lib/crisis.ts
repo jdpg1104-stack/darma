@@ -135,6 +135,38 @@ const HIGH_PATTERNS: readonly CrisisPattern[] = [
   // está atravesando su propia crisis. Falso positivo aceptable; falso
   // negativo, no.
   { id: 'es_ideation_impersonal', level: 'high', re: /\b(suicidarse|suicidio|matarse|quitarse la vida|acabar con su vida|autolesionarse|hacerse dano a proposito)\b/ },
+  // ⛔ EL HUECO QUE ESTUVO ABIERTO HASTA EL 2026-08-05, y es el peor que ha
+  // tenido este archivo. Todo lo de arriba pide INFINITIVO CON CLÍTICO
+  // (`suicidarme`, `matarme`, `quitarme la vida`) o tercera persona. Nadie
+  // escribe así cuando está mal. Medido ejecutando `assessCrisisRisk()`:
+  //
+  //     «me voy a suicidar»            → none
+  //     «me mato»                      → none
+  //     «hoy me quito la vida»         → none
+  //     «me quiero cortar»             → none
+  //     «me voy a tirar por la ventana» → none
+  //
+  // Cinco de las formas más directas del español, invisibles. El clítico se
+  // adelanta al verbo (`me voy a matar`) o el verbo va conjugado (`me mato`), y
+  // en los dos casos la palabra que buscaban las reglas de arriba no aparece.
+  //
+  // Se cubren las tres construcciones que faltaban: perífrasis con `ir a`,
+  // presente de indicativo, y el clítico adelantado con verbo modal.
+  // La exclusión de `a estudiar|a trabajar|…` es por un modismo muy vivo —«me
+  // voy a matar a estudiar este finde»— y el público de Darma es justo quien
+  // más lo usa. Es una lista CERRADA de continuaciones inequívocamente ajenas a
+  // una crisis, no un patrón abierto: «me voy a matar a las 5» sigue marcando,
+  // que es exactamente lo que debe pasar.
+  { id: 'es_ideation_conjugada', level: 'high', re: /\bme (voy a|quiero|pienso|deseo|tengo que|puedo) (matar|suicidar|quitar la vida|morir)\b(?! a (estudiar|trabajar|currar|entrenar|limpiar|correr))/ },
+  { id: 'es_ideation_presente', level: 'high', re: /\b(me mato|me suicido|me quito la vida|acabo conmigo|acabo con mi vida|termino con mi vida)\b/ },
+  // Autolesión conjugada. La exclusión NO es un detalle: «me voy a cortar el
+  // pelo» es una de las frases más comunes del idioma, y marcarla como riesgo
+  // alto enseñaría teléfonos de crisis a quien habla de la peluquería. Eso no
+  // es solo ruido: es lo que hace que la gente deje de creerse el aviso.
+  { id: 'es_selfharm_conjugada', level: 'high', re: /\bme (voy a|quiero|pienso) (cortar|quemar|hacer dano)(?! el pelo| las unas| el flequillo| la barba)\b/ },
+  // Método por precipitación. Pide verbo Y lugar: `tirarme` a secas aparece en
+  // «me voy a tirar a la piscina».
+  { id: 'es_jump', level: 'high', re: /\b(me (voy a )?(tiro|tirar|lanzo|lanzar)|tirarme|saltar)\b[^.]{0,25}\b(ventana|puente|balcon|azotea|terraza|tren|via|acantilado|vacio)\b/ },
   { id: 'en_ideation_impersonal', level: 'high', re: /\b(suicide|killing themsel(f|ves)|kill themsel(f|ves)|taking their (own )?life|self.?harming)\b/ },
   { id: 'es_end_life', level: 'high', re: /\b(acabar con (mi vida|todo esto)|terminar con (mi vida|todo)|quitarme la vida|no quiero (seguir viviendo|vivir mas|estar aqui)|dejar de existir)\b/ },
   { id: 'es_selfharm', level: 'high', re: /\b(me (corto|he cortado|autolesiono|hago dano|hago cortes)|cortarme|autolesion(arme|es)?|quemarme a proposito)\b/ },
