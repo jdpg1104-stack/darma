@@ -317,15 +317,31 @@
   "comun": {
     "aceptar": "OK",
     "anterior": "Previous",
+    "atajoAyuda": {
+      "enlace": "I need help now",
+      "pie": "If you're struggling, there are helplines on that page. It works even when the rest of the app doesn't."
+    },
     "avatarGenerado": "Generated avatar",
     "cancelar": "Cancel",
     "cargando": "Loading…",
     "cerrar": "Close",
+    "errorGrave": {
+      "descripcion": "That was on us, not you, and nothing you wrote has been lost. Try again; if it keeps happening, come back in a little while.",
+      "recargar": "Try again",
+      "referencia": "Reference: {digest}",
+      "titulo": "Darma couldn't start"
+    },
+    "errorPantalla": {
+      "descripcion": "That was on us, not you. Try again; if it keeps happening, come back in a little while.",
+      "referencia": "Reference: {digest}",
+      "titulo": "We couldn't load this screen"
+    },
     "guardar": "Save",
     "hola": "Hi",
     "idioma": "Language",
     "idiomaEspanol": "Spanish",
     "idiomaIngles": "English",
+    "irAlInicio": "Go to the home page",
     "mesCorto": {
       "1": "Jan",
       "10": "Oct",
@@ -339,6 +355,10 @@
       "7": "Jul",
       "8": "Aug",
       "9": "Sep"
+    },
+    "noEncontrado": {
+      "descripcion": "It may have been taken down, or the link may point to something that no longer exists. You haven't done anything wrong.",
+      "titulo": "This isn't here anymore"
     },
     "og": {
       "descripcion": "An anonymous social network for emotional growth, built on reciprocity. Listen to three people and your turn to talk unlocks.",
