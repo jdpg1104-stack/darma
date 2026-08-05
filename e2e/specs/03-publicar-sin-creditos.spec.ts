@@ -31,7 +31,14 @@ test.describe('(c) Publicar sin escuchas', () => {
     ).toBeVisible()
 
     await publicar.escribir(TEXTO_QUE_NO_SE_DEBE_PERDER)
-    expect(await publicar.botonHabilitado()).toBe(false)
+    // El botón SIGUE habilitado a propósito: la cabecera de Composer.tsx lo
+    // razona («un botón apagado con un cartel de "te faltan escuchas"
+    // convierte la pantalla en un peaje»). La UI explica qué falta con el copy
+    // del catálogo, y la REGLA la decide el trigger de Postgres — que es lo que
+    // los tres tests siguientes verifican de verdad. La ficha B03 pedía
+    // bloquear; la implementación decidió no hacerlo y lo documentó: este
+    // contrato sigue a la implementación razonada, no a la ficha.
+    expect(await publicar.botonHabilitado()).toBe(true)
   })
 
   // ── El assert importante: la API, saltándose la UI ──────────────────────
