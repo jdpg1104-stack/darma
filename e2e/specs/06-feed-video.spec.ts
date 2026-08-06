@@ -121,6 +121,44 @@ test.describe('(f) Feed vertical de vídeo', () => {
     await animo.esperarOtraActiva(primera)
   })
 
+  test('la miniatura de la PRIMERA tarjeta se precarga; las demás, en diferido', async ({
+    page,
+    usuario,
+    sembrarVideo,
+  }) => {
+    void usuario
+    await sembrarVideo(10)
+    await sembrarVideo(10)
+
+    // El HTML del servidor, sin hidratar: ahí la primera tarjeta todavía es su
+    // miniatura (el iframe se monta en cliente), y esa imagen ES el LCP de
+    // /animo — la métrica que CONTRATOS §11 acota en 2,5 s sobre 4G.
+    const animo = new AnimoPage(page)
+    const html = (await animo.htmlDelServidor()).toLowerCase()
+
+    // Exactamente UNA imagen prioritaria. Si fueran varias, no habría
+    // prioridad: compiten entre ellas por el ancho de banda inicial, que es
+    // justo lo que la ventana de iframes evita por el otro lado.
+    // `data-nimg="fill"` y no la clase del módulo CSS: el nombre de la clase se
+    // ofusca en el build de producción (que es el que corre en CI) y el test
+    // se caería allí y solo allí. Ese atributo lo pone next/image en los dos.
+    const miniaturas = html.match(/<img[^>]*data-nimg="fill"[^>]*>/g) ?? []
+    expect(miniaturas.length).toBeGreaterThan(1)
+
+    // La primera, sin diferir. Las DEMÁS, diferidas: sin esta segunda mitad,
+    // marcar todas como prioritarias pasaría la prueba de una forma que nadie
+    // querría — con diez imágenes «prioritarias» no hay ninguna prioritaria.
+    expect(miniaturas[0]).not.toContain('loading="lazy"')
+    for (const resto of miniaturas.slice(1)) {
+      expect(resto).toContain('loading="lazy"')
+    }
+
+    // Y exactamente UNA precarga de imagen en la cabecera: es lo que adelanta
+    // la petición del LCP sin esperar a que el navegador descubra el `<img>`.
+    const precargas = html.match(/<link[^>]*rel="preload"[^>]*as="image"[^>]*>/g) ?? []
+    expect(precargas).toHaveLength(1)
+  })
+
   // ── Camino de fallo nº 11 ───────────────────────────────────────────────
   test('con prefers-reduced-motion el feed sigue siendo navegable', async ({
     page,

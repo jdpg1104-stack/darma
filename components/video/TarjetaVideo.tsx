@@ -34,6 +34,13 @@ export interface TarjetaVideoProps {
   item: ItemVideo
   /** ¿Monta iframe? Solo la activa y sus dos vecinas (`ventanaDeIframes`). */
   conIframe: boolean
+  /**
+   * ¿Es la PRIMERA del feed? Solo cambia cómo se carga su miniatura.
+   *
+   * Lo decide la lista y no la tarjeta: «ser la primera» es una propiedad del
+   * orden, y una tarjeta suelta no puede saberlo. Ver el `<Image>` de abajo.
+   */
+  prioritaria?: boolean
   /** Se avisa cuando el servidor concede el +1, para que el feed lo celebre. */
   alCompletar?: (item: ItemVideo, resultado: ResultadoCompletado) => void
 }
@@ -71,7 +78,12 @@ function instantaneaFalsaEnServidor(): boolean {
   return false
 }
 
-export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps) {
+export function TarjetaVideo({
+  item,
+  conIframe,
+  prioritaria = false,
+  alCompletar,
+}: TarjetaVideoProps) {
   const t = useTraductor()
   const [nodo, setNodo] = useState<HTMLElement | null>(null)
   const marco = useRef<HTMLIFrameElement | null>(null)
@@ -287,9 +299,20 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
           alt=""
           fill
           sizes="100vw"
-          // Solo la primera tarjeta puede ser el LCP; las demás no deben
-          // competir por el ancho de banda inicial.
-          loading="lazy"
+          // La PRIMERA tarjeta es el LCP de /animo y se precarga; las demás van
+          // en diferido para no competir por el ancho de banda inicial.
+          //
+          // Antes iba `loading="lazy"` a secas, incluida la primera — el
+          // comentario ya decía «solo la primera puede ser el LCP» pero el
+          // código no lo cumplía. Y desde que el iframe se monta solo en
+          // cliente, el servidor pinta ESTA miniatura donde antes ponía el
+          // reproductor: es literalmente el primer fotograma de la pantalla, y
+          // cargarla en diferido retrasa el LCP justo en la métrica que
+          // CONTRATOS §11 acota (< 2,5 s en 4G).
+          //
+          // Excluyentes a propósito: `priority` ya implica carga anticipada, y
+          // Next rechaza en desarrollo que se combine con `loading="lazy"`.
+          {...(prioritaria ? { priority: true } : { loading: 'lazy' as const })}
         />
       ) : null}
 

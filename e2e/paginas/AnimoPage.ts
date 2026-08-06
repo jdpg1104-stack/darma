@@ -53,6 +53,19 @@ export class AnimoPage extends BasePage {
   }
 
   /**
+   * El HTML tal y como lo entrega el SERVIDOR, sin ejecutar JavaScript.
+   *
+   * `page.request` viaja con las cookies del contexto —la sesión inyectada—
+   * pero no hidrata, así que esto es el PRIMER FOTOGRAMA: justo donde se mide
+   * el LCP. `page.content()` no serviría para eso: cuando se lee, el iframe ya
+   * ha sustituido a la miniatura de la tarjeta activa.
+   */
+  async htmlDelServidor(): Promise<string> {
+    const respuesta = await this.page.request.get(this.ruta)
+    return respuesta.text()
+  }
+
+  /**
    * Baja al siguiente item del feed vertical.
    *
    * No es `mouse.wheel`: en WebKit móvil no existe (Playwright lanza
