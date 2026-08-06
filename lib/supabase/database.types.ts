@@ -2510,6 +2510,10 @@ export type Database = {
           shadow_banned: boolean
         }[]
       }
+      previos_del_autor: {
+        Args: { p_desde: string; p_limite?: number }
+        Returns: string[]
+      }
       purgar_cron_runs: {
         Args: { p_dias?: number; p_lote?: number }
         Returns: number

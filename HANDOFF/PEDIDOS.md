@@ -399,6 +399,13 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       (`state = 'removed'`) deja el contador alto y el `hot_score` inflado. No
       se toca 0001 desde aquí; necesita una migración de cimientos con un
       trigger `after update of state` · 2026-08-03
+      → CERRADO 2026-08-05 en `0217_1_b04_reply_count.sql`. No es un trigger que
+      reste: el contador depende de `is_validated` Y de `state`, así que
+      `comments_sync_reply_count()` calcula si la fila contaba antes, si cuenta
+      ahora, y aplica la diferencia. El `+1` sale de `comments_on_validated()`
+      —dos escritores del mismo contador es como se descuadró—. Con backfill,
+      porque `hot_score` pondera una respuesta 13,5 veces más que un voto y los
+      hilos ya limpiados seguían subiendo. Regresión en `rls_regresiones.sql`.
 - [ ] **De B04 → B15** · `0104_1_hilo.sql` añade la política `comments_update_own`
       que faltaba: 0001 concedía `grant update (body, state) on comments` sin
       ninguna política de UPDATE, de modo que editar o retirar un comentario
@@ -406,6 +413,22 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       documenta para el INSERT, en el otro sentido). Verificado contra la base:
       el autor edita su fila, un tercero edita 0 filas. Conviene un caso en
       `supabase/tests/*.sql` · 2026-08-03
+- [x] **De B04 → B00** · ese mismo `grant update (body, state)` abría un farmeo
+      con forma de botón: pegar la plantilla, cobrar karma, RETIRAR el propio
+      comentario —con lo que su texto salía de `comments_read`, que filtra
+      `state = 'active'`— y volver a pegarla en otro post sin nada con lo que
+      compararla. `self_repetition` quedaba ciega y el karma no vuelve (0217, a
+      propósito), así que el ciclo era puro beneficio y repetible sin límite ·
+      2026-08-05
+      → CERRADO 2026-08-05 en `0222_1_b04_previos_del_autor.sql`. Se descartó el
+      CUARTO uso del cliente admin que esto parecía pedir: en su lugar hay una
+      función `security definer` que saca el autor de `auth.uid()`, así que ya
+      no existe ningún parámetro con el que pedir el historial de otra persona
+      —superficie más estrecha que la de antes, no más ancha—. Tampoco se relajó
+      `comments_read`: copiar el «el autor ve siempre lo suyo» de `posts_read`
+      habría hecho reaparecer en el hilo los comentarios retirados. Verificado
+      contra Postgres real (retirado = 1 fila, ajeno = 0) y con regresión pgTAP
+      que usa rol y JWT de sesión, no `postgres`.
 - [x] **De B04 → B15** · `lib/supabase/database.types.ts` sigue sin la función
       `marcar_comentario_util()` de `0104_2_marcar_util.sql`. Mientras tanto,
       `app/api/comments/[id]/util/route.ts` declara a mano la fila que devuelve

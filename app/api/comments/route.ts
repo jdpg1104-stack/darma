@@ -164,7 +164,9 @@ export async function POST(request: Request) {
         .eq('id', entrada.postId)
         .eq('state', 'active')
         .maybeSingle(),
-      leerPreviosDelAutor(supabase, { autorId: userId }),
+      // Sin `autorId`: desde 0222 el autor sale de `auth.uid()` dentro de la
+      // función, así que ya no hay forma de pedir el historial de otra persona.
+      leerPreviosDelAutor(supabase),
     ])
 
     if (errorPost) throw new ErrorApi('error_interno', { causa: errorPost })
