@@ -312,6 +312,16 @@ export function TarjetaVideo({
           //
           // Excluyentes a propósito: `priority` ya implica carga anticipada, y
           // Next rechaza en desarrollo que se combine con `loading="lazy"`.
+          //
+          // Es también lo que silencia el aviso de Next «Image … was detected
+          // as the Largest Contentful Paint (LCP)», que salta precisamente
+          // cuando el elemento LCP medido en el navegador es una imagen con
+          // `loading: 'lazy'` (next/dist/shared/lib/get-img-props.js). Se
+          // prefiere `priority` a `loading="eager"` —lo que sugiere el texto
+          // del aviso— porque además emite el `<link rel="preload" as="image">`
+          // que adelanta la petición sin esperar a que el navegador descubra
+          // el `<img>`. El aviso está reproducido y verificado en los dos
+          // sentidos: sale al revertir esto, no sale con esto puesto.
           {...(prioritaria ? { priority: true } : { loading: 'lazy' as const })}
         />
       ) : null}
