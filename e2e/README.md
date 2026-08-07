@@ -154,6 +154,33 @@ elimina restos de ejecuciones de más de 24 h.
 ya se quedó en solo lectura una vez por datos de prueba acumulados. La limpieza
 no es estética.
 
+## ⚠️ Los dos proyectos, NO a la vez
+
+`npx playwright test` sin `--project` lanza chromium y Mobile Safari en
+paralelo, y eso **choca con dos límites de la propia app** — no del entorno:
+
+- **`altaAnonima`: 5 por hora y por IP** (`lib/auth/limites.ts`). El recorrido
+  (a) hace **3 altas reales por la UI**, así que dos proyectos son 6 y la
+  sexta se rechaza con «Vas muy rápido. Prueba otra vez en 3600 segundos».
+  Funciona **exactamente como debe**: es la barrera anti-multicuenta. No la
+  toques para que la suite pase.
+- **El plazo de 2 s del recorrido (d).** CONTRATOS §9.1 exige la tarjeta de
+  crisis «en la misma respuesta», y el test lo mide desde el clic — así que
+  incluye la latencia del POST. Con los dos proyectos y 4 workers sobre
+  `next dev`, el servidor compila bajo carga y la petición se pasa de los 2 s
+  con la tarjeta aún en vuelo. Medido: el botón queda en estado de carga.
+
+Por eso los proyectos se ejecutan **uno cada vez, con la ventana repuesta**:
+
+```bash
+npx playwright test --project=chromium
+# …esperar a que se reponga la ventana de altas (1 h) antes del siguiente
+npx playwright test --project="Mobile Safari"
+```
+
+Así pasan los dos enteros. Juntos, lo esperable son ~5 rojos en los
+recorridos (a) y (d) que **no indican nada roto en la app**.
+
 ## Paralelismo y rate limiting
 
 `workers: 4` en local y `2` en CI, y no más. `check_rate_limit()` guarda su
