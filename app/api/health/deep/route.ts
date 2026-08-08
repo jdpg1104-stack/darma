@@ -23,15 +23,12 @@
 
 import { NextResponse } from 'next/server'
 
+import { esCronAutorizado } from '@/lib/cronAuth.ts'
 import { comprobarProfundo } from '@/lib/observability/dependencias.ts'
 import { crearLogger, requestIdDe } from '@/lib/observability/logger.ts'
 import { contarPeticion, instantanea, observarLatencia } from '@/lib/observability/metricas.ts'
 import { hayViolacionDeCrisis } from '@/lib/observability/presupuestos.ts'
-import {
-  bearerValido,
-  construirSaludProfunda,
-  respuestaNoAutenticado,
-} from '@/lib/observability/salud.ts'
+import { construirSaludProfunda, respuestaNoAutenticado } from '@/lib/observability/salud.ts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -46,7 +43,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   const requestId = requestIdDe(peticion.headers)
   const log = crearLogger(requestId, RUTA)
 
-  if (!bearerValido(peticion.headers.get('authorization'), process.env.CRON_SECRET)) {
+  if (!esCronAutorizado(peticion.headers.get('authorization'), process.env.CRON_SECRET)) {
     const { status, cuerpo } = respuestaNoAutenticado()
     contarPeticion(RUTA, status)
     // Se registra el intento, no la credencial recibida: un secreto fallido en
