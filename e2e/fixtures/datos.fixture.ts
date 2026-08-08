@@ -132,10 +132,17 @@ function idYoutubeSintetico(): string {
   return randomBytes(8).toString('base64url')
 }
 
+/** El fragmento curado que se enseña de una pieza larga (migración 0224_1). */
+export interface FragmentoSembrado {
+  inicioSegundos: number
+  finSegundos: number
+}
+
 /** Un contenido de vídeo publicado, para el recorrido (f). */
 export async function sembrarVideo(
   etiqueta: string,
   duracionSegundos = 30,
+  fragmento: FragmentoSembrado | null = null,
 ): Promise<string> {
   const admin = clienteAdminE2E()
   const externalId = idYoutubeSintetico()
@@ -150,6 +157,11 @@ export async function sembrarVideo(
       language: 'es',
       duration_seconds: duracionSegundos,
       topic: 'ansiedad',
+      // Los CHECK de 0224_1 rechazan una pareja incompleta o fuera de rango, así
+      // que una siembra mal formada falla aquí y no más tarde, en una aserción
+      // que no explicaría nada.
+      clip_start_seconds: fragmento?.inicioSegundos ?? null,
+      clip_end_seconds: fragmento?.finSegundos ?? null,
       // El enum real de content_state es pending|approved|rejected (0002): el
       // valor 'published' de la primera versión de este fixture no existió
       // nunca en el esquema — el spec estuvo siempre en fixme y nadie lo pisó.

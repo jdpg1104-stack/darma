@@ -102,7 +102,11 @@ export function TarjetaVideo({
   // que un click de «reproducir» pueda no enviarse cuando ya reproduce.
   const [reproduciendoUi, setReproduciendoUi] = useState(false)
 
-  const [faltan, setFaltan] = useState<number>(objetivoCompletado(item.duracionSegundos))
+  // `duracionUtilSegundos`, NUNCA `duracionSegundos`: en una tarjeta con
+  // fragmento son 40 s frente a 87 minutos, y esta cifra es la que pinta la
+  // barra de progreso. Con la duración del vídeo entero, la barra de un
+  // fragmento no se movería nunca de cero.
+  const [faltan, setFaltan] = useState<number>(objetivoCompletado(item.duracionUtilSegundos))
   const [completado, setCompletado] = useState(item.completado)
 
   // ── Stub e2e del reproductor ──────────────────────────────────────────────
@@ -134,7 +138,7 @@ export function TarjetaVideo({
   // navegador: `window` existe.
   const origenWidget = stub ? window.location.origin : undefined
 
-  const objetivo = objetivoCompletado(item.duracionSegundos)
+  const objetivo = objetivoCompletado(item.duracionUtilSegundos)
   const progreso = objetivo === 0 ? 1 : Math.min(1, (objetivo - faltan) / objetivo)
 
   const src = conIframe && hidratado ? urlEmbedDeItem(item) : null
@@ -268,6 +272,14 @@ export function TarjetaVideo({
       data-testid="video-tarjeta"
       data-activo={activo || undefined}
       data-reproduciendo={reproduciendoUi || undefined}
+      // El fragmento, a la vista en el DOM. No es adorno de test: bajo el stub
+      // e2e el iframe va con `srcDoc` y NO tiene `src`, así que sin esto no hay
+      // forma de comprobar desde fuera que la tarjeta encuadra el momento
+      // curado y no la entrevista entera. También sirve a quien abra el
+      // inspector para entender por qué el vídeo empieza en el minuto 52.
+      data-clip-inicio={item.clipInicioSegundos ?? undefined}
+      data-clip-fin={item.clipFinSegundos ?? undefined}
+      data-duracion-util={item.duracionUtilSegundos}
     >
       {src ? (
         <iframe

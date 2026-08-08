@@ -132,3 +132,126 @@ test('itemVideoDesde no filtra la url cruda y fija la plataforma', () => {
   assert.equal(item.completado, false)
   assert.ok(!Object.prototype.hasOwnProperty.call(item, 'url'))
 })
+
+// ============================================================================
+// El FRAGMENTO curado (0224_1_b07_clips)
+//
+// La entrevista de 87 minutos que hay hoy en el catálogo no se puede enseñar
+// entera en un feed de deslizar. Lo que se enseña es un trozo, y el trozo lo
+// pone el reproductor con `start`/`end` — sin resubir nada, que es lo que la
+// regla 2 de `lib/ingest/fuentes.ts` prohíbe.
+// ============================================================================
+
+test('con fragmento, la URL lleva start y end', () => {
+  const url = urlEmbed({ ...VALIDO, clip_start_seconds: 3120, clip_end_seconds: 3160 }, { origen: ORIGEN })
+
+  assert.ok(url)
+  const params = new URL(url).searchParams
+  assert.equal(params.get('start'), '3120')
+  assert.equal(params.get('end'), '3160')
+})
+
+test('sin fragmento, la URL no lleva start ni end', () => {
+  const url = urlEmbed(VALIDO, { origen: ORIGEN })
+
+  assert.ok(url)
+  const params = new URL(url).searchParams
+  assert.equal(params.get('start'), null)
+  assert.equal(params.get('end'), null)
+})
+
+// ── FALLO: media pareja ─────────────────────────────────────────────────────
+// Un `start` suelto NO es medio fragmento: es la entrevista entera empezando
+// tarde, que suena hasta el final. Es peor que no recortar, porque parece que
+// se recortó.
+test('media pareja no recorta nada: ni start solo ni end solo', () => {
+  for (const mitad of [
+    { clip_start_seconds: 3120, clip_end_seconds: null },
+    { clip_start_seconds: null, clip_end_seconds: 3160 },
+  ]) {
+    const url = urlEmbed({ ...VALIDO, ...mitad }, { origen: ORIGEN })
+    assert.ok(url)
+    const params = new URL(url).searchParams
+    assert.equal(params.get('start'), null, JSON.stringify(mitad))
+    assert.equal(params.get('end'), null, JSON.stringify(mitad))
+  }
+})
+
+// ── FALLO: marcas que producirían un embed mudo ────────────────────────────
+test('un fragmento incoherente no llega a la URL', () => {
+  const casos = [
+    { clip_start_seconds: 3160, clip_end_seconds: 3120 }, // fin antes que inicio
+    { clip_start_seconds: 100, clip_end_seconds: 100 }, // longitud cero
+    { clip_start_seconds: -10, clip_end_seconds: 40 }, // inicio negativo
+    { clip_start_seconds: 12.5, clip_end_seconds: 52.5 }, // el reproductor ignora decimales
+  ]
+
+  for (const caso of casos) {
+    const url = urlEmbed({ ...VALIDO, ...caso }, { origen: ORIGEN })
+    assert.ok(url)
+    const params = new URL(url).searchParams
+    assert.equal(params.get('start'), null, JSON.stringify(caso))
+    assert.equal(params.get('end'), null, JSON.stringify(caso))
+  }
+})
+
+test('itemVideoDesde resuelve la duración útil del fragmento, no la del vídeo', () => {
+  const item = itemVideoDesde({
+    id: '33333333-3333-4333-8333-333333333333',
+    platform: 'youtube',
+    external_id: 'dQw4w9WgXcQ',
+    title: 'Cómo convertir tus heridas en propósito',
+    source: 'yt:aj_historias_que_inspiran',
+    language: 'es',
+    duration_seconds: 5236, // 87 minutos, la pieza más larga del catálogo real
+    thumbnail_url: null,
+    topic: null,
+    clip_start_seconds: 3120,
+    clip_end_seconds: 3160,
+  })
+
+  assert.ok(item)
+  assert.equal(item.duracionSegundos, 5236, 'la duración del vídeo no se pierde')
+  assert.equal(item.duracionUtilSegundos, 40, 'lo que hay que ver son 40 s, no 87 minutos')
+  assert.equal(item.clipInicioSegundos, 3120)
+  assert.equal(item.clipFinSegundos, 3160)
+})
+
+test('itemVideoDesde trata media pareja como «sin fragmento»', () => {
+  const item = itemVideoDesde({
+    id: '44444444-4444-4444-8444-444444444444',
+    platform: 'youtube',
+    external_id: 'dQw4w9WgXcQ',
+    title: 'a medias',
+    source: 'oms',
+    language: 'es',
+    duration_seconds: 600,
+    thumbnail_url: null,
+    topic: null,
+    clip_start_seconds: 120,
+    clip_end_seconds: null,
+  })
+
+  assert.ok(item)
+  assert.equal(item.clipInicioSegundos, null)
+  assert.equal(item.clipFinSegundos, null)
+  assert.equal(item.duracionUtilSegundos, 600)
+})
+
+test('sin columnas de fragmento (una fila vieja) el ítem sigue naciendo entero', () => {
+  const item = itemVideoDesde({
+    id: '55555555-5555-4555-8555-555555555555',
+    platform: 'youtube',
+    external_id: 'dQw4w9WgXcQ',
+    title: 'fila anterior a 0224',
+    source: 'oms',
+    language: 'es',
+    duration_seconds: null,
+    thumbnail_url: null,
+    topic: null,
+  })
+
+  assert.ok(item)
+  assert.equal(item.clipInicioSegundos, null)
+  assert.equal(item.duracionUtilSegundos, 60, 'el respaldo de 0107_1 sigue en pie')
+})

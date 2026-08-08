@@ -63,6 +63,28 @@ export class AnimoPage extends BasePage {
   }
 
   /**
+   * El fragmento que encuadra la tarjeta activa, tal y como lo publica el DOM.
+   *
+   * No se lee del `src` del iframe a propósito: bajo el fusible del stub e2e el
+   * reproductor va con `srcdoc` y NO tiene `src`, así que esa comprobación
+   * pasaría en el camino real y quedaría muda justo donde corre la suite. Los
+   * `data-clip-*` de la tarjeta son la misma verdad y están en los dos caminos;
+   * que los parámetros `start`/`end` acaben en la URL lo cubre `embed.test.ts`.
+   */
+  async fragmentoActivo(): Promise<{ inicio: number | null; fin: number | null; util: number }> {
+    const tarjeta = this.tarjetaActiva
+    const leer = async (atributo: string): Promise<number | null> => {
+      const valor = await tarjeta.getAttribute(atributo)
+      return valor === null ? null : Number(valor)
+    }
+    return {
+      inicio: await leer('data-clip-inicio'),
+      fin: await leer('data-clip-fin'),
+      util: (await leer('data-duracion-util')) ?? 0,
+    }
+  }
+
+  /**
    * El HTML tal y como lo entrega el SERVIDOR, sin ejecutar JavaScript.
    *
    * `page.request` viaja con las cookies del contexto —la sesión inyectada—

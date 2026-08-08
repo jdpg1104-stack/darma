@@ -181,4 +181,77 @@ test.describe('(f) Feed vertical de vídeo', () => {
     await animo.arrancar()
     await animo.esperarSesionAbierta()
   })
+
+  // ── El fragmento curado (migración 0224_1) ──────────────────────────────
+  //
+  // Es el caso REAL del catálogo, no un caso de laboratorio: las piezas que hay
+  // aprobadas duran 55 minutos de media y la mayor 87. Enseñarlas enteras en un
+  // feed de deslizar ponía el +1 en el 90 % de la duración, o sea 78 minutos
+  // seguidos — un feed que no pagaba karma a nadie y que nadie había medido.
+  //
+  // El vídeo sembrado dura lo que la charla más larga del catálogo, y de él se
+  // enseñan 15 segundos.
+  test('de una charla de 87 minutos se enseñan 15 s, y esos 15 s SÍ acreditan el +1', async ({
+    page,
+    usuario,
+    sembrarVideo,
+    karmaDe,
+  }) => {
+    const DURACION_CHARLA = 5236
+    const INICIO = 3120
+    const FIN = 3135
+
+    const contenidoId = await sembrarVideo(DURACION_CHARLA, {
+      inicioSegundos: INICIO,
+      finSegundos: FIN,
+    })
+    const antes = await karmaDe(usuario)
+
+    const animo = new AnimoPage(page)
+    await animo.ir()
+    await expect(animo.tarjetaActiva).toBeVisible()
+    await animo.irAlContenido(contenidoId)
+
+    // La tarjeta encuadra el momento curado, no la charla entera.
+    const fragmento = await animo.fragmentoActivo()
+    expect(fragmento.inicio).toBe(INICIO)
+    expect(fragmento.fin).toBe(FIN)
+    expect(fragmento.util).toBe(FIN - INICIO)
+    expect(fragmento.util).toBeLessThan(DURACION_CHARLA)
+
+    await expect(animo.reproductorActivo).toBeVisible()
+    await animo.arrancar()
+    await animo.esperarSesionAbierta()
+
+    // Y el +1 llega. Sin fragmento, este mismo vídeo pediría 4 713 s (78 min):
+    // el contraste está verificado contra Postgres —`tiempo_insuficiente`— y en
+    // `lib/video/acreditacion.test.ts`, que aquí costaría toda la suite esperar.
+    const resultado = await animo.esperarCompletado()
+    expect(resultado.acreditado).toBe(true)
+    expect(resultado.karma).toBe(KARMA_WEIGHTS.content_completed.reputation)
+
+    await expect(animo.marcaCompletado).toBeVisible()
+    expect(await karmaDe(usuario)).toBe(antes + KARMA_WEIGHTS.content_completed.reputation)
+  })
+
+  test('un vídeo sin fragmento sigue contando por su duración entera', async ({
+    page,
+    usuario,
+    sembrarVideo,
+  }) => {
+    void usuario
+    // El clip de 45 s de la OPS es el caso que NO necesita recorte: ya es el
+    // fragmento. La tarjeta no debe inventarle uno.
+    const contenidoId = await sembrarVideo(45)
+
+    const animo = new AnimoPage(page)
+    await animo.ir()
+    await expect(animo.tarjetaActiva).toBeVisible()
+    await animo.irAlContenido(contenidoId)
+
+    const fragmento = await animo.fragmentoActivo()
+    expect(fragmento.inicio).toBeNull()
+    expect(fragmento.fin).toBeNull()
+    expect(fragmento.util).toBe(45)
+  })
 })

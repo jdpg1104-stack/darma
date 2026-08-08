@@ -329,6 +329,8 @@ export type Database = {
       }
       content_items: {
         Row: {
+          clip_end_seconds: number | null
+          clip_start_seconds: number | null
           completion_count: number
           created_at: string
           duration_seconds: number | null
@@ -351,6 +353,8 @@ export type Database = {
           view_count: number
         }
         Insert: {
+          clip_end_seconds?: number | null
+          clip_start_seconds?: number | null
           completion_count?: number
           created_at?: string
           duration_seconds?: number | null
@@ -373,6 +377,8 @@ export type Database = {
           view_count?: number
         }
         Update: {
+          clip_end_seconds?: number | null
+          clip_start_seconds?: number | null
           completion_count?: number
           created_at?: string
           duration_seconds?: number | null
@@ -2281,6 +2287,10 @@ export type Database = {
           owner_id: string
         }[]
       }
+      duracion_util: {
+        Args: { p_duracion: number; p_fin: number; p_inicio: number }
+        Returns: number
+      }
       encuesta_admite_voto: { Args: { p_poll: string }; Returns: boolean }
       encuesta_resultados: { Args: { p_poll: string }; Returns: Json }
       encuesta_siguiente: { Args: { p_idioma?: string }; Returns: Json }
@@ -2312,6 +2322,8 @@ export type Database = {
           p_limite?: number
         }
         Returns: {
+          clip_end_seconds: number
+          clip_start_seconds: number
           duration_seconds: number
           external_id: string
           id: string
