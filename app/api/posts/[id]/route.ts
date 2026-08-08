@@ -38,6 +38,7 @@ import {
   mensajeDeValidacion,
   nombresDeRecursos,
 } from '../_dominio/publicar.ts'
+import { paisDePeticion } from '@/lib/auth/peticion'
 import { adminOFallar, limitarB03, paisParaRecursos } from '../_dominio/servidor.ts'
 
 export const runtime = 'nodejs'
@@ -94,7 +95,13 @@ export async function PATCH(request: Request, contexto: { params: Promise<{ id: 
     }
 
     const riesgo = await evaluarRiesgo(entrada.body)
-    const pais = riesgo.requiereIntervencion ? await paisParaRecursos(admin, sesion.userId) : null
+    // Vault primero, cabecera del borde como respaldo: el alta anónima no
+    // escribe fila en identity_vault y sin esto la tarjeta caería al
+    // directorio internacional sin teléfono. Mismo criterio que el POST de
+    // /api/posts y que la ruta de comentarios.
+    const pais = riesgo.requiereIntervencion
+      ? ((await paisParaRecursos(admin, sesion.userId)) ?? paisDePeticion(request))
+      : null
     const tarjeta = construirTarjetaRecursos(riesgo.nivel, pais)
 
     const { data, error } = await admin.rpc('b03_editar_post', {

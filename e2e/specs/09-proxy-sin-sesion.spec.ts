@@ -64,6 +64,9 @@ test.describe('Frontera pública sin sesión', () => {
     // `fixme` se retira — que es el otro medio arreglo: una prueba desactivada
     // por un motivo que dejó de ser cierto no vigila nada y hace creer que sí.
     // Lo destapó la auditoría de los 164 pendientes del 2026-08-05.
+    //
+    // Si esta prueba vuelve a rojo, ese 404 ha vuelto: es bloqueante de
+    // despliegue, no deuda.
     const respuesta = await page.goto('/ayuda')
     expect(
       respuesta?.status(),

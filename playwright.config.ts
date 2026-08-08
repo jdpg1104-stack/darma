@@ -57,6 +57,15 @@ export default defineConfig({
     navigationTimeout: 30_000,
     locale: 'es-ES',
     timezoneId: 'Europe/Madrid',
+    extraHTTPHeaders: {
+      // El borde de Vercel inyecta SIEMPRE el país; el único entorno sin la
+      // cabecera es este. Sin ella, `paisDePeticion()` devuelve null y la
+      // tarjeta de crisis cae al directorio internacional — que no lleva
+      // teléfono A PROPÓSITO (lib/crisis.ts: dar el número de otro país sería
+      // peligroso) — y el recorrido (d) no puede afirmar el `tel:` marcable.
+      // Emular el borde es probar la verdad de producción, no maquillarla.
+      'x-vercel-ip-country': 'ES',
+    },
   },
 
   projects: [
@@ -96,5 +105,18 @@ export default defineConfig({
     timeout: 180_000,
     stdout: 'ignore',
     stderr: 'pipe',
+    env: {
+      ...(Object.fromEntries(
+        Object.entries(process.env).filter(([, v]) => v !== undefined),
+      ) as Record<string, string>),
+      // Enciende el stub del reproductor (lib/video/stubE2E.ts): el widget de
+      // youtube-nocookie no emite eventos en headless y sin ellos el recorrido
+      // (f) no puede acreditar nada. La bandera se declara AQUÍ y no en
+      // .env.local a propósito: Next la inlina al compilar, así que solo la ve
+      // el servidor que levanta ESTA suite — jamás el `next dev` de nadie ni
+      // un build de producción. ⚠️ Ojo con `reuseExistingServer`: un servidor
+      // ya levantado en el 3018 SIN la bandera hace fallar la suite de vídeo.
+      NEXT_PUBLIC_E2E_STUB_PLAYER: '1',
+    },
   },
 })

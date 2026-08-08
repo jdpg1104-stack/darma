@@ -53,6 +53,17 @@ primera vez que se visita, y ese retardo variable es *flakiness* pura.
 | `SUPABASE_SERVICE_ROLE_KEY` | **crear/borrar usuarios, sembrar y validar comentarios.** Sin ella la mayoría de la suite queda en `test.fixme()`. |
 | `E2E_SUPABASE_PROJECT_REF` | **obligatoria contra una base remota.** El ref del proyecto de PRUEBAS. Sin ella el fusible corta. |
 | `E2E_PORT` / `E2E_BASE_URL` | puerto y URL base (por defecto 3018). |
+| `NEXT_PUBLIC_E2E_STUB_PLAYER` | la declara **solo** el `webServer` del config; ver «El reproductor en headless». |
+
+## El país lo pone el borde, y aquí lo emulamos
+
+`use.extraHTTPHeaders` manda `x-vercel-ip-country: ES` en toda la suite. No es
+maquillaje: en producción esa cabecera la inyecta **siempre** el borde de
+Vercel, y el único entorno donde falta es este. Sin ella, `paisDePeticion()`
+devuelve `null`, la tarjeta de crisis cae al directorio internacional —que **no
+lleva teléfono a propósito**: dar el número de otro país sería inútil o
+peligroso— y el recorrido (d) no puede afirmar el `tel:` marcable que exige
+CONTRATOS §9. Emular el borde es probar la verdad de producción.
 
 `e2e/utils/entorno.ts` carga `.env.local` en el proceso de Playwright (que no es
 el de Next). **Nunca sobrescribe** lo que ya venga del entorno: en CI mandan los
@@ -60,14 +71,20 @@ secretos del runner.
 
 ## Estado actual de este entorno
 
-- **`SUPABASE_SERVICE_ROLE_KEY` no sirve.** En `.env.local` está vacía, y la que
-  hay heredada del shell (`sb_secret_…`) la rechaza `darma-dev` con
-  `Invalid API key … might also be owned by another Supabase project`. El
-  *global setup* lo **comprueba de verdad** con una lectura mínima —no se fía de
-  que la variable exista— y propaga el veredicto a los workers por
-  `E2E_ADMIN_OK`. Los recorridos que la necesitan quedan en `test.fixme()` con
-  el motivo visible en el informe, y se ejecutarán solos el día que la clave
-  correcta esté puesta: no hay que tocar ni una línea.
+- **`SUPABASE_SERVICE_ROLE_KEY` ya sirve** (2026-08-05: los recorridos corren de
+  verdad contra `darma-dev`). El *global setup* la sigue **comprobando de
+  verdad** con una lectura mínima —no se fía de que la variable exista— y
+  propaga el veredicto a los workers por `E2E_ADMIN_OK`: si un día deja de
+  servir, los recorridos que la necesitan vuelven solos a `test.fixme()` con el
+  motivo visible en el informe, sin tocar una línea.
+- **El Auth de Supabase limita los logins POR IP** (~30 grants de contraseña
+  por 5 min). Cada test loguea a su usuario; por eso el fixture inicia sesión
+  UNA vez por usuario (la misma sesión se inyecta en el navegador) y los
+  autores sembrados se crean SIN sesión (`crearCuenta`). Aun así, varias
+  pasadas seguidas de la suite completa agotan la ventana y los fixtures
+  fallan con `429 over_request_rate_limit` ANTES de tocar la app. No es un
+  fallo de nada: espera unos minutos. (Y no subas los workers: ver
+  «Paralelismo y rate limiting».)
 - **No hay `MODERATION_API_KEY`**, así que el clasificador corre siempre
   degradado y **ningún comentario se valida solo**. Es diseño: el sistema falla
   cerrado. Por eso los comentarios se escriben **por la UI** (que es lo que se
@@ -99,6 +116,33 @@ Reglas que sostienen la suite:
 - **Cero `page.route()`.** Mockear el gate de reciprocidad haría que la prueba
   pasara siempre sin probar nada.
 
+## El reproductor en headless: el stub
+
+El widget de youtube-nocookie **no responde en Chromium headless**: acepta el
+handshake `{event:'listening'}` y no emite jamás `onReady` ni `onStateChange`
+(verificado con sondeos aislados fuera de la app — iframe directo, red con
+200s, cero eventos en 15 s, también con `channel:'chrome'`). Sin
+`onStateChange: REPRODUCIENDO` el flujo de acreditación de `TarjetaVideo`
+(latidos → `/sesion`, `/latido`, `/completado`) no tiene disparador y el
+recorrido (f) no puede existir.
+
+Por eso `webServer` declara `NEXT_PUBLIC_E2E_STUB_PLAYER=1` y la app, **solo
+bajo ese fusible**, sustituye el iframe del widget por un `srcdoc` que habla su
+mismo protocolo (`lib/video/stubE2E.ts`). Lo que hay que saber:
+
+- **Lo que se deja de probar es el widget de YouTube, nada más.** La barrera de
+  `parsearMensaje` (origen exacto + `source === contentWindow`), la suscripción,
+  los latidos, las RPC y el karma se ejercen de verdad: el `srcdoc` hereda
+  nuestro origen y los mensajes cruzan un `postMessage` real.
+- **El fusible tiene dos cerrojos**: la bandera se inlina en build (solo la
+  declara el `webServer`, nunca `.env.local` ni Vercel) y en runtime se exige
+  `hostname` local. `scripts/security/guardStubReproductor.ts` vigila que la
+  bandera solo se lea en el fusible, que el stub solo lo importe
+  `TarjetaVideo` y que ninguno de los dos cerrojos se borre.
+- **Ojo con `reuseExistingServer`**: un `next dev` ya levantado en el 3018 SIN
+  la bandera hace fallar la suite de vídeo (el widget real no responde en
+  headless). Mata ese servidor y deja que Playwright levante el suyo.
+
 ## Aislamiento y limpieza
 
 Todo lo que la suite crea lleva el prefijo `e2e_<8hex>_` de la ejecución. El
@@ -109,6 +153,33 @@ elimina restos de ejecuciones de más de 24 h.
 `darma-dev` es un plan gratuito de **500 MB compartido con los demás bloques**;
 ya se quedó en solo lectura una vez por datos de prueba acumulados. La limpieza
 no es estética.
+
+## ⚠️ Los dos proyectos, NO a la vez
+
+`npx playwright test` sin `--project` lanza chromium y Mobile Safari en
+paralelo, y eso **choca con dos límites de la propia app** — no del entorno:
+
+- **`altaAnonima`: 5 por hora y por IP** (`lib/auth/limites.ts`). El recorrido
+  (a) hace **3 altas reales por la UI**, así que dos proyectos son 6 y la
+  sexta se rechaza con «Vas muy rápido. Prueba otra vez en 3600 segundos».
+  Funciona **exactamente como debe**: es la barrera anti-multicuenta. No la
+  toques para que la suite pase.
+- **El plazo de 2 s del recorrido (d).** CONTRATOS §9.1 exige la tarjeta de
+  crisis «en la misma respuesta», y el test lo mide desde el clic — así que
+  incluye la latencia del POST. Con los dos proyectos y 4 workers sobre
+  `next dev`, el servidor compila bajo carga y la petición se pasa de los 2 s
+  con la tarjeta aún en vuelo. Medido: el botón queda en estado de carga.
+
+Por eso los proyectos se ejecutan **uno cada vez, con la ventana repuesta**:
+
+```bash
+npx playwright test --project=chromium
+# …esperar a que se reponga la ventana de altas (1 h) antes del siguiente
+npx playwright test --project="Mobile Safari"
+```
+
+Así pasan los dos enteros. Juntos, lo esperable son ~5 rojos en los
+recorridos (a) y (d) que **no indican nada roto en la app**.
 
 ## Paralelismo y rate limiting
 

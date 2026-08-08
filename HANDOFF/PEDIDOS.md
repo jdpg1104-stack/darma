@@ -344,6 +344,29 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 
 ### B03 · Publicar y gate de reciprocidad
 
+- [ ] **De B18 → B01 / B03 · el alta ANÓNIMA no deja país, y la tarjeta de
+      crisis lo notaba.** `paisParaRecursos()` lee `identity_vault.country_code`,
+      pero **`POST /api/auth/anonimo` no escribe ninguna fila en
+      `identity_vault`**: solo la escribe el flujo con correo
+      (`app/api/auth/callback/route.ts`, que ahí sí guarda `country_code`). Como
+      el alta anónima es la población POR DEFECTO de Darma, el camino normal
+      era: persona anónima escribe un texto de crisis → `paisParaRecursos()`
+      devuelve null → `helpResourcesFor(null)` → **directorio internacional, sin
+      un solo teléfono marcable**, que es justo lo que CONTRATOS §9 no quiere en
+      ese momento. Lo destapó el recorrido (d) al ejecutarse de verdad por
+      primera vez · 2026-08-05
+      → **Mitigado el mismo día en el sitio donde dolía**: las dos rutas de
+      posts leen ahora `paisParaRecursos() ?? paisDePeticion(request)` — el
+      vault manda y la cabecera del borde rellena el hueco, exactamente la
+      misma fuente en la que ya confiaba `app/api/comments/route.ts`. **Queda
+      abierto para B01/B03 decidir la solución de fondo**: si el alta anónima
+      debe persistir `country_code` en `identity_vault` (con lo que eso implica
+      en privacidad — es la tabla más sensible de la app, y guardar el país de
+      quien no ha dado ni un correo es una decisión de producto, no técnica) o
+      si la cabecera del borde es la fuente correcta y `paisParaRecursos()`
+      debería recibirla siempre como respaldo, también en los demás
+      consumidores
+
 - [x] **De B03 → F3 (crítico, afecta a B02/B04/B05)** · la política `posts_read`
       de `0001_core.sql` consulta `profiles.shadow_banned`, y ese mismo archivo
       revoca el `select` sobre `profiles` y lo reconcede sin esa columna. Las
@@ -1370,7 +1393,9 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       integre, la suite solo corre en una máquina donde alguien haya repetido
       ese comando. Comprobado: `git status` limpio fuera de `e2e/**`,
       `playwright.config.ts`, `PEDIDOS.md` y `ESTADO.md` · 2026-08-03
-      → CERRADO 2026-08-05 (auditoria): `@playwright/test@^1.62.1` esta en `devDependencies`.
+      → CERRADO 2026-08-05 (auditoría): `@playwright/test@^1.62.1` está en
+      `devDependencies` (llegó con una integración anterior) y los dos scripts
+      `e2e` / `e2e:ui` también, tal cual se pedían
 - [x] **De B18 → F4 (`.env.example`)** · documentar
       **`E2E_SUPABASE_PROJECT_REF`** (y opcionalmente `E2E_PORT`). Es el segundo
       cerrojo del fusible anti-producción de `e2e/utils/admin.ts`: contra una
@@ -1378,7 +1403,10 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       declarado a mano. Se pide una variable propia a propósito — si bastara con
       «la URL que hay en `.env.local`», apuntar la suite a producción sería
       cambiar una variable que ya existe · 2026-08-03
-      → CERRADO 2026-08-05 (auditoria): `E2E_SUPABASE_PROJECT_REF` esta en `.env.example`.
+      → CERRADO 2026-08-05 (auditoría): las dos están documentadas en
+      `.env.example` (sección «Solo desarrollo y pruebas»), junto con
+      `NEXT_PUBLIC_E2E_STUB_PLAYER`, la bandera del stub del reproductor que
+      SOLO declara el `webServer` de `playwright.config.ts`
 
 - [x] **De B18 → F4 / B11 · 🔴 BLOQUEANTE DE DESPLIEGUE: `/ayuda` NO EXISTE.**
       `components/ui/BotonCrisis.tsx` enlaza a `/ayuda`, `components/feed/TarjetaPost.tsx`
@@ -1389,8 +1417,14 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `e2e/specs/09-proxy-sin-sesion.spec.ts` › «/ayuda es alcanzable SIN sesión
       y existe de verdad». Quítale el `fixme` en cuanto la página exista ·
       2026-08-03
-      → CERRADO 2026-08-05 (auditoria): `app/ayuda/page.tsx` existe. Era el unico apunte marcado BLOQUEANTE DE DESPLIEGUE y llevaba tiempo resuelto sin que nadie lo tachara.
-- [x] **De B18 → HUMANO · `SUPABASE_SERVICE_ROLE_KEY` no sirve contra `darma-dev`.**
+      → CERRADO 2026-08-05 (auditoría): `app/ayuda/page.tsx` existe y sigue
+      pública en `proxy.ts`. Era el único apunte marcado BLOQUEANTE DE
+      DESPLIEGUE y llevaba tiempo resuelto sin que nadie lo tachara; el `fixme`
+      queda retirado y la prueba corre como prueba de verdad
+- [x] **(Resuelto 2026-08-05: la clave ya sirve — el global setup la valida y
+      los recorridos corren de verdad; la suite entera en verde en los dos
+      proyectos. La fila queda como historia.) De B18 → HUMANO ·
+      `SUPABASE_SERVICE_ROLE_KEY` no sirve contra `darma-dev`.**
       En `.env.local` está vacía; la que hay heredada del shell (`sb_secret_…`)
       la rechaza el proyecto con `Invalid API key … This API key might also be
       owned by another Supabase project` — **probablemente es de OTRO proyecto**,

@@ -104,11 +104,16 @@ export function FeedVertical({ inicial, idioma }: FeedVerticalProps) {
 
   return (
     <div className={estilos.contenedor}>
-      {items.map((item) => (
+      {items.map((item, indice) => (
         <TarjetaVideo
           key={item.id}
           item={item}
           conIframe={vivos.has(item.id)}
+          // Quién precarga su miniatura se decide AQUÍ, como la ventana de
+          // iframes y por el mismo motivo: es una propiedad del orden de la
+          // lista, no de una tarjeta suelta. `indice` y no `item.id === activo`
+          // — el LCP se pinta antes de que exista tarjeta activa.
+          prioritaria={indice === 0}
           alCompletar={alCompletar}
         />
       ))}

@@ -49,8 +49,27 @@ export const TEXTO_QUE_NO_SE_DEBE_PERDER =
   'cómo me siento exactamente ahora mismo.'
 
 /**
+ * Comentario de RELLENO: pasa la longitud mínima (≥ 40) pero es casi solo
+ * fórmula de la lista `FILLER_PHRASES`, así que `validateComment()` lo deja
+ * sin validar (`filler_only`) de forma DETERMINISTA.
+ *
+ * Existe porque el validador por defecto es heurístico y valida solo un
+ * comentario sincero: el único modo de obtener el estado «publicado pero sin
+ * validar» —el que distingue «el bucle paga por validar» de «el bucle paga por
+ * escribir»— es escribir exactamente lo que la heurística no da por escucha.
+ */
+export function comentarioDeRelleno(n: number): string {
+  return (
+    `Ánimo, mucha fuerza, un abrazo. Tranquila, calma: todo pasa y todo ` +
+    `mejora. Mucho ánimo, sigue adelante, cuídate. Saludos (${n}).`
+  )
+}
+
+/**
  * Comentario de apoyo. Largo y concreto a propósito: `lib/moderation.ts`
- * rechaza el relleno tipo «ánimo!» antes incluso de llegar al clasificador.
+ * rechaza el relleno tipo «ánimo!» antes incluso de llegar al clasificador —
+ * y, desde B11, ese mismo suelo heurístico VALIDA él solo un comentario así
+ * de sincero, sin clave y sin red.
  */
 export function comentarioDeApoyo(n: number): string {
   return (

@@ -18,12 +18,13 @@
 // cuenta; esto es cortesía con la batería y con su rate limit, no la defensa.)
 // ============================================================================
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import Image from 'next/image'
 import { useTraductor } from '@/i18n/Proveedor'
 import { urlEmbedDeItem } from '@/lib/video/embed'
 import { INTERVALO_LATIDO_MS, objetivoCompletado } from '@/lib/video/acreditacion'
 import { ESTADO, enviarComando, parsearMensaje, suscribirse } from '@/lib/video/reproductor'
+import { MARCADO_STUB_REPRODUCTOR, stubReproductorActivo } from '@/lib/video/stubE2E'
 import type { EstadoLatido, ItemVideo, ResultadoCompletado } from '@/lib/video/tipos'
 import { useAutoplayEnVista, useAutoplayPermitido } from './useAutoplayEnVista'
 import { puedeSonar, useDesbloqueoAudio } from './desbloqueoAudio'
@@ -33,6 +34,13 @@ export interface TarjetaVideoProps {
   item: ItemVideo
   /** ¿Monta iframe? Solo la activa y sus dos vecinas (`ventanaDeIframes`). */
   conIframe: boolean
+  /**
+   * ¿Es la PRIMERA del feed? Solo cambia cómo se carga su miniatura.
+   *
+   * Lo decide la lista y no la tarjeta: «ser la primera» es una propiedad del
+   * orden, y una tarjeta suelta no puede saberlo. Ver el `<Image>` de abajo.
+   */
+  prioritaria?: boolean
   /** Se avisa cuando el servidor concede el +1, para que el feed lo celebre. */
   alCompletar?: (item: ItemVideo, resultado: ResultadoCompletado) => void
 }
@@ -55,7 +63,27 @@ async function pedir<T>(ruta: string, cuerpo?: unknown): Promise<T | null> {
   }
 }
 
-export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps) {
+/** Para valores externos que no cambian tras el arranque: nada que suscribir. */
+function suscripcionVacia(): () => void {
+  return () => {}
+}
+
+/** Instantánea del cliente una vez montado. */
+function instantaneaVerdadera(): boolean {
+  return true
+}
+
+/** Lo que pinta el servidor (y la hidratación): sin stub y sin iframe. */
+function instantaneaFalsaEnServidor(): boolean {
+  return false
+}
+
+export function TarjetaVideo({
+  item,
+  conIframe,
+  prioritaria = false,
+  alCompletar,
+}: TarjetaVideoProps) {
   const t = useTraductor()
   const [nodo, setNodo] = useState<HTMLElement | null>(null)
   const marco = useRef<HTMLIFrameElement | null>(null)
@@ -77,20 +105,50 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
   const [faltan, setFaltan] = useState<number>(objetivoCompletado(item.duracionSegundos))
   const [completado, setCompletado] = useState(item.completado)
 
+  // ── Stub e2e del reproductor ──────────────────────────────────────────────
+  // `useSyncExternalStore` y no estado + efecto: el fusible es un valor externo
+  // a React que no cambia tras el arranque. La instantánea del servidor (y de
+  // la hidratación) es `false` —el servidor no sabe de fusibles—, y React
+  // re-lee la del cliente justo después de montar: sin discrepancia de
+  // hidratación y sin setState dentro de un efecto. En un build sin la
+  // bandera, la instantánea del cliente es `false` constante: código muerto.
+  const stub = useSyncExternalStore(suscripcionVacia, stubReproductorActivo, instantaneaFalsaEnServidor)
+
+  // ── El iframe se monta SOLO en el cliente ─────────────────────────────────
+  // El src lleva `origin=` y en el servidor `origenPropio()` solo puede
+  // adivinar NEXT_PUBLIC_SITE_URL: con cualquier origen real distinto (otro
+  // puerto en desarrollo, la suite e2e, un preview de Vercel) el src del
+  // servidor y el del cliente difieren, React declara discrepancia de
+  // hidratación y recrea el subárbol — con el iframe cargando DOS veces. La
+  // miniatura que pinta el servidor es exactamente lo que se vería mientras el
+  // reproductor carga, así que el primer fotograma no pierde nada.
+  const hidratado = useSyncExternalStore(
+    suscripcionVacia,
+    instantaneaVerdadera,
+    instantaneaFalsaEnServidor,
+  )
+
+  // Bajo el stub, el srcdoc hereda NUESTRO origen; `undefined` deja actuar el
+  // valor por defecto (youtube-nocookie) en reproductor.ts, de modo que el
+  // camino real no toca la barrera. Cuando `stub` es true ya estamos en el
+  // navegador: `window` existe.
+  const origenWidget = stub ? window.location.origin : undefined
+
   const objetivo = objetivoCompletado(item.duracionSegundos)
   const progreso = objetivo === 0 ? 1 : Math.min(1, (objetivo - faltan) / objetivo)
 
-  const src = conIframe ? urlEmbedDeItem(item) : null
+  const src = conIframe && hidratado ? urlEmbedDeItem(item) : null
 
   // ── Escucha del reproductor ───────────────────────────────────────────────
   useEffect(() => {
     if (!src) return
 
     function alMensaje(evento: MessageEvent) {
-      // LA BARRERA. `parsearMensaje` descarta todo lo que no venga de
-      // youtube-nocookie. Sin esta comprobación cualquier iframe podría fingir
-      // un «vídeo terminado» y disparar la llamada a /completado.
-      const mensaje = parsearMensaje({ origin: evento.origin, data: evento.data })
+      // LA BARRERA. `parsearMensaje` descarta todo lo que no venga del ÚNICO
+      // origen esperado (youtube-nocookie; el propio, bajo el stub e2e). Sin
+      // esta comprobación cualquier iframe podría fingir un «vídeo terminado»
+      // y disparar la llamada a /completado.
+      const mensaje = parsearMensaje({ origin: evento.origin, data: evento.data }, origenWidget)
       if (!mensaje) return
       if (evento.source !== marco.current?.contentWindow) return
 
@@ -106,7 +164,24 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
 
     window.addEventListener('message', alMensaje)
     return () => window.removeEventListener('message', alMensaje)
-  }, [src])
+  }, [origenWidget, src])
+
+  // Suscripción + arranque, compartido entre el efecto del coordinador y el
+  // `load` del iframe (ver el comentario del `onLoad`).
+  const engancharReproductor = useCallback(() => {
+    const ventana = marco.current?.contentWindow
+    if (!ventana) return
+
+    suscribirse(ventana, item.id, origenWidget)
+    // Ser la tarjeta actual no implica arrancar: con `prefers-reduced-motion`
+    // o `saveData` la reproducción espera al toque de la persona (alTocar).
+    // La suscripción sí se abre siempre — sin ella los mensajes del reproductor
+    // no llegan y los latidos del arranque manual no acreditarían nada.
+    if (autoplay) {
+      enviarComando(ventana, 'playVideo', origenWidget)
+      enviarComando(ventana, audioDesbloqueado && puedeSonar() ? 'unMute' : 'mute', origenWidget)
+    }
+  }, [audioDesbloqueado, autoplay, item.id, origenWidget])
 
   // ── Abrir sesión y encender/apagar según el coordinador ───────────────────
   useEffect(() => {
@@ -117,7 +192,7 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
       // Apagar SIEMPRE, aunque el estado local diga que no reproducía: el
       // coordinador apaga antes de encender, y un fallo aquí es el segundo
       // vídeo sonando de fondo.
-      enviarComando(ventana, 'pauseVideo')
+      enviarComando(ventana, 'pauseVideo', origenWidget)
       reproduciendo.current = false
       // El espejo de UI se adelanta en microtarea, no en el cuerpo del efecto
       // (regla react-compiler: un setState síncrono aquí dispara renders en
@@ -126,16 +201,8 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
       return
     }
 
-    suscribirse(ventana, item.id)
-    // Ser la tarjeta actual no implica arrancar: con `prefers-reduced-motion`
-    // o `saveData` la reproducción espera al toque de la persona (alTocar).
-    // La suscripción sí se abre siempre — sin ella los mensajes del reproductor
-    // no llegan y los latidos del arranque manual no acreditarían nada.
-    if (autoplay) {
-      enviarComando(ventana, 'playVideo')
-      enviarComando(ventana, audioDesbloqueado && puedeSonar() ? 'unMute' : 'mute')
-    }
-  }, [activo, autoplay, audioDesbloqueado, item.id, src])
+    engancharReproductor()
+  }, [activo, engancharReproductor, origenWidget, src])
 
   // ── El bucle de latidos ───────────────────────────────────────────────────
   const latir = useCallback(async () => {
@@ -183,13 +250,13 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
     if (!ventana) return
 
     if (reproduciendo.current) {
-      enviarComando(ventana, 'pauseVideo')
+      enviarComando(ventana, 'pauseVideo', origenWidget)
       reproduciendo.current = false
       setReproduciendoUi(false)
     } else {
-      enviarComando(ventana, 'playVideo')
+      enviarComando(ventana, 'playVideo', origenWidget)
       // El toque ES activación de usuario, así que aquí sí se puede desmutear.
-      enviarComando(ventana, 'unMute')
+      enviarComando(ventana, 'unMute', origenWidget)
     }
   }
 
@@ -206,7 +273,9 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
         <iframe
           ref={marco}
           className={estilos.medio}
-          src={src}
+          // Bajo el stub e2e el documento es un `srcdoc` (hereda nuestro
+          // origen, no toca la red); en el camino real, el widget de YouTube.
+          {...(stub ? { srcDoc: MARCADO_STUB_REPRODUCTOR } : { src })}
           title={item.titulo}
           allow="autoplay; encrypted-media; picture-in-picture"
           // `sandbox` no se pone: la IFrame API necesita `allow-same-origin` +
@@ -214,6 +283,15 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
           // anula el sandbox. El aislamiento real lo da la CSP (`frame-src` con
           // un único origen) y `frame-ancestors 'none'`.
           loading="lazy"
+          // El iframe puede terminar de cargar DESPUÉS de que el efecto del
+          // coordinador enviara `listening`/`playVideo`: un postMessage a un
+          // documento a medio cargar se entrega al about:blank inicial y se
+          // pierde sin error. Reengancharse en `load` cierra esa carrera —
+          // con el widget real y con el stub. Repetir la suscripción o el
+          // `playVideo` es idempotente para los dos.
+          onLoad={() => {
+            if (activo) engancharReproductor()
+          }}
         />
       ) : item.miniaturaUrl ? (
         <Image
@@ -222,9 +300,30 @@ export function TarjetaVideo({ item, conIframe, alCompletar }: TarjetaVideoProps
           alt=""
           fill
           sizes="100vw"
-          // Solo la primera tarjeta puede ser el LCP; las demás no deben
-          // competir por el ancho de banda inicial.
-          loading="lazy"
+          // La PRIMERA tarjeta es el LCP de /animo y se precarga; las demás van
+          // en diferido para no competir por el ancho de banda inicial.
+          //
+          // Antes iba `loading="lazy"` a secas, incluida la primera — el
+          // comentario ya decía «solo la primera puede ser el LCP» pero el
+          // código no lo cumplía. Y desde que el iframe se monta solo en
+          // cliente, el servidor pinta ESTA miniatura donde antes ponía el
+          // reproductor: es literalmente el primer fotograma de la pantalla, y
+          // cargarla en diferido retrasa el LCP justo en la métrica que
+          // CONTRATOS §11 acota (< 2,5 s en 4G).
+          //
+          // Excluyentes a propósito: `priority` ya implica carga anticipada, y
+          // Next rechaza en desarrollo que se combine con `loading="lazy"`.
+          //
+          // Es también lo que silencia el aviso de Next «Image … was detected
+          // as the Largest Contentful Paint (LCP)», que salta precisamente
+          // cuando el elemento LCP medido en el navegador es una imagen con
+          // `loading: 'lazy'` (next/dist/shared/lib/get-img-props.js). Se
+          // prefiere `priority` a `loading="eager"` —lo que sugiere el texto
+          // del aviso— porque además emite el `<link rel="preload" as="image">`
+          // que adelanta la petición sin esperar a que el navegador descubra
+          // el `<img>`. El aviso está reproducido y verificado en los dos
+          // sentidos: sale al revertir esto, no sale con esto puesto.
+          {...(prioritaria ? { priority: true } : { loading: 'lazy' as const })}
         />
       ) : null}
 

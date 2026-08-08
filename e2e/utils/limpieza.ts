@@ -76,5 +76,22 @@ export async function barrerRestosViejos(horas = 24): Promise<number> {
     const { error: errorAuth } = await admin.auth.admin.deleteUser(id)
     if (!errorAuth) borrados += 1
   }
+
+  // Los vídeos sembrados no llevan el prefijo del alias: se reconocen por su
+  // marca de origen (`source = 'e2e'`) y se barren por edad, igual que los
+  // perfiles. Un test que revienta antes de su teardown deja aquí su fila — y
+  // en un plan de 500 MB compartido eso no es estética. Las vistas van
+  // primero; las sesiones caen solas (FK on delete cascade).
+  const { data: videos } = await admin
+    .from('content_items')
+    .select('id')
+    .eq('source', 'e2e')
+    .lt('created_at', corte)
+
+  for (const { id } of videos ?? []) {
+    await admin.from('content_views').delete().eq('content_id', id)
+    await admin.from('content_items').delete().eq('id', id)
+  }
+
   return borrados
 }

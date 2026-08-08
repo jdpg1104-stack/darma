@@ -3,7 +3,7 @@ import { KARMA_WEIGHTS } from '@/lib/karma'
 import { expect, omitirSinAdmin, test } from '../fixtures'
 import { HiloPage } from '../paginas/HiloPage'
 import { PublicarPage } from '../paginas/PublicarPage'
-import { comentarioDeApoyo } from '../utils/textos'
+import { comentarioDeApoyo, comentarioDeRelleno, TEXTO_NEUTRO } from '../utils/textos'
 
 // ============================================================================
 // Recorrido (b) · el bucle completo: 3 escuchas validadas → publicar desbloqueado.
@@ -13,23 +13,22 @@ import { comentarioDeApoyo } from '../utils/textos'
 // `trg_comments_validated` y lo cobra `trg_posts_reciprocity`, y entre los dos
 // hay una transacción, un índice único parcial y un tope diario.
 //
-// 🔴 ESTA PREMISA ES FALSA Y ESTE RECORRIDO FALLARÁ CUANDO SE EJECUTE.
-// Decía: «sin MODERATION_API_KEY el clasificador no responde y NINGÚN
-// comentario se valida solo: el sistema falla cerrado por diseño».
+// ── EL VALIDADOR POR DEFECTO ES HEURÍSTICO Y VALIDA SOLO ───────────────────
+// (Corregido 2026-08-05; la premisa vieja —«sin MODERATION_API_KEY ningún
+// comentario se valida solo»— era FALSA desde B11 y este recorrido falló en
+// cuanto se ejecutó de verdad, tal y como anunciaba la nota del 2026-08-04.)
 //
-// Verificado contra Postgres el 2026-08-04: NO es así. `validadorPorDefecto`
-// (app/api/comments/validador.ts) es `ValidadorHeuristico`, determinista y sin
-// I/O, y está puesto como SUELO a propósito — la validación decide si alguien
-// cobra su escucha y no puede depender de que un proveedor esté en pie. Un
-// comentario sincero se valida SOLO, sin clave y sin red: medido `is_validated
-// = true`, `+10` de reputación, `+1` crédito y `reply_count = 1` en el primer
-// comentario escrito por la UI.
+// `validadorPorDefecto` (app/api/comments/validador.ts) lleva el suelo
+// `ValidadorHeuristico`: determinista, sin I/O, y un comentario sincero se
+// valida SOLO, sin clave y sin red — con su +10, su +1 crédito y su
+// reply_count en la misma transacción.
 //
-// Consecuencia para este spec: la aserción intermedia `creditosDe(usuario) === i`
-// —la que distingue «el bucle funciona» de «el bucle suma por escribir»— va a
-// fallar, porque el crédito ya se ha acreditado antes de llamar a
-// `validarComentario`. Hay que rehacerla: o se comenta con texto que la
-// heurística rechace, o se comprueba el efecto en vez del momento.
+// Consecuencia para este spec: el estado «publicado pero sin validar» —el que
+// distingue «el bucle paga por validar» de «el bucle paga por escribir»— solo
+// se obtiene escribiendo lo que la heurística NO da por escucha. Por eso los
+// caminos que necesitan ese estado comentan con `comentarioDeRelleno()`
+// (relleno puro, rechazo determinista por `filler_only`) y la validación
+// llega DESPUÉS desde el fixture, que dispara el trigger real.
 // ============================================================================
 
 test.describe('(b) El bucle de reciprocidad', () => {
@@ -59,12 +58,16 @@ test.describe('(b) El bucle de reciprocidad', () => {
 
     for (let i = 0; i < posts.length; i += 1) {
       await hilo.irAPost(posts[i]!)
-      const comentarioId = await hilo.comentar(comentarioDeApoyo(i + 1))
+      // Relleno A PROPÓSITO: un comentario sincero lo validaría la heurística
+      // al instante y esta prueba no podría ver el estado intermedio. El
+      // relleno queda publicado SIN validar, y la validación la dispara el
+      // fixture después — la misma cadena real (trigger, crédito, karma).
+      const comentarioId = await hilo.comentar(comentarioDeRelleno(i + 1))
       expect(comentarioId).toBeTruthy()
 
-      // Sin clasificador el comentario nace sin validar: el contador NO se mueve
-      // todavía. Esta comprobación intermedia es la que distingue «el bucle
-      // funciona» de «el bucle suma por escribir».
+      // Publicado pero sin validar: el contador NO se mueve todavía. Esta
+      // comprobación intermedia es la que distingue «el bucle funciona» de
+      // «el bucle suma por escribir».
       expect(await creditosDe(usuario)).toBe(i)
 
       await validarComentario(comentarioId!)
@@ -74,10 +77,14 @@ test.describe('(b) El bucle de reciprocidad', () => {
       expect(await publicar.escuchasHechas()).toBe(Math.min(i + 1, LISTENS_PER_POST))
     }
 
-    // 3/3: el botón se habilita y el copy es el de lib/reciprocity.ts.
+    // 3/3: el copy es el de lib/reciprocity.ts y el botón se habilita — CON
+    // texto escrito: el botón exige además un cuerpo dentro de rango
+    // (`fueraDeRango || enviando`), así que comprobarlo con el área vacía
+    // afirmaría sobre el texto, no sobre el gate de reciprocidad.
     await expect(
       publicar.mensajeParaEstado({ listenCredits: LISTENS_PER_POST, postsPublished: 1 }),
     ).toBeVisible()
+    await publicar.escribir(TEXTO_NEUTRO)
     expect(await publicar.botonHabilitado()).toBe(true)
   })
 
@@ -131,11 +138,13 @@ test.describe('(b) El bucle de reciprocidad', () => {
     const [postId] = await sembrarPosts(1)
     const hilo = new HiloPage(page)
     await hilo.irAPost(postId!)
-    const comentarioId = await hilo.comentar(comentarioDeApoyo(200))
+    // Relleno: con un comentario sincero la heurística validaría al instante y
+    // aquí no quedaría ningún «NO validado» que comprobar (ver cabecera).
+    const comentarioId = await hilo.comentar(comentarioDeRelleno(200))
     expect(comentarioId).toBeTruthy()
 
     // Escribir no paga. Paga que alguien —o algo— juzgue que ese comentario
-    // acompañó de verdad.
+    // acompañó de verdad; el relleno queda publicado sin ese juicio a favor.
     expect(await creditosDe(usuario)).toBe(0)
     expect(await karmaDe(usuario)).toBe(karmaAntes)
 

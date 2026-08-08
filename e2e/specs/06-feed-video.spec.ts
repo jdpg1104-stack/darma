@@ -15,6 +15,15 @@ import { AnimoPage } from '../paginas/AnimoPage'
 // origen y no se puede leer.
 // ============================================================================
 
+// Secuencial dentro del archivo, A PROPÓSITO (y `default`, no `serial`: un
+// fallo no arrastra a los demás). Estos cuatro tests siembran contenido en un
+// catálogo COMPARTIDO por los workers: con dos en paralelo, la tarjeta activa
+// de un test puede ser la siembra del otro, y cuando ese otro termina su
+// teardown la borra A MITAD de reproducción — la sesión muere en cascada, los
+// latidos pasan a acreditar 0 y `/completado` no llega nunca. Los usuarios se
+// aíslan por test; el catálogo de `/animo` no se puede aislar por usuario.
+test.describe.configure({ mode: 'default' })
+
 test.describe('(f) Feed vertical de vídeo', () => {
   omitirSinAdmin()
 
@@ -26,13 +35,16 @@ test.describe('(f) Feed vertical de vídeo', () => {
   }) => {
     // Duración corta a propósito: el presupuesto de la suite son 6 minutos y el
     // servidor exige el 90 % del tiempo real.
-    await sembrarVideo(10)
+    const contenidoId = await sembrarVideo(10)
     const antes = await karmaDe(usuario)
 
     const animo = new AnimoPage(page)
     await animo.ir()
 
     await expect(animo.tarjetaActiva).toBeVisible()
+    // Reproducir EL VÍDEO SEMBRADO, no «el primero»: la primera tarjeta puede
+    // ser la siembra de otro worker u otro proyecto (ver irAlContenido).
+    await animo.irAlContenido(contenidoId)
     await expect(animo.reproductorActivo).toBeVisible()
 
     await animo.arrancar()
@@ -57,6 +69,7 @@ test.describe('(f) Feed vertical de vídeo', () => {
 
     const animo = new AnimoPage(page)
     await animo.ir()
+    await animo.irAlContenido(contenidoId)
     await animo.arrancar()
     await animo.esperarSesionAbierta()
     await animo.esperarCompletado()
@@ -105,7 +118,45 @@ test.describe('(f) Feed vertical de vídeo', () => {
     // sonarían a la vez, que en una app que se usa de noche en el móvil es un
     // fallo grave y no un detalle.
     await expect(animo.tarjetaActiva).toHaveCount(1)
-    expect(await animo.tarjetaActiva.getAttribute('id')).not.toBe(primera)
+    await animo.esperarOtraActiva(primera)
+  })
+
+  test('la miniatura de la PRIMERA tarjeta se precarga; las demás, en diferido', async ({
+    page,
+    usuario,
+    sembrarVideo,
+  }) => {
+    void usuario
+    await sembrarVideo(10)
+    await sembrarVideo(10)
+
+    // El HTML del servidor, sin hidratar: ahí la primera tarjeta todavía es su
+    // miniatura (el iframe se monta en cliente), y esa imagen ES el LCP de
+    // /animo — la métrica que CONTRATOS §11 acota en 2,5 s sobre 4G.
+    const animo = new AnimoPage(page)
+    const html = (await animo.htmlDelServidor()).toLowerCase()
+
+    // Exactamente UNA imagen prioritaria. Si fueran varias, no habría
+    // prioridad: compiten entre ellas por el ancho de banda inicial, que es
+    // justo lo que la ventana de iframes evita por el otro lado.
+    // `data-nimg="fill"` y no la clase del módulo CSS: el nombre de la clase se
+    // ofusca en el build de producción (que es el que corre en CI) y el test
+    // se caería allí y solo allí. Ese atributo lo pone next/image en los dos.
+    const miniaturas = html.match(/<img[^>]*data-nimg="fill"[^>]*>/g) ?? []
+    expect(miniaturas.length).toBeGreaterThan(1)
+
+    // La primera, sin diferir. Las DEMÁS, diferidas: sin esta segunda mitad,
+    // marcar todas como prioritarias pasaría la prueba de una forma que nadie
+    // querría — con diez imágenes «prioritarias» no hay ninguna prioritaria.
+    expect(miniaturas[0]).not.toContain('loading="lazy"')
+    for (const resto of miniaturas.slice(1)) {
+      expect(resto).toContain('loading="lazy"')
+    }
+
+    // Y exactamente UNA precarga de imagen en la cabecera: es lo que adelanta
+    // la petición del LCP sin esperar a que el navegador descubra el `<img>`.
+    const precargas = html.match(/<link[^>]*rel="preload"[^>]*as="image"[^>]*>/g) ?? []
+    expect(precargas).toHaveLength(1)
   })
 
   // ── Camino de fallo nº 11 ───────────────────────────────────────────────

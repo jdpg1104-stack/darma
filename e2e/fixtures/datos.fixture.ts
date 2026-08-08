@@ -1,6 +1,7 @@
+import { randomBytes } from 'node:crypto'
 import { clienteAdminE2E } from '../utils/admin'
 import { postSembrado, TEXTO_NEUTRO } from '../utils/textos'
-import { crearUsuario, type UsuarioE2E } from './usuario.fixture'
+import { crearCuenta, type CuentaSembrada, type UsuarioE2E } from './usuario.fixture'
 
 /**
  * Siembra N posts de N autores DISTINTOS y devuelve sus ids.
@@ -14,12 +15,16 @@ import { crearUsuario, type UsuarioE2E } from './usuario.fixture'
  * Va por service_role en un solo `insert` con array, no por la UI: crear tres
  * posts navegando cuesta ~15 s por test y no prueba nada que no pruebe ya el
  * recorrido (c).
+ *
+ * Los autores se crean SIN sesión (`crearCuenta`): sus posts los inserta
+ * service_role y nadie navega con ellos. Cada login de más cuenta contra el
+ * límite por IP del Auth, que es el presupuesto más escaso de la suite.
  */
-export async function sembrarPosts(n: number): Promise<{ ids: string[]; autores: UsuarioE2E[] }> {
+export async function sembrarPosts(n: number): Promise<{ ids: string[]; autores: CuentaSembrada[] }> {
   const admin = clienteAdminE2E()
 
-  const autores: UsuarioE2E[] = []
-  for (let i = 0; i < n; i += 1) autores.push(await crearUsuario(`autor${i + 1}`))
+  const autores: CuentaSembrada[] = []
+  for (let i = 0; i < n; i += 1) autores.push(await crearCuenta(`autor${i + 1}`))
 
   // Los autores han de poder publicar: el primer post es gratis
   // (`posts_published = 0`), así que un solo post por autor pasa el trigger sin
@@ -112,20 +117,36 @@ export async function creditosDeEscucha(usuarioId: string): Promise<number> {
   return data.listen_credits as number
 }
 
+/**
+ * Un id con la FORMA EXACTA de un id de vídeo de YouTube: 11 de [A-Za-z0-9_-]
+ * (8 bytes en base64url son justo 11 caracteres, sin relleno).
+ *
+ * ⚠️ La forma no es decorativa: `esIdYoutubeValido()` filtra el catálogo ANTES
+ * de construir la tarjeta, y un external_id que no pase esa regex no llega
+ * nunca al cliente. La primera versión de este fixture sembraba
+ * `e2e-<n>-<timestamp>` (19 caracteres): el feed lo descartaba EN SILENCIO y
+ * los specs se afirmaban contra vídeos reales del catálogo de darma-dev —
+ * de minutos de duración, imposibles de completar en el presupuesto.
+ */
+function idYoutubeSintetico(): string {
+  return randomBytes(8).toString('base64url')
+}
+
 /** Un contenido de vídeo publicado, para el recorrido (f). */
 export async function sembrarVideo(
   etiqueta: string,
   duracionSegundos = 30,
 ): Promise<string> {
   const admin = clienteAdminE2E()
+  const externalId = idYoutubeSintetico()
   const { data, error } = await admin
     .from('content_items')
     .insert({
       source: 'e2e',
       platform: 'youtube',
-      external_id: `e2e-${etiqueta}-${Date.now()}`,
+      external_id: externalId,
       title: `Respiración guiada de prueba ${etiqueta}`,
-      url: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+      url: `https://www.youtube-nocookie.com/embed/${externalId}`,
       language: 'es',
       duration_seconds: duracionSegundos,
       topic: 'ansiedad',
@@ -134,6 +155,14 @@ export async function sembrarVideo(
       // nunca en el esquema — el spec estuvo siempre en fixme y nadie lo pisó.
       state: 'approved',
       published_at: new Date().toISOString(),
+      // Muy por encima del catálogo real (su score es tasa de finalización ×
+      // log10 de vistas: un dígito). `feed_animo` ordena por performance_score
+      // desc, y darma-dev tiene catálogo de verdad: sin esto el vídeo sembrado
+      // queda bajo el pliegue y la tarjeta activa del spec sería un vídeo real.
+      // MONÓTONO además de alto: una siembra huérfana de una ejecución anterior
+      // (un test que reventó antes de su teardown y aún no cayó en el barrido
+      // de 24 h) empataría con un score fijo y podría robar el primer puesto.
+      performance_score: Date.now(),
     })
     .select('id')
     .single()
