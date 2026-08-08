@@ -52,6 +52,14 @@ export type Disponibilidad = 'disponible' | 'necesito_hablar' | 'ausente'
 `karmaSpendable`, `crystals`, `listenCredits` y `dailyKarmaEarned` son **privados**:
 solo aparecen en respuestas dirigidas al propio usuario (`/api/me`).
 
+También son privados **`listensGiven` y `postsPublished`**, y conviene decir por
+qué porque no es evidente: `postsPublished` es cuántas veces has pedido ayuda, y
+publicar ese agregado convierte «lo está pasando mal a menudo» en un dato de un
+vistazo. `listensGiven` es la moneda buena de Darma, pero el tablero de B06 ya
+publica esa señal por periodo y **con techo diario**; el contador vitalicio es lo
+mismo sin techo, y ponerlo al lado premiaría justo lo que el techo frena. Decidido
+y razonado entero en `0223_1_b00_contadores_privados.sql`.
+
 ---
 
 ## 3. Tipos de la base de datos

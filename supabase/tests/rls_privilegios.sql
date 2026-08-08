@@ -84,6 +84,25 @@ select ok(
   'R5 · authenticated NO puede LEER profiles.daily_karma_earned'
 );
 
+-- Los dos contadores que la ficha B05 llamaba «públicos» y el esquema nunca
+-- concedió. Se decidió que son PRIVADOS (0223) y se comprueba aquí porque el
+-- porqué no es evidente: `posts_published` es cuántas veces alguien ha pedido
+-- ayuda, y `listens_given` es la misma señal que el tablero de B06 pero SIN el
+-- techo diario que impide que acompañar deprisa rente más que acompañar bien.
+-- Un `grant` sobre cualquiera de las dos revierte una decisión; que salte.
+select ok(
+  not has_column_privilege('authenticated', 'public.profiles', 'listens_given', 'SELECT'),
+  'listens_given no es legible por authenticated (0223: privado, no olvidado)'
+);
+select ok(
+  not has_column_privilege('authenticated', 'public.profiles', 'posts_published', 'SELECT'),
+  'posts_published no es legible por authenticated (0223: privado, no olvidado)'
+);
+select ok(
+  not has_column_privilege('anon', 'public.profiles', 'listens_given', 'SELECT'),
+  'listens_given tampoco sin sesion'
+);
+
 -- Lo público es exactamente PerfilPublico (CONTRATOS §2).
 select ok(
   has_column_privilege('authenticated', 'public.profiles', 'alias', 'SELECT'),

@@ -487,7 +487,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `CandidatoEmbed` (le faltan `platform` y `external_id`). No es de B04 y no
       se ha tocado; el resto del árbol compila · 2026-08-03
       → CERRADO 2026-08-05: `npx tsc --noEmit` pasa limpio en todo el árbol.
-- [ ] **De B05 → B00 / F1** · `authenticated` no tiene privilegio de SELECT
+- [x] **De B05 → B00 / F1** · `authenticated` no tiene privilegio de SELECT
       sobre `profiles.listens_given` ni `profiles.posts_published`, así que el
       **perfil ajeno no puede mostrarlos** (comprobado contra `darma-dev` con
       dos sesiones reales: 403 `42501 permission denied`). La ficha B05 los
@@ -498,6 +498,19 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       nadie lo relacione después. Hace falta decidir: (a) son públicos de verdad
       y el sitio de arreglarlo es el esquema, o (b) no lo son y la ficha B05 y
       `CONTRATOS.md` deben decirlo. Afecta a B06 (ranking de escuchas) · 2026-08-03
+      → CERRADO 2026-08-05: se decide la opcion (b) —NO son publicos— y se
+      escribe en los tres sitios que se contradecian: `0223_1_b00_contadores_privados.sql`
+      (revoke explicito + `comment on column`), CONTRATOS §2 y esta misma ficha B05,
+      que era quien los llamaba «contadores publicos». Razones: `posts_published` es
+      cuantas veces has PEDIDO ayuda, y publicar el agregado convierte «lo esta pasando
+      mal a menudo» en un dato de un vistazo; `listens_given` es la misma senal que el
+      tablero de B06 pero SIN el techo diario (`LISTENS_DIA_MAX` = 12), asi que
+      publicarlo pondria al lado del tablero un numero mayor y sin limite que premia
+      justo lo que el techo frena —el techo dejaria de acotar nada—. Para B06 no cambia
+      nada: su ranking publica `ranking_snapshots.listens`, no este contador, y
+      `lib/ranking/movimiento.test.ts` ya lo afirmaba. Vigilado por tres casos nuevos en
+      `rls_privilegios.sql`. Comprobado contra la base: privados los dos, `alias` y
+      `karma_reputation` siguen publicos.
 - [ ] **De B05 → B00** · el presupuesto de «3 consultas para el perfil propio»
       de la ficha ya no es alcanzable: son 4 (`profiles` público +
       `mi_perfil_privado()` + `mi_resumen_karma()` + primera página del ledger).
