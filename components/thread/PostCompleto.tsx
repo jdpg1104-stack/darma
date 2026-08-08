@@ -51,7 +51,7 @@ export async function PostCompleto({
   const t = obtenerTraductor(locale)
 
   return (
-    <Tarjeta como="article" className={estilos.post}>
+    <Tarjeta como="article" className={estilos.post} data-testid="hilo-post">
       <div className={estilos.meta}>
         <span className={estilos.autor}>
           <Avatar semilla={autor.avatarSeed} alias={autor.alias} nivel={autor.nivel} tamano={40} />

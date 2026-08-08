@@ -31,6 +31,7 @@ export async function FeedVacio({ carril = 'para_ti' }: FeedVacioProps) {
       titulo={titulo}
       descripcion={t('feed.vacioDescripcion')}
       tono="cuidado"
+      data-testid="feed-vacio"
       // Un `<Link>` estilado y NO `<Link><Boton>…</Boton></Link>`: un `<button>`
       // dentro de un `<a>` es HTML inválido (contenido interactivo anidado), y
       // los navegadores lo resuelven cada uno a su manera — en alguno el enlace

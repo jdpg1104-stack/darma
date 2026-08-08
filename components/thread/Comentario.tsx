@@ -46,7 +46,12 @@ export function Comentario({ comentario, soyAutorDelPost = false, acciones }: Co
   const { autor, body, creadoEn, esUtil, esMio, validado } = comentario
 
   return (
-    <Tarjeta como="article" className={estilos.comentario} acento={esUtil ? 'logro' : 'ninguno'}>
+    <Tarjeta
+      como="article"
+      className={estilos.comentario}
+      acento={esUtil ? 'logro' : 'ninguno'}
+      data-testid="hilo-comentario"
+    >
       <div className={estilos.meta}>
         <span className={estilos.autor}>
           <Avatar semilla={autor.avatarSeed} alias={autor.alias} nivel={autor.nivel} tamano={32} />

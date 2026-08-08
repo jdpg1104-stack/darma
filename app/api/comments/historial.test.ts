@@ -4,6 +4,9 @@
 //   node --test --experimental-strip-types "app/api/comments/historial.test.ts"
 //
 // Tres cosas se fijan aquí, y son las tres decisiones de `historial.ts`:
+//   0. Que el autor NO viaja como parámetro y que la función no filtra por
+//      `state` — el arreglo de 0222, sin el cual retirar el propio comentario
+//      borraba su rastro y la misma plantilla volvía a pasar.
 //   1. La FORMA de la consulta: cuántas filas pide, con qué filtros y en qué
 //      orden. No es cosmética — es lo que decide si el camino caliente de
 //      comentar cae dentro del índice parcial de 0213 o recorre el historial
@@ -38,110 +41,98 @@ const AHORA = new Date('2026-08-05T12:00:00.000Z')
 // ── Doble de la base ────────────────────────────────────────────────────────
 
 interface Registro {
-  tabla: string
-  columnas: string
-  filtros: [string, string, unknown][]
-  orden: { columna: string; ascendente: boolean }[]
-  limite: number | null
+  funcion: string
+  argumentos: Record<string, unknown>
 }
 
 type Respuesta = () => { data?: unknown; error?: unknown }
 
-/** Lo poco del constructor de PostgREST que esta consulta usa. */
-interface Cadena {
-  select(columnas: string): Cadena
-  eq(columna: string, valor: unknown): Cadena
-  gt(columna: string, valor: unknown): Cadena
-  order(columna: string, opciones: { ascending: boolean }): Cadena
-  limit(n: number): Cadena
-  then(alCumplir: (valor: unknown) => unknown, alFallar?: (causa: unknown) => unknown): Promise<unknown>
-}
-
 /**
- * Cliente falso que ANOTA la consulta en vez de ejecutarla. El objeto es
- * «thenable» igual que el constructor de PostgREST, así que `await` sobre la
- * cadena funciona sin simular la librería entera.
+ * Cliente falso que ANOTA la llamada en vez de ejecutarla. Lo que devuelve
+ * `rpc()` es «thenable» igual que el constructor de PostgREST, así que `await`
+ * funciona sin simular la librería entera.
  */
 function dobleSupabase(respuesta: Respuesta): { cliente: SupabaseClient; registro: Registro } {
-  const registro: Registro = { tabla: '', columnas: '', filtros: [], orden: [], limite: null }
-
-  const cadena: Cadena = {
-    select(columnas: string) {
-      registro.columnas = columnas
-      return cadena
-    },
-    eq(columna: string, valor: unknown) {
-      registro.filtros.push(['eq', columna, valor])
-      return cadena
-    },
-    gt(columna: string, valor: unknown) {
-      registro.filtros.push(['gt', columna, valor])
-      return cadena
-    },
-    order(columna: string, opciones: { ascending: boolean }) {
-      registro.orden.push({ columna, ascendente: opciones.ascending })
-      return cadena
-    },
-    limit(n: number) {
-      registro.limite = n
-      return cadena
-    },
-    then(alCumplir: (valor: unknown) => unknown, alFallar?: (causa: unknown) => unknown) {
-      return Promise.resolve()
-        .then(() => respuesta())
-        .then(alCumplir, alFallar)
-    },
-  }
+  const registro: Registro = { funcion: '', argumentos: {} }
 
   const cliente = {
-    from(tabla: string) {
-      registro.tabla = tabla
-      return cadena
+    rpc(funcion: string, argumentos: Record<string, unknown>) {
+      registro.funcion = funcion
+      registro.argumentos = argumentos
+      return {
+        then(alCumplir: (valor: unknown) => unknown, alFallar?: (causa: unknown) => unknown) {
+          return Promise.resolve()
+            .then(() => respuesta())
+            .then(alCumplir, alFallar)
+        },
+      }
     },
   }
 
   return { cliente: cliente as unknown as SupabaseClient, registro }
 }
 
+/** `returns setof text`: llegan cadenas sueltas, no filas con una columna. */
 function conFilas(cuerpos: readonly (string | null)[]): { cliente: SupabaseClient; registro: Registro } {
-  return dobleSupabase(() => ({ data: cuerpos.map((body) => ({ body })), error: null }))
+  return dobleSupabase(() => ({ data: [...cuerpos], error: null }))
 }
 
-// ── 1 · La forma de la consulta ─────────────────────────────────────────────
+// ── 1 · La forma de la llamada ──────────────────────────────────────────────
 
-test('la consulta pide 20 filas, validadas, del autor y por fecha descendente', async () => {
+test('se llama a previos_del_autor() con la ventana y el tope, y nada más', async () => {
   const { cliente, registro } = conFilas([])
 
-  await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
-  assert.equal(registro.tabla, 'comments')
-  // Solo el cuerpo: ni el id, ni el post, ni la fecha. Lo que no se pide no
-  // viaja, y esto viaja en cada comentario que se publica.
-  assert.equal(registro.columnas, 'body')
-  assert.equal(registro.limite, MAX_PREVIOS_AUTOR)
+  assert.equal(registro.funcion, 'previos_del_autor')
+  assert.equal(registro.argumentos.p_limite, MAX_PREVIOS_AUTOR)
   assert.equal(MAX_PREVIOS_AUTOR, 20)
-
-  assert.deepEqual(registro.orden, [{ columna: 'created_at', ascendente: false }])
-  assert.deepEqual(
-    registro.filtros.filter(([op]) => op === 'eq'),
-    [
-      ['eq', 'author_id', AUTOR],
-      // `is_validated` es lo que hace que la consulta quepa en el índice
-      // parcial de 0213 — y lo correcto: solo condena el texto que YA cobró.
-      ['eq', 'is_validated', true],
-    ],
-  )
 })
 
-test('el par que ordena la consulta es el mismo que ordena el índice de 0213', () => {
-  const migracion = readFileSync(
-    join(import.meta.dirname, '..', '..', '..', 'supabase', 'migrations', '0213_1_b21_credito_por_persona.sql'),
+test('🔴 el autor NO viaja como parámetro: sale de auth.uid() en Postgres', async () => {
+  const { cliente, registro } = conFilas([])
+
+  await leerPreviosDelAutor(cliente, { ahora: AHORA })
+
+  // Antes la consulta llevaba `.eq('author_id', …)`. Mientras exista un
+  // parámetro con el que nombrar a otra persona, existe la posibilidad de
+  // pasarle el equivocado; quitarlo cierra esa clase de fallo entera, no una
+  // instancia. Se comprueba sobre los valores y no solo sobre las claves para
+  // que renombrar el argumento no burle el guard.
+  const serializado = JSON.stringify(registro.argumentos)
+  assert.ok(!serializado.includes(AUTOR), 'el id del autor se está enviando desde el cliente')
+  assert.deepEqual(Object.keys(registro.argumentos).sort(), ['p_desde', 'p_limite'])
+})
+
+test('el par que ordena la función es el mismo que ordena el índice de 0213', () => {
+  const migraciones = join(import.meta.dirname, '..', '..', '..', 'supabase', 'migrations')
+  const indice = readFileSync(join(migraciones, '0213_1_b21_credito_por_persona.sql'), 'utf8')
+  const funcion = readFileSync(join(migraciones, '0222_1_b04_previos_del_autor.sql'), 'utf8')
+
+  // Si alguien cambia el índice a `(author_id, created_at)` ascendente, la
+  // consulta deja de estar cubierta y nadie se entera hasta que el camino de
+  // comentar se pone lento. El orden vive ahora en SQL, así que se comprueban
+  // los dos lados y no solo el índice.
+  assert.match(indice, /idx_comments_credito_repetido[\s\S]*author_id, created_at desc[\s\S]*where is_validated/)
+  assert.match(funcion, /order by c\.created_at desc/)
+  assert.match(funcion, /and c\.is_validated/)
+})
+
+test('🔴 la función NO filtra por state: retirar el comentario ya no borra su rastro', () => {
+  const funcion = readFileSync(
+    join(import.meta.dirname, '..', '..', '..', 'supabase', 'migrations', '0222_1_b04_previos_del_autor.sql'),
     'utf8',
   )
-  // Si alguien cambia el índice a `(author_id, created_at)` ascendente, esta
-  // consulta deja de estar cubierta y nadie se entera hasta que el camino de
-  // comentar se pone lento.
-  assert.match(migracion, /idx_comments_credito_repetido[\s\S]*author_id, created_at desc[\s\S]*where is_validated/)
+  const cuerpo = funcion.slice(funcion.indexOf('as $$'), funcion.indexOf('$$;'))
+
+  // ESTE es el agujero que se cerró: con `state = 'active'` volvería el ciclo
+  // «pego la plantilla, cobro, la retiro, la vuelvo a pegar». La regla es «lo
+  // que ya cobró», no «lo que se ve».
+  assert.ok(!cuerpo.includes('state'), 'la función volvió a filtrar por state')
+  // Y sigue siendo `security definer`, que es lo único que le permite ver los
+  // retirados pese a `comments_read`.
+  assert.match(funcion, /security definer/)
+  assert.match(funcion, /auth\.uid\(\)/)
 })
 
 // ── 2 · La ventana ──────────────────────────────────────────────────────────
@@ -149,22 +140,20 @@ test('el par que ordena la consulta es el mismo que ordena el índice de 0213', 
 test('la ventana son 30 días exactos contados desde el reloj recibido', async () => {
   const { cliente, registro } = conFilas([])
 
-  await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
-  const [gt] = registro.filtros.filter(([op]) => op === 'gt')
-  assert.deepEqual(gt, ['gt', 'created_at', new Date(AHORA.getTime() - VENTANA_PREVIOS_MS).toISOString()])
+  assert.equal(registro.argumentos.p_desde, new Date(AHORA.getTime() - VENTANA_PREVIOS_MS).toISOString())
   assert.equal(VENTANA_PREVIOS_DIAS, 30)
   // ISO-8601 en UTC, nunca fecha local (CONTRATOS §1).
-  assert.match(String(gt?.[2]), /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/)
+  assert.match(String(registro.argumentos.p_desde), /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/)
 })
 
 test('lo escrito hace un año no entra: quien lleva un año acompañando repite frases', async () => {
   const { cliente, registro } = conFilas([])
-  await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
-  const gt = registro.filtros.find(([op]) => op === 'gt')
   const haceUnAnio = new Date(AHORA.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString()
-  assert.ok(String(gt?.[2]) > haceUnAnio, 'la ventana llega más atrás de lo que se decidió')
+  assert.ok(String(registro.argumentos.p_desde) > haceUnAnio, 'la ventana llega más atrás de lo que se decidió')
 })
 
 // ── 3 · El resultado ────────────────────────────────────────────────────────
@@ -172,7 +161,7 @@ test('lo escrito hace un año no entra: quien lleva un año acompañando repite 
 test('devuelve los cuerpos tal cual, en el orden en que llegan', async () => {
   const { cliente } = conFilas(['primero, el más reciente', 'segundo', 'tercero'])
 
-  const historial = await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  const historial = await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
   assert.equal(historial.estado, 'consultado')
   assert.equal(historial.codigo, null)
@@ -182,7 +171,7 @@ test('devuelve los cuerpos tal cual, en el orden en que llegan', async () => {
 test('sin historial reciente el estado sigue siendo «consultado»: es un hecho, no una duda', async () => {
   const { cliente } = conFilas([])
 
-  const historial = await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  const historial = await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
   assert.equal(historial.estado, 'consultado')
   assert.deepEqual(historial.previos, [])
@@ -191,7 +180,7 @@ test('sin historial reciente el estado sigue siendo «consultado»: es un hecho,
 test('una fila con el cuerpo nulo o en blanco no se compara con nada', async () => {
   const { cliente } = conFilas([null, '   ', 'un comentario de verdad'])
 
-  const historial = await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  const historial = await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
   assert.deepEqual(historial.previos, ['un comentario de verdad'])
 })
@@ -201,7 +190,7 @@ test('una fila con el cuerpo nulo o en blanco no se compara con nada', async () 
 test('FALLO · si PostgREST devuelve error, el estado es no_disponible y no lanza', async () => {
   const { cliente } = dobleSupabase(() => ({ data: null, error: { code: '57014', message: 'canceling statement' } }))
 
-  const historial = await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  const historial = await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
   assert.equal(historial.estado, 'no_disponible')
   assert.deepEqual(historial.previos, [])
@@ -213,7 +202,7 @@ test('FALLO · si la consulta revienta (red caída), tampoco lanza', async () =>
     throw new Error('fetch failed')
   })
 
-  const historial = await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  const historial = await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
   assert.equal(historial.estado, 'no_disponible')
   assert.deepEqual(historial.previos, [])
@@ -226,7 +215,7 @@ test('FALLO · el fallo no arrastra el mensaje de Postgres, solo el código', as
     error: { code: '42P01', message: 'relation "public.comments" does not exist' },
   }))
 
-  const historial = await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  const historial = await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
   const serializado = JSON.stringify(historial)
   assert.ok(!serializado.includes('public.comments'))
@@ -277,7 +266,7 @@ test('dos comentarios DISTINTOS de la misma persona no se penalizan', () => {
 
 test('FALLO · con el historial no disponible, un comentario sincero SIGUE validando', async () => {
   const { cliente } = dobleSupabase(() => ({ data: null, error: { code: '57014' } }))
-  const historial = await leerPreviosDelAutor(cliente, { autorId: AUTOR, ahora: AHORA })
+  const historial = await leerPreviosDelAutor(cliente, { ahora: AHORA })
 
   // Exactamente lo que hace la ruta cuando la consulta no contestó: valida con
   // lo que sí tiene. Un timeout de Postgres no le dice a nadie «esto no cuenta».

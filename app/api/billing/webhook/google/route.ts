@@ -32,6 +32,7 @@ import {
   verificarTokenPubSub,
 } from '@/lib/billing/google'
 import { acreditarCompra } from '@/lib/billing/ledger'
+import { reembolsoDeGoogle, revertirCompra } from '@/lib/billing/reembolsos'
 import { logger } from '@/lib/logger'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -69,12 +70,49 @@ async function procesar(
 ): Promise<void> {
   // Compra anulada o reembolsada: la corrección se hace con un apunte inverso
   // (`source = 'refund'`), nunca modificando la fila —el trigger de
-  // inmutabilidad lo impide incluso a service_role—. Pendiente de decidir el
-  // importe cuando el saldo ya se gastó; anotado en PEDIDOS.
+  // inmutabilidad lo impide incluso a service_role—. La política entera
+  // —suelo en 0, apunte SIEMPRE, pérdida auditada— vive en `revertir_compra`
+  // (0216_1); `reembolsoDeGoogle()` solo decide QUÉ revertir. La firma del
+  // sobre ya está verificada arriba (token OIDC de Pub/Sub).
   if (notificacion.voidedPurchaseNotification) {
-    logger.exception('billing:reembolso_pendiente_de_apunte_inverso', new Error('voidedPurchase sin contrapartida'), {
-      order_id: notificacion.voidedPurchaseNotification.orderId ?? 'desconocido',
-    })
+    const orden = reembolsoDeGoogle(notificacion)
+    if (!orden) {
+      // Sin `orderId` no hay orden: la acreditación usó `google:<orderId>` como
+      // clave y el purchaseToken no está en el ledger. Queda para soporte.
+      logger.exception('billing:reembolso_sin_transaccion', new Error('voidedPurchase sin orderId'), {})
+      return
+    }
+
+    const resultado = await revertirCompra(createAdminClient(), orden)
+
+    if (resultado.estado === 'sin_compra') {
+      // Anulación de una compra que nunca se acreditó (p. ej. sin acknowledge:
+      // Google revirtió el cobro a los 3 días de una compra que no llegó a
+      // entrar). No hay nada que revertir; ver 0216_1, «LOS DOS BORDES».
+      logger.exception('billing:reembolso_sin_compra', new Error('voidedPurchase de una compra no acreditada'), {
+        external_id: orden.externalId,
+        motivo: orden.motivo,
+      })
+    } else if (resultado.perdido > 0) {
+      // La pérdida se asume y se AUDITA: además del raw_receipt del apunte,
+      // queda aquí para que soporte pueda contarla sin consultar la base.
+      logger.warn('billing:reembolso_con_perdida', {
+        external_id: orden.externalId,
+        motivo: orden.motivo,
+        estado: resultado.estado,
+        revertido: resultado.revertido,
+        perdido: resultado.perdido,
+      })
+    } else {
+      // 'revertida' limpia o 'reintento' (que NO es un error: Pub/Sub reenvía
+      // con backoff y la idempotencia responde con las cifras del primero).
+      logger.info('billing:reembolso_revertido', {
+        external_id: orden.externalId,
+        motivo: orden.motivo,
+        estado: resultado.estado,
+        revertido: resultado.revertido,
+      })
+    }
     return
   }
 
@@ -101,8 +139,13 @@ async function procesar(
   // El destinatario sale de `obfuscatedExternalAccountId`, que la app fija al
   // `profiles.id` al lanzar la compra. Sin él no se adivina a quién acreditar:
   // la persona lo recupera con `POST /api/billing/restore`, que sí tiene sesión.
-  const compra = await detalleCompra(aviso.sku, aviso.purchaseToken)
-  const userId = compra?.obfuscatedExternalAccountId
+  //
+  // Llega ya dentro del recibo. Aquí había una SEGUNDA llamada a
+  // `purchases.products.get`, idéntica a la que acaba de hacer
+  // `verificarRecibo()`, solo para releer este campo: existía porque el recibo
+  // lo descartaba, y lo descartaba porque nadie más lo comprobaba. Cerrar la
+  // titularidad en `verify` y `restore` se llevó por delante la llamada de más.
+  const userId = recibo.cuentaApp
   if (!userId) {
     logger.exception('billing:webhook_google_sin_destinatario', new Error('obfuscatedExternalAccountId ausente'), {
       external_id: recibo.externalId,
@@ -127,34 +170,5 @@ async function procesar(
         external_id: recibo.externalId,
       })
     }
-  }
-}
-
-/**
- * Segunda lectura de `purchases.products.get`, solo para el
- * `obfuscatedExternalAccountId`. Se aísla aquí para que `verificarRecibo`
- * siga devolviendo el tipo del contrato (`ReciboVerificado`) y no crezca con
- * campos que solo necesita el webhook.
- */
-async function detalleCompra(
-  sku: string,
-  purchaseToken: string,
-): Promise<{ obfuscatedExternalAccountId?: string } | null> {
-  const config = configGoogle()
-  if (!config) return null
-
-  const { accessToken } = await import('@/lib/billing/google')
-  const acceso = await accessToken(config)
-  if (!acceso) return null
-
-  try {
-    const url =
-      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(config.packageName)}` +
-      `/purchases/products/${encodeURIComponent(sku)}/tokens/${encodeURIComponent(purchaseToken)}`
-    const respuesta = await fetch(url, { headers: { Authorization: `Bearer ${acceso}` }, cache: 'no-store' })
-    if (!respuesta.ok) return null
-    return (await respuesta.json()) as { obfuscatedExternalAccountId?: string }
-  } catch {
-    return null
   }
 }

@@ -58,10 +58,15 @@ test.describe('Frontera pública sin sesión', () => {
     // proxy.ts por una razón que no es técnica: una persona en riesgo no puede
     // toparse con un muro de login. Se prueba sin sesión a propósito.
     //
-    // Estuvo en `test.fixme` porque la página NO EXISTÍA (el hallazgo más
-    // grave de B18: el botón de crisis de toda la app llevaba a un 404). Hoy
-    // `app/ayuda/page.tsx` existe; si esta prueba vuelve a rojo, ese 404 ha
-    // vuelto y es bloqueante de despliegue, no deuda.
+    // Estuvo en `test.fixme` porque la página NO EXISTÍA: el botón de crisis de
+    // toda la app llevaba a un 404, y era el único apunte de PEDIDOS.md marcado
+    // como bloqueante de despliegue. `app/ayuda/page.tsx` ya existe, así que el
+    // `fixme` se retira — que es el otro medio arreglo: una prueba desactivada
+    // por un motivo que dejó de ser cierto no vigila nada y hace creer que sí.
+    // Lo destapó la auditoría de los 164 pendientes del 2026-08-05.
+    //
+    // Si esta prueba vuelve a rojo, ese 404 ha vuelto: es bloqueante de
+    // despliegue, no deuda.
     const respuesta = await page.goto('/ayuda')
     expect(
       respuesta?.status(),

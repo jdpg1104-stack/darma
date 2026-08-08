@@ -36,6 +36,7 @@ import {
 } from '@/lib/billing/apple'
 import { resolverPaquete } from '@/lib/billing/catalogo'
 import { acreditarCompra } from '@/lib/billing/ledger'
+import { reembolsoDeApple, revertirCompra } from '@/lib/billing/reembolsos'
 import { logger } from '@/lib/logger'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -116,13 +117,50 @@ async function procesar(
 
   // REFUND / REVOKE: la corrección de un movimiento se hace insertando el
   // CONTRARIO con `source = 'refund'`, nunca modificando la fila original
-  // (`trg_crystal_ledger_immutable` lo impide incluso a service_role). Todavía
-  // no se implementa el apunte inverso: hace falta decidir el importe cuando el
-  // saldo ya se gastó, y eso es una decisión de producto. Anotado en PEDIDOS.
+  // (`trg_crystal_ledger_immutable` lo impide incluso a service_role). La
+  // política entera —suelo en 0, apunte SIEMPRE, pérdida auditada— vive en
+  // `revertir_compra` (0216_1); aquí solo se decide QUÉ revertir, y eso lo
+  // resuelve `reembolsoDeApple()` sobre la transacción YA verificada.
   if (notificacion.notificationType === 'REFUND' || notificacion.notificationType === 'REVOKE') {
-    logger.exception('billing:reembolso_pendiente_de_apunte_inverso', new Error('REFUND sin contrapartida'), {
-      transaction_id: datos.transactionId ?? 'desconocido',
-    })
+    const orden = reembolsoDeApple(notificacion.notificationType, datos)
+    if (!orden) {
+      // Un reembolso sin transactionId no da orden: no se adivina contra qué
+      // compra ejecutarlo. Queda en el log para soporte.
+      logger.exception('billing:reembolso_sin_transaccion', new Error('REFUND sin transactionId'), {})
+      return
+    }
+
+    const resultado = await revertirCompra(createAdminClient(), orden)
+
+    if (resultado.estado === 'sin_compra') {
+      // Reembolso de una compra que nunca se acreditó (webhook perdido o compra
+      // que nadie restauró). No hay nada que revertir; ver 0216_1, «LOS DOS
+      // BORDES»: si la acreditación llegara después, la detecta la
+      // reconciliación pedida en PEDIDOS, no este handler.
+      logger.exception('billing:reembolso_sin_compra', new Error('REFUND de una compra no acreditada'), {
+        external_id: orden.externalId,
+        motivo: orden.motivo,
+      })
+    } else if (resultado.perdido > 0) {
+      // La pérdida se asume y se AUDITA: además del raw_receipt del apunte,
+      // queda aquí para que soporte pueda contarla sin consultar la base.
+      logger.warn('billing:reembolso_con_perdida', {
+        external_id: orden.externalId,
+        motivo: orden.motivo,
+        estado: resultado.estado,
+        revertido: resultado.revertido,
+        perdido: resultado.perdido,
+      })
+    } else {
+      // 'revertida' limpia o 'reintento' (que NO es un error: la store reenvía
+      // durante días y la idempotencia responde con las cifras del primero).
+      logger.info('billing:reembolso_revertido', {
+        external_id: orden.externalId,
+        motivo: orden.motivo,
+        estado: resultado.estado,
+        revertido: resultado.revertido,
+      })
+    }
     return
   }
 

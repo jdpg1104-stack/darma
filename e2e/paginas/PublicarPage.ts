@@ -34,20 +34,26 @@ export class PublicarPage extends BasePage {
   readonly ruta = '/publicar'
 
   get textarea(): Locator {
-    return this.page.getByLabel('Cuéntanoslo')
+    return this.page.getByTestId('composer-cuerpo')
   }
 
   get botonPublicar(): Locator {
-    return this.page.getByRole('button', { name: 'Publicar' })
+    return this.page.getByTestId('composer-boton-publicar')
   }
 
   get selectorTema(): Locator {
-    return this.page.getByLabel('¿De qué va?')
+    return this.page.getByTestId('composer-tema')
   }
 
-  /** Confirmación de que el texto salió: `role="status"`. */
+  /**
+   * Confirmación de que el texto salió. Se ancla por testid y se FILTRA por el
+   * copy del catálogo: aquí el contenido es parte de lo que se afirma (que a la
+   * persona se le dice que ya está publicado), no solo que exista un nodo.
+   */
   get confirmacion(): Locator {
-    return this.page.getByText('Ya está publicado. Alguien lo va a leer.')
+    return this.page
+      .getByTestId('composer-confirmacion')
+      .filter({ hasText: t('publicar.hecho') })
   }
 
   /** El error que devuelve el SERVIDOR (incluido el rechazo del trigger). */
@@ -72,15 +78,21 @@ export class PublicarPage extends BasePage {
     return this.textarea.inputValue()
   }
 
+  /** El `<p>` del estado de reciprocidad, ya con ancla propia (pedido B18→B03). */
+  get parrafoReciprocidad(): Locator {
+    return this.page.getByTestId('composer-reciprocidad')
+  }
+
   /**
    * El mensaje de reciprocidad que se está pintando.
    *
-   * Se localiza por el texto derivado de `reciprocityMessage()`, nunca escrito a
-   * mano en un spec, porque el `<p>` que lo contiene no tiene id, role ni
-   * `data-testid`. Pedido a B03 en PEDIDOS.md.
+   * Anclado al `data-testid` del párrafo y FILTRADO por el texto derivado de
+   * `reciprocityMessage()` + catálogo, nunca escrito a mano en un spec: aquí la
+   * frase es exactamente lo que el recorrido afirma (que a la persona se le
+   * explica cuánto le falta), así que el copy se queda como aserción.
    */
   mensajeParaEstado(estado: ReciprocityState): Locator {
-    return this.page.getByText(copyDeReciprocidad(estado), { exact: false })
+    return this.parrafoReciprocidad.filter({ hasText: copyDeReciprocidad(estado) })
   }
 
   /**
@@ -92,11 +104,7 @@ export class PublicarPage extends BasePage {
    */
   private async estadoPintado(): Promise<{ hechas: number; texto: string } | null> {
     for (let hechas = 0; hechas <= LISTENS_PER_POST; hechas += 1) {
-      const nodo = this.page
-        .getByText(copyDeReciprocidad({ listenCredits: hechas, postsPublished: 1 }), {
-          exact: false,
-        })
-        .first()
+      const nodo = this.mensajeParaEstado({ listenCredits: hechas, postsPublished: 1 }).first()
       if (await nodo.count()) return { hechas, texto: (await nodo.innerText()).trim() }
     }
     return null
@@ -111,12 +119,13 @@ export class PublicarPage extends BasePage {
   /**
    * Escuchas ya hechas de las 3 que hacen falta, leídas de la UI.
    *
-   * ⚠️ La ficha de B18 pedía `data-testid="escuchas-hechas"`, y hoy NO EXISTE:
-   * `/publicar` pasa al Composer el MOTIVO y el número que faltan, nunca las
-   * hechas (decisión deliberada, documentada en la cabecera de la página).
-   * Mientras el testid no llegue —pedido a B03 en PEDIDOS.md—, el número se
-   * DERIVA de qué mensaje está pintado. El día que aparezca el testid solo
-   * cambia este método.
+   * ⚠️ La ficha de B18 pedía `data-testid="escuchas-hechas"`, y sigue SIN
+   * EXISTIR a propósito: `/publicar` pasa al Composer el MOTIVO y el número que
+   * faltan, nunca las hechas (decisión deliberada, documentada en la cabecera
+   * de la página; el cliente no debe conocer el umbral). Lo que sí existe ya es
+   * el ancla `composer-reciprocidad` del párrafo, así que la derivación busca
+   * dentro de ese nodo y no en toda la página. El día que aparezca el testid
+   * del número solo cambia este método.
    */
   async escuchasHechas(): Promise<number> {
     const porTestId = this.page.getByTestId('escuchas-hechas')

@@ -76,10 +76,21 @@
 //     esa cola señala a PERSONAS, y aquí quien ha fallado es el sistema.
 //
 // ── CLIENTE ────────────────────────────────────────────────────────────────
-// Se llama con el cliente RLS (CONTRATOS §6). La política `comments_read` solo
-// deja ver los comentarios `state = 'active'`, así que no se filtra `state` a
-// mano: sería repetir la política. Consecuencia conocida y anotada: retirar tu
-// propio comentario borra su huella para esta señal.
+// Se llama con el cliente RLS (CONTRATOS §6), pero NO leyendo `comments`
+// directamente: se llama a `previos_del_autor()` (0222), que es
+// `security definer` y saca el autor de `auth.uid()`.
+//
+// Antes se leía la tabla, y la política `comments_read` es
+// `for select using (state = 'active')`. Eso dejaba un farmeo con forma de
+// botón: pegar la plantilla, cobrar, RETIRAR tu propio comentario —lo que 0104
+// permite al autor— y volver a pegar la misma en otro post, ya sin nada con lo
+// que compararla. El karma no vuelve (0217, a propósito), así que el ciclo era
+// puro beneficio.
+//
+// Ahora cuenta TODO lo que cobró, retirado u oculto incluido, porque la regla
+// nunca fue «lo que se ve» sino «lo que ya pagó» — la misma que justifica el
+// filtro `is_validated`. Las alternativas descartadas (relajar la política,
+// usar el cliente admin) y lo que cuesta esta, en la cabecera de 0222.
 // ============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -108,15 +119,8 @@ export interface HistorialAutor {
 }
 
 export interface OpcionesHistorial {
-  /** Siempre de la sesión, nunca del body (CONTRATOS §6). */
-  autorId: string
   /** Inyectable para que los tests fijen la ventana sin depender del reloj. */
   ahora?: Date
-}
-
-/** Solo se pide `body`: ni el id, ni la fecha, ni el post. Nada más hace falta. */
-interface FilaCuerpo {
-  body: string | null
 }
 
 /** Código de un error de PostgREST o de red, sin arrastrar mensaje ni SQL. */
@@ -146,30 +150,33 @@ function codigoDe(causa: unknown): string {
  */
 export async function leerPreviosDelAutor(
   supabase: SupabaseClient,
-  opciones: OpcionesHistorial,
+  opciones: OpcionesHistorial = {},
 ): Promise<HistorialAutor> {
   const ahora = opciones.ahora ?? new Date()
   const desde = new Date(ahora.getTime() - VENTANA_PREVIOS_MS).toISOString()
 
   try {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('body')
-      .eq('author_id', opciones.autorId)
-      .eq('is_validated', true)
-      .gt('created_at', desde)
-      // El mismo par que ordena el índice parcial de 0213. Si alguna vez dejan
-      // de coincidir, esto pasa a ser un recorrido por todo el historial de la
-      // persona en el camino caliente de comentar.
-      .order('created_at', { ascending: false })
-      .limit(MAX_PREVIOS_AUTOR)
+    // RPC y no `.from('comments')`: la política `comments_read` solo deja ver
+    // `state = 'active'`, así que un comentario retirado desaparecía de aquí y
+    // la misma plantilla volvía a pasar. El porqué entero, y por qué no se
+    // relajó la política ni se usó el cliente admin, está en
+    // `0222_1_b04_previos_del_autor.sql`.
+    //
+    // `opciones.autorId` YA NO VIAJA: el autor sale de `auth.uid()` dentro de la
+    // función. No es un detalle de estilo — es que ahora no existe ningún
+    // parámetro con el que pedir el historial de otra persona.
+    const { data, error } = await supabase.rpc('previos_del_autor', {
+      p_desde: desde,
+      p_limite: MAX_PREVIOS_AUTOR,
+    })
 
     if (error) return { estado: 'no_disponible', previos: [], codigo: codigoDe(error) }
 
-    const filas = (data ?? []) as unknown as readonly FilaCuerpo[]
-    const previos = filas
-      .map((fila) => fila.body)
-      .filter((cuerpo): cuerpo is string => typeof cuerpo === 'string' && cuerpo.trim() !== '')
+    // `returns setof text` llega como un array de cadenas, no de objetos.
+    const filas = (data ?? []) as unknown as readonly (string | null)[]
+    const previos = filas.filter(
+      (cuerpo): cuerpo is string => typeof cuerpo === 'string' && cuerpo.trim() !== '',
+    )
 
     return { estado: 'consultado', previos, codigo: null }
   } catch (causa) {

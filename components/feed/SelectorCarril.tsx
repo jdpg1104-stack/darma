@@ -33,7 +33,7 @@ export async function SelectorCarril({ activo }: SelectorCarrilProps) {
   const t = obtenerTraductor(await resolverLocale())
 
   return (
-    <nav className={estilos.carriles} aria-label={t('feed.carriles')}>
+    <nav className={estilos.carriles} aria-label={t('feed.carriles')} data-testid="feed-carriles">
       {OPCIONES.map((opcion) => (
         <Link
           key={opcion.carril}

@@ -80,7 +80,7 @@ export function BotonHablarEnPrivado({ miId, otroId, otroAlias }: BotonHablarEnP
 
   return (
     <div className={estilos.accionPerfil}>
-      <Boton onClick={abrir} disabled={estado === 'creando'}>
+      <Boton onClick={abrir} disabled={estado === 'creando'} data-testid="refugio-boton-hablar">
         {t(estado === 'creando' ? 'refugios.privado.abriendo' : 'refugios.privado.abrir')}
       </Boton>
       {error ? (

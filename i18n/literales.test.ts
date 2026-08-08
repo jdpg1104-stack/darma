@@ -88,6 +88,25 @@ const DEUDA_LITERALES_CONOCIDA: readonly string[] = [
   // una línea, que sea con fecha y con quién la va a quitar.
 ]
 
+/**
+ * Copy deliberadamente EN INGLÉS, que NO es deuda y no debe migrar al catálogo:
+ * su destinatario se define por el idioma del texto, no por el locale de la
+ * interfaz. Ponerlo en el catálogo lo mostraría en el idioma que la UI crea
+ * vigente — escondiéndolo justo de quien lo necesita.
+ *
+ *  · legal/page.tsx: el enlace «Read these documents in English» existe para
+ *    quien NO lee español; traducido al español desaparece su función.
+ *  · legal/en/page.tsx: el aviso de que las versiones inglesas son traducción
+ *    de trabajo y el español prevalece tiene que leerse en inglés SIEMPRE.
+ *
+ * A diferencia de la deuda, esta lista es estable: solo crece con una razón de
+ * este calibre escrita al lado (añadido 2026-08-05, sesión de integración).
+ */
+const COPY_DELIBERADAMENTE_EN_INGLES: readonly string[] = [
+  'app/(legal)/legal/page.tsx',
+  'app/(legal)/legal/en/page.tsx',
+]
+
 function relativo(absoluto: string): string {
   return absoluto.slice(RAIZ.length + 1).split('\\').join('/')
 }
@@ -97,7 +116,11 @@ test('ningún archivo NUEVO de app/** o components/** trae texto sin traducir', 
   const hallazgos = buscarLiteralesSinTraducir([join(RAIZ, 'app'), join(RAIZ, 'components')])
   const ms = Date.now() - inicio
 
-  const nuevos = hallazgos.filter((h) => !DEUDA_LITERALES_CONOCIDA.includes(relativo(h.archivo)))
+  const nuevos = hallazgos.filter(
+    (h) =>
+      !DEUDA_LITERALES_CONOCIDA.includes(relativo(h.archivo)) &&
+      !COPY_DELIBERADAMENTE_EN_INGLES.includes(relativo(h.archivo)),
+  )
   const detalle = nuevos
     .map((h) => `${relativo(h.archivo)}:${h.linea} [${h.donde}] «${h.texto}»`)
     .join('\n  ')

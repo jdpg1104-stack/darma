@@ -52,6 +52,24 @@ export type Database = {
           },
         ]
       }
+      admin_embudo_daily: {
+        Row: {
+          calculado_en: string
+          dia: string
+          metricas: Json
+        }
+        Insert: {
+          calculado_en?: string
+          dia: string
+          metricas: Json
+        }
+        Update: {
+          calculado_en?: string
+          dia?: string
+          metricas?: Json
+        }
+        Relationships: []
+      }
       admin_metrics_daily: {
         Row: {
           calculado_en: string
@@ -1512,6 +1530,8 @@ export type Database = {
           avatar_seed: string
           banned_until: string | null
           bio: string | null
+          cosmetic_frame: string | null
+          cosmetic_palette: string | null
           created_at: string
           crystals: number
           daily_karma_date: string
@@ -1536,6 +1556,8 @@ export type Database = {
           avatar_seed?: string
           banned_until?: string | null
           bio?: string | null
+          cosmetic_frame?: string | null
+          cosmetic_palette?: string | null
           created_at?: string
           crystals?: number
           daily_karma_date?: string
@@ -1560,6 +1582,8 @@ export type Database = {
           avatar_seed?: string
           banned_until?: string | null
           bio?: string | null
+          cosmetic_frame?: string | null
+          cosmetic_palette?: string | null
           created_at?: string
           crystals?: number
           daily_karma_date?: string
@@ -2016,6 +2040,14 @@ export type Database = {
         Returns: undefined
       }
       admin_cubos_ttpr: { Args: never; Returns: number[] }
+      admin_embudo_ventana: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          calculado_en: string
+          dia: string
+          metricas: Json
+        }[]
+      }
       admin_metricas_ventana: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
@@ -2029,6 +2061,7 @@ export type Database = {
         Returns: undefined
       }
       admin_rollup_dia: { Args: { p_dia: string }; Returns: undefined }
+      admin_rollup_embudo_dia: { Args: { p_dia: string }; Returns: undefined }
       alias_disponible: { Args: { p_alias: string }; Returns: boolean }
       award_karma: {
         Args: {
@@ -2145,6 +2178,13 @@ export type Database = {
           motivo: string
         }[]
       }
+      comprar_cosmetico: {
+        Args: { p_cosmetico: string; p_coste: number; p_user: string }
+        Returns: {
+          comprado: boolean
+          saldo: number
+        }[]
+      }
       compute_hot_score: {
         Args: { p_created: string; p_replies: number; p_upvotes: number }
         Returns: number
@@ -2193,6 +2233,8 @@ export type Database = {
           avatar_seed: string
           banned_until: string | null
           bio: string | null
+          cosmetic_frame: string | null
+          cosmetic_palette: string | null
           created_at: string
           crystals: number
           daily_karma_date: string
@@ -2468,6 +2510,10 @@ export type Database = {
           shadow_banned: boolean
         }[]
       }
+      previos_del_autor: {
+        Args: { p_desde: string; p_limite?: number }
+        Returns: string[]
+      }
       purgar_cron_runs: {
         Args: { p_dias?: number; p_lote?: number }
         Returns: number
@@ -2521,6 +2567,15 @@ export type Database = {
       reponer_encuestas: {
         Args: { p_idioma?: string; p_max_dias?: number; p_minimo?: number }
         Returns: Json
+      }
+      revertir_compra: {
+        Args: { p_external_id: string; p_motivo: string }
+        Returns: {
+          estado: string
+          perdido: number
+          revertido: number
+          saldo: number
+        }[]
       }
       rol_admin_actual: {
         Args: { p_user: string }

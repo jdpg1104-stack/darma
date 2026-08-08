@@ -63,11 +63,18 @@ export async function MedidorKarma({
   const etiquetaSiguiente = siguienteNivel ? t(`perfil.nivel.${siguienteNivel}`) : null
 
   return (
-    <div className={clsx(estilos.medidor, compacto && estilos.compacto)} data-nivel={m.nivel}>
+    // `data-testid` (B18): el e2e localizaba el medidor por `role="progressbar"`
+    // suelto o por `[data-nivel]`, anclas de implementación. El testid es
+    // adicional; el rol y el `aria-valuetext` no cambian.
+    <div
+      className={clsx(estilos.medidor, compacto && estilos.compacto)}
+      data-nivel={m.nivel}
+      data-testid="ui-medidor-karma"
+    >
       <div className={estilos.cabecera}>
         <Insignia nivel={m.nivel} conEtiqueta={!compacto} />
         {compacto ? <span className={estilos.etiqueta}>{etiquetaNivel}</span> : null}
-        <span className={estilos.karma}>
+        <span className={estilos.karma} data-testid="ui-medidor-karma-valor">
           {m.karmaVisible}
           <span className={estilos.unidad}> {t('karma.unidad')}</span>
         </span>

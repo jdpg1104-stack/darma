@@ -37,7 +37,14 @@ export async function PanelPrivado({ privado }: PanelPrivadoProps) {
   ]
 
   return (
-    <section className={estilos.panelPrivado} aria-labelledby="titulo-panel-privado">
+    // `data-testid` (pedido B18 → B05 en PEDIDOS.md): el e2e localizaba este
+    // panel por `section[aria-labelledby=…]`, un ancla de implementación. El
+    // marcado accesible no cambia.
+    <section
+      className={estilos.panelPrivado}
+      aria-labelledby="titulo-panel-privado"
+      data-testid="perfil-panel-privado"
+    >
       <p className={estilos.avisoPrivado} id="titulo-panel-privado">
         {/* Candado decorativo: el texto de al lado ya dice lo mismo, así que
             anunciarlo dos veces al lector de pantalla sería ruido. */}
@@ -52,7 +59,10 @@ export async function PanelPrivado({ privado }: PanelPrivadoProps) {
 
       <dl className={estilos.saldos}>
         {saldos.map((s) => (
-          <div className={estilos.saldo} key={s.clave}>
+          // La `clave` es estable entre idiomas; la etiqueta no. Por eso el
+          // testid se compone con ella: un test puede leer un saldo concreto
+          // sin fijar copy.
+          <div className={estilos.saldo} key={s.clave} data-testid={`perfil-saldo-${s.clave}`}>
             <dd className={estilos.saldoValor}>{s.valor}</dd>
             <dt className={estilos.saldoEtiqueta}>{s.etiqueta}</dt>
           </div>

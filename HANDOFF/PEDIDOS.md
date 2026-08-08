@@ -6,12 +6,42 @@ las recoge y las cierra.
 
 Formato: `- [ ] **De B0X → B0Y** · qué necesitas · por qué · quién lo pidió`
 
+## Última auditoría · 2026-08-05
+
+De **175 apuntes abiertos a 102**. Ninguno se cerró por parecerlo: cada `- [x]`
+lleva debajo qué se comprobó (fichero que existe, símbolo en
+`database.types.ts`, consulta contra Postgres, entrada en `.env.example`…).
+
+Lo que enseña el reparto de los 73 cerrados: **la mayoría no eran trabajo
+pendiente, eran actas**. Apuntes escritos para dejar constancia de un arreglo ya
+hecho, o de una decisión ya tomada (qué número de migración manda, qué nombre
+gana), que se redactaron como pedidos y nadie volvió a tachar. Mezclados con
+ellos había cosas de verdad caducadas: cuatro bloques distintos anotaron por
+separado la divergencia con `lib/apiErrors.ts`, un fichero que ya no existe.
+
+Y una que no era ninguna de las dos: **`/ayuda` NO EXISTE** llevaba marcado
+`🔴 BLOQUEANTE DE DESPLIEGUE` —el botón de crisis de toda la app llevando a un
+404— y la página existe desde hace días. Su prueba e2e seguía en `test.fixme()`
+por un motivo que había dejado de ser cierto, así que tampoco habría avisado.
+Se le retiró el `fixme` en la misma pasada.
+
+La moraleja para quien escriba aquí: **un apunte que solo deja constancia no es
+un pedido**. Si nace ya cerrado, nace con `- [x]` y su nota; si no, se queda
+años pareciendo trabajo por hacer y esconde al que sí lo es.
+
+De lo que queda: 3 son de HUMANO (los 24 teléfonos, la revisión legal y unificar
+la tarjeta de crisis), 17 son piezas que faltan de verdad, 10 deuda de
+traducción, 10 de pruebas y 5 de medición. El resto son notas de contrato entre
+bloques — conviene releerlas con la misma pregunta: ¿esto es un pedido o un
+acta?
+
 ## Abiertos
 
-- [ ] **De B07 → B00** · la RPC de latidos de reproducción es ahora la ÚNICA vía
+- [x] **De B07 → B00** · la RPC de latidos de reproducción es ahora la ÚNICA vía
       de escritura en `content_views`: la migración `0002` ya no concede UPDATE
       al cliente ni deja insertar filas con `completed = true`. Sin esa RPC, el
       karma de `content_completed` no se otorga nunca · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): la RPC de latidos es la unica via: `has_column_privilege(authenticated, content_views, completed, UPDATE)` = false, y la suite pgTAP R2 lo vigila desde que CI la ejecuta.
 
 ### B17 · Internacionalización
 
@@ -163,29 +193,32 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 
 ## Pedidos añadidos por B01 (2026-08-03)
 
-- [ ] **De B01 → F4** · `.env.example` necesita `IDENTITY_PEPPER` (HMAC del
+- [x] **De B01 → F4** · `.env.example` necesita `IDENTITY_PEPPER` (HMAC del
       contacto en `identity_vault`) y `TOTP_ENC_KEY` (32 bytes hex, AES-256-GCM
       del secreto de 2FA). Hoy solo está `IDENTITY_HASH_SALT`, que ningún módulo
       lee. ⚠️ `IDENTITY_PEPPER` NO se rota sin plan de re-hash: cambiarla pone a
       cero la detección de multicuenta en silencio (razonado en
       `lib/auth/identidad.ts`) · 2026-08-03
-- [ ] **De B01 → B00** · CONTRATOS §4 y `lib/apiErrors.ts` (F3) discrepan: el
+      → CERRADO 2026-08-05 (auditoria): `IDENTITY_PEPPER` y `TOTP_ENC_KEY` estan en `.env.example`.
+- [x] **De B01 → B00** · CONTRATOS §4 y `lib/apiErrors.ts` (F3) discrepan: el
       contrato fija `{ ok, code, message, retryAfter }` con códigos en español
       (`no_autenticado`…) y el helper de F3 devuelve `{ error, message, traceId }`
       con códigos en inglés (`unauthorized`…). B01 no puede editar ninguno de los
       dos, así que ha implementado CONTRATOS §4 en `lib/auth/errores.ts` +
       `respuestas.ts` + `http.ts`. Hay que unificar antes de la ola 2, o cada
       bloque elegirá una forma distinta · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `lib/apiErrors.ts` ya no existe. Manda CONTRATOS §4 y los helpers de `lib/auth/**`. (Esta divergencia estaba anotada CUATRO veces por bloques distintos; se cierran las cuatro.)
 - [ ] **De B01 → B00** · `PerfilPublico` y `Yo` viven provisionalmente en
       `lib/auth/perfil.ts` porque no existe un módulo de tipos compartido.
       Deberían subir a `lib/tipos.ts` (dueño B00) para que B02–B20 importen el
       mismo y no cada uno el suyo · 2026-08-03
-- [ ] **De B01 → B15** · `lib/supabase/database.types.ts` debe regenerarse
+- [x] **De B01 → B15** · `lib/supabase/database.types.ts` debe regenerarse
       DESPUÉS de aplicar `0101_b01_auth.sql`: hasta entonces no contiene
       `profiles.entry_level`, ni `auth_totp`, ni las funciones `mi_sesion()`,
       `crear_perfil()` y `alias_disponible()`. Mientras tanto, `FilaSesion` está
       declarada a mano en `lib/auth/session.ts` (con el comentario que dice por
       qué y qué sustituirla) · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): comprobado: `profiles.entry_level` y el resto estan en `lib/supabase/database.types.ts`.
 - [ ] **De B01 → F3** · `lib/anonymity.ts` exporta `deriveAlias` /
       `deriveAvatarSeed` / `createAnonymousIdentity`, no `generarAlias()` ni
       `generarSemillaAvatar()` como dice la ficha B01. B01 usa los nombres reales;
@@ -197,22 +230,24 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       generado está en `components/auth/AvatarSemilla.tsx` y es SVG puro sin
       dependencias, listo para moverse a `components/ui` si B16 lo prefiere ·
       2026-08-03
-- [ ] **De B01 → B02** · tras el onboarding y tras el callback se redirige a
+- [x] **De B01 → B02** · tras el onboarding y tras el callback se redirige a
       `/feed`, que todavía no existe. Sin esa ruta, terminar el alta acaba en un
       404 · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `app/(app)/feed/page.tsx` existe.
 - [ ] **De B01 → B15** · el paquete `server-only` no está en `package.json`, así
       que `lib/auth/identidad.ts` y `lib/auth/totp.ts` (que leen secretos) usan
       una guarda de runtime `typeof window !== 'undefined'` en vez de
       `import 'server-only'`, como ya hace `lib/supabase/admin.ts`. Si se añade
       la dependencia, conviene poner la directiva en los tres · 2026-08-03
-- [ ] **De B08 → F4** · las tres entradas de cron para `vercel.json` (B08 no lo
+- [x] **De B08 → F4** · las tres entradas de cron para `vercel.json` (B08 no lo
       edita). Minutos distintos y no en punto a propósito: no deben solaparse
       entre sí ni competir con el pico global de la hora en punto ·
       `{"path":"/api/cron/content/videos","schedule":"17 */6 * * *"}`,
       `{"path":"/api/cron/content/articulos","schedule":"37 */6 * * *"}`,
       `{"path":"/api/cron/content/reverificar","schedule":"23 4 * * *"}` ·
       2026-08-03
-- [ ] **De B08 → B07** · ya hay catálogo: `content_items` se llena por
+      → CERRADO 2026-08-05 (auditoria): los cron se consolidaron en DOS despachadores (`/api/cron/diario` y `/api/cron/frecuente`, `lib/cron/plan.ts`) por el tope del plan Hobby. Los tres trabajos de contenido son `TRABAJO_CONTENIDO_{VIDEOS,ARTICULOS,REVERIFICAR}`.
+- [x] **De B08 → B07** · ya hay catálogo: `content_items` se llena por
       `/api/cron/content/*` con `state='approved'` solo si el cribado dice
       `seguro` Y el oEmbed dice `embebible`. `topic` sale de una taxonomía
       CERRADA (`ansiedad`, `duelo`, `sueño`, `soledad`, `autoestima`,
@@ -221,7 +256,8 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `lib/ingest/clasificar.ts` como `TAXONOMIA`. `duration_seconds` llega
       `null` en vídeo (el feed Atom no lo trae) y `thumbnail_url` solo puede ser
       de `i.ytimg.com` o Supabase Storage · 2026-08-03
-- [ ] **De B08 → B00** · discrepancia entre `CONTRATOS.md` §4 y el
+      → CERRADO 2026-08-05 (auditoria): el catalogo esta poblado: 26 aprobados y 33 pendientes en `darma-dev`.
+- [x] **De B08 → B00** · discrepancia entre `CONTRATOS.md` §4 y el
       `lib/apiErrors.ts` que existe: el documento define
       `{ ok:false, code, message, retryAfter? }` con códigos en español
       (`no_autenticado`, `error_interno`), y el archivo devuelve
@@ -229,13 +265,15 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `internal`). Las rutas de B08 usan los helpers REALES, como manda §4 («los
       helpers viven en lib/apiErrors.ts, úsalos»). Hay que alinear una de las dos
       cosas · 2026-08-03
-- [ ] **De B08 → B15** · `lib/supabase/database.types.ts` debe regenerarse
+      → CERRADO 2026-08-05 (auditoria): `lib/apiErrors.ts` ya no existe (ver el apunte de B01).
+- [x] **De B08 → B15** · `lib/supabase/database.types.ts` debe regenerarse
       DESPUÉS de aplicar `0108_1_ingesta.sql`: hoy no contiene `ingest_sources`,
       `ingest_log`, `ingest_state`, `ingest_model_budget` ni la función
       `ingest_consume_model_budget()`. Mientras tanto, `lib/ingest/almacen.ts`
       declara a mano `FilaFuente` y `FilaContenido` (con el comentario que dice
       por qué y qué las sustituye) · 2026-08-03
-- [ ] **De B08 → B00 / F4** · la capa 2 del filtro de seguridad necesita saber
+      → CERRADO 2026-08-05 (auditoria): `ingest_sources` y compania estan en `database.types.ts`.
+- [x] **De B08 → B00 / F4** · la capa 2 del filtro de seguridad necesita saber
       CONTRA QUÉ PROVEEDOR habla. `.env.example` define `MODERATION_API_KEY`
       pero no un endpoint, así que `lib/ingest/seguridad.ts` usa
       `MODERATION_API_URL` (POST JSON, `Authorization: Bearer`, respuesta
@@ -243,12 +281,14 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       CERRADO —todo queda en `pending`, nada se aprueba—, que es lo correcto
       pero deja el feed vacío. Hay que fijar el proveedor y añadir la variable a
       `.env.example` (que B08 no edita) · 2026-08-03
-- [ ] **De B08 → B19** · la cola de curación humana (`state='pending'`,
+      → CERRADO 2026-08-05 (auditoria): `MODERATION_API_KEY` esta en `.env.example` y la clave esta puesta.
+- [x] **De B08 → B19** · la cola de curación humana (`state='pending'`,
       `idx_content_pending`) hoy solo se puede leer con
       `scripts/ingest/revisar-pendientes.ts`. Aprobar o rechazar exige
       `service_role`: el panel de admin necesita una pantalla para esto, o la
       cola crecerá sin que nadie la vacíe · 2026-08-03
-- [ ] **De B11 → B00 / F4** · `@anthropic-ai/sdk` NO está en `package.json` y
+      → CERRADO 2026-08-05 (auditoria): existe la pantalla de curacion: `app/(admin)/panel/curacion/`.
+- [x] **De B11 → B00 / F4** · `@anthropic-ai/sdk` NO está en `package.json` y
       B11 no lo edita. Mientras tanto `lib/ai/cliente.ts` define un puerto
       estructural (`ClienteIA`) y carga el SDK con `import()` de especificador
       variable, de modo que `tsc` pasa sin el paquete y sin clave. Al añadirlo:
@@ -257,24 +297,28 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       el JSON Schema escrito a mano de `lib/ai/esquemas.ts` por
       `zodOutputFormat()` + `client.messages.parse()`. `interpretarVeredicto`
       debe seguir siendo la última palabra en cualquier caso · 2026-08-03
-- [ ] **De B11 → B00 / F4** · faltan tres variables en `.env.example`:
+      → CERRADO 2026-08-05 (auditoria): `@anthropic-ai/sdk@^0.115.0` esta en `package.json`.
+- [x] **De B11 → B00 / F4** · faltan tres variables en `.env.example`:
       `MODERATION_MODEL` (opcional, por defecto `claude-opus-5`),
       `MODERATION_BUDGET_USD_DAY` (opcional, por defecto 600) y
       `MODERATION_ADMIN_IDS` (allowlist de uuids de moderador, separada por
       comas). NINGUNA lleva prefijo `NEXT_PUBLIC_`. Sin `MODERATION_ADMIN_IDS`
       el panel `/moderacion` no lo abre nadie, que es el fallo correcto · 2026-08-03
-- [ ] **De B11 → B19** · el rol de moderador es hoy una allowlist de uuids en
+      → CERRADO 2026-08-05 (auditoria): `MODERATION_MODEL` y las demas estan en `.env.example`.
+- [x] **De B11 → B19** · el rol de moderador es hoy una allowlist de uuids en
       variable de entorno (`lib/ai/acceso.ts`). En cuanto B19 defina el rol en
       la base de datos, `esModerador()` debe pasar a leerlo de ahí; la firma
       pura (`esModeradorSegun(userId, allowlist)`) está pensada para que el
       cambio sea de una línea · 2026-08-03
-- [ ] **De B11 → B08 / B14 / F4** · falta el cron de reproceso
+      → CERRADO 2026-08-05 (auditoria): `lib/ai/acceso.ts` autoriza por `admin_roles`/`tiene_rol_admin()`. `MODERATION_ADMIN_IDS` solo se parsea y el propio modulo avisa de que no autoriza a nadie.
+- [x] **De B11 → B08 / B14 / F4** · falta el cron de reproceso
       `/api/cron/moderacion-pendiente`, que debe releer los flags
       `signal='ai_unavailable'` en estado `pending` y volver a pasarlos por
       `evaluarContenido()` (con `omitirLimiteUsuario: true`). Sin él, todo lo
       que se publique mientras el clasificador esté caído se queda sin validar
       para siempre: la voz se abre pero el karma no se recupera nunca. La
       entrada de `vercel.json` no la escribe B11 · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): el trabajo existe y esta en `PLAN_DIARIO` como `TRABAJO_MODERACION_PENDIENTE` (`lib/cron/trabajos/moderacionPendiente.ts`), tercero por prioridad: es karma que alguien gano y no cobro.
 - [ ] **De B11 → F2 / B19** · la auditoría de cada decisión automática se
       escribe hoy en `moderation_flags` con `state='dismissed'` cuando no es
       accionable (para no ensanchar `idx_moderation_queue`, que es parcial
@@ -323,7 +367,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       debería recibirla siempre como respaldo, también en los demás
       consumidores
 
-- [ ] **De B03 → F3 (crítico, afecta a B02/B04/B05)** · la política `posts_read`
+- [x] **De B03 → F3 (crítico, afecta a B02/B04/B05)** · la política `posts_read`
       de `0001_core.sql` consulta `profiles.shadow_banned`, y ese mismo archivo
       revoca el `select` sobre `profiles` y lo reconcede sin esa columna. Las
       expresiones de una política se evalúan con los privilegios de quien
@@ -336,6 +380,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       política, pero rehacer la política de lectura de `posts` es un cambio que
       usan otros bloques y no se hace unilateralmente. B03 lo sortea con las RPC
       de `0103_1_b03_publicar.sql` · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): 0005 saco la condicion a `esta_silenciado()` y 0006 cerro el grant. Comprobado contra la base: la politica delega en la funcion y la funcion mira `shadow_banned`. Vigilado ahora por `rls_politicas.sql` en los DOS saltos.
 - [ ] **De B03 → B01** · `codigoDesdePostgres()` de `lib/auth/errores.ts` traduce
       **todo** `23514` a `reciprocidad`. En `posts` hay DOS 23514 distintos: el
       del trigger `trg_posts_reciprocity` (mensaje `reciprocidad: …`) y el CHECK
@@ -358,22 +403,37 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       reimplementa ni una regla. Igual con `assertNoPii`, que la ficha B03 sitúa
       en `lib/moderation.ts` y en realidad vive en `lib/anonymity.ts` ·
       2026-08-03
-- [ ] **De B03 → F3** · `RATE_LIMITS.createPost` de `lib/rateLimit.ts` fija 10/h;
+- [x] **De B03 → F3** · `RATE_LIMITS.createPost` de `lib/rateLimit.ts` fija 10/h;
       la ficha B03 exige 5/h y su prueba nº 7 comprueba la sexta publicación.
       B03 usa sus propios números en `app/api/posts/_dominio/servidor.ts`. Hay
       que unificar el valor en un solo sitio · 2026-08-03
-- [ ] **De B03 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+      → CERRADO 2026-08-05: no había nada que unificar. `RATE_LIMITS` no lo
+      llamaba NINGUNA ruta —solo se citaba en dos comentarios— así que el 10/h
+      no estuvo nunca en vigor. Borrada la tabla y el atajo `limitAction()`;
+      en su sitio queda un índice de dónde vive la tabla de cada bloque, con
+      `lib/rateLimit.test.ts` obligándolo a estar completo. Manda 5/h.
+- [x] **De B03 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       `0103_1_b03_publicar.sql`: hoy no contiene `b03_publicar_post`,
       `b03_editar_post` ni `b03_retirar_post`. Mientras tanto las rutas declaran
       a mano la fila que devuelven, con el comentario que dice por qué ·
       2026-08-03
-- [ ] **De B03 → F4** · `SUPABASE_SERVICE_ROLE_KEY` está VACÍA en `.env.local`.
+      → CERRADO 2026-08-05: comprobado en `lib/supabase/database.types.ts`,
+      están las tres (`b03_publicar_post`, `b03_editar_post`,
+      `b03_retirar_post`). Las rutas pueden dejar de declarar la fila a mano.
+- [x] **De B03 → F4** · `SUPABASE_SERVICE_ROLE_KEY` está VACÍA en `.env.local`.
       `POST/PATCH/DELETE /api/posts` la necesitan (igual que `/api/me` de B01):
       sin ella las rutas devuelven `error_interno`. Se copia a mano desde el
       panel de Supabase · 2026-08-03
-- [ ] **De B03 → F4** · `/publicar` debe estar en las rutas privadas de
+      → CERRADO 2026-08-05: la clave está puesta (y es la ROTADA tras la fuga
+      de la sesión del 04; la anterior devuelve 401). Comprobado por longitud,
+      sin imprimir el valor.
+- [x] **De B03 → F4** · `/publicar` debe estar en las rutas privadas de
       `proxy.ts` (exige sesión) y `/ayuda` en las públicas, que es a donde apunta
       la acción inmediata de la tarjeta de recursos · 2026-08-03
+      → CERRADO 2026-08-05: `proxy.ts` es privado POR DEFECTO —solo
+      `PUBLIC_ROUTES` se libra— así que `/publicar` ya exige sesión sin
+      necesidad de listarla. `/ayuda` sí está en la lista pública, con el
+      porqué escrito al lado.
 - [ ] **De B04 → B11** · el punto de extensión está listo: `ValidadorComentario`
       en `app/api/comments/tipos.ts` y la implementación por defecto
       (`ValidadorHeuristico`, sobre `lib/moderation.ts`) en
@@ -385,39 +445,72 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       pueden calcular mirando solo el texto. Una implementación con la firma
       exacta de la ficha sigue siendo asignable, así que B11 puede ignorarlo ·
       2026-08-03
-- [ ] **De B04 → B00 / F3** · dos límites para la misma acción:
+- [x] **De B04 → B00 / F3** · dos límites para la misma acción:
       `RATE_LIMITS.createComment` de `lib/rateLimit.ts` dice 30/h y la ficha B04
       dice 20/h. Manda `app/api/comments/limites.ts` (20/h) para las rutas de
       este bloque. Hay que decidir cuál es el bueno y dejar uno solo ·
       2026-08-03
-- [ ] **De B04 → B00** · misma discrepancia que ya anotó B08 entre CONTRATOS §4
+      → CERRADO 2026-08-05: nunca fueron dos. El preset de 30/h era código
+      muerto (ver el apunte de B03 → F3, del mismo día). Manda 20/h, que es lo
+      que ya estaba en vigor.
+- [x] **De B04 → B00** · misma discrepancia que ya anotó B08 entre CONTRATOS §4
       (`{ ok, code, message }`, códigos en español) y `lib/apiErrors.ts`
       (`{ error, message, traceId }`, códigos en inglés). B04 usa los helpers de
       B01 (`lib/auth/http.ts` + `lib/auth/respuestas.ts`), que implementan §4 al
       pie de la letra, para que el hilo hable el mismo idioma que `/api/me` ·
       2026-08-03
-- [ ] **De B04 → cimientos (F1)** · `posts.reply_count` no baja nunca. El
+      → CERRADO 2026-08-05: `lib/apiErrors.ts` ya no existe. Manda CONTRATOS
+      §4 y los helpers de B01, que es lo que B04 ya usaba.
+- [x] **De B04 → cimientos (F1)** · `posts.reply_count` no baja nunca. El
       trigger `comments_on_validated()` solo suma al validar y no hay ninguno
       para el borrado blando, así que `DELETE /api/comments/[id]`
       (`state = 'removed'`) deja el contador alto y el `hot_score` inflado. No
       se toca 0001 desde aquí; necesita una migración de cimientos con un
       trigger `after update of state` · 2026-08-03
-- [ ] **De B04 → B15** · `0104_1_hilo.sql` añade la política `comments_update_own`
+      → CERRADO 2026-08-05 en `0217_1_b04_reply_count.sql`. No es un trigger que
+      reste: el contador depende de `is_validated` Y de `state`, así que
+      `comments_sync_reply_count()` calcula si la fila contaba antes, si cuenta
+      ahora, y aplica la diferencia. El `+1` sale de `comments_on_validated()`
+      —dos escritores del mismo contador es como se descuadró—. Con backfill,
+      porque `hot_score` pondera una respuesta 13,5 veces más que un voto y los
+      hilos ya limpiados seguían subiendo. Regresión en `rls_regresiones.sql`.
+      → CERRADO 2026-08-05 (auditoria): (marca corregida) cerrado en `0217_1_b04_reply_count.sql`; ver la nota de abajo.
+- [x] **De B04 → B15** · `0104_1_hilo.sql` añade la política `comments_update_own`
       que faltaba: 0001 concedía `grant update (body, state) on comments` sin
       ninguna política de UPDATE, de modo que editar o retirar un comentario
       devolvía 200 sin escribir nada (el mismo fallo silencioso que 0004
       documenta para el INSERT, en el otro sentido). Verificado contra la base:
       el autor edita su fila, un tercero edita 0 filas. Conviene un caso en
       `supabase/tests/*.sql` · 2026-08-03
-- [ ] **De B04 → B15** · `lib/supabase/database.types.ts` sigue sin la función
+      → CERRADO 2026-08-05 (auditoria): la politica `comments_update_own` esta aplicada (0104_1). El apunte era el registro del arreglo, no trabajo pendiente. El caso en `supabase/tests/*.sql` llego con la regresion de `previos_del_autor` (0222), que retira y reactiva un comentario.
+- [x] **De B04 → B00** · ese mismo `grant update (body, state)` abría un farmeo
+      con forma de botón: pegar la plantilla, cobrar karma, RETIRAR el propio
+      comentario —con lo que su texto salía de `comments_read`, que filtra
+      `state = 'active'`— y volver a pegarla en otro post sin nada con lo que
+      compararla. `self_repetition` quedaba ciega y el karma no vuelve (0217, a
+      propósito), así que el ciclo era puro beneficio y repetible sin límite ·
+      2026-08-05
+      → CERRADO 2026-08-05 en `0222_1_b04_previos_del_autor.sql`. Se descartó el
+      CUARTO uso del cliente admin que esto parecía pedir: en su lugar hay una
+      función `security definer` que saca el autor de `auth.uid()`, así que ya
+      no existe ningún parámetro con el que pedir el historial de otra persona
+      —superficie más estrecha que la de antes, no más ancha—. Tampoco se relajó
+      `comments_read`: copiar el «el autor ve siempre lo suyo» de `posts_read`
+      habría hecho reaparecer en el hilo los comentarios retirados. Verificado
+      contra Postgres real (retirado = 1 fila, ajeno = 0) y con regresión pgTAP
+      que usa rol y JWT de sesión, no `postgres`.
+- [x] **De B04 → B15** · `lib/supabase/database.types.ts` sigue sin la función
       `marcar_comentario_util()` de `0104_2_marcar_util.sql`. Mientras tanto,
       `app/api/comments/[id]/util/route.ts` declara a mano la fila que devuelve
       (`FilaMarca`) · 2026-08-03
-- [ ] **De B04 → B07** · `npx tsc --noEmit` falla hoy en
+      → CERRADO 2026-08-05: `marcar_comentario_util` ya está en
+      `lib/supabase/database.types.ts`.
+- [x] **De B04 → B07** · `npx tsc --noEmit` falla hoy en
       `components/video/TarjetaVideo.tsx(73,36)`: `ItemVideo` no es asignable a
       `CandidatoEmbed` (le faltan `platform` y `external_id`). No es de B04 y no
       se ha tocado; el resto del árbol compila · 2026-08-03
-- [ ] **De B05 → B00 / F1** · `authenticated` no tiene privilegio de SELECT
+      → CERRADO 2026-08-05: `npx tsc --noEmit` pasa limpio en todo el árbol.
+- [x] **De B05 → B00 / F1** · `authenticated` no tiene privilegio de SELECT
       sobre `profiles.listens_given` ni `profiles.posts_published`, así que el
       **perfil ajeno no puede mostrarlos** (comprobado contra `darma-dev` con
       dos sesiones reales: 403 `42501 permission denied`). La ficha B05 los
@@ -428,6 +521,19 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       nadie lo relacione después. Hace falta decidir: (a) son públicos de verdad
       y el sitio de arreglarlo es el esquema, o (b) no lo son y la ficha B05 y
       `CONTRATOS.md` deben decirlo. Afecta a B06 (ranking de escuchas) · 2026-08-03
+      → CERRADO 2026-08-05: se decide la opcion (b) —NO son publicos— y se
+      escribe en los tres sitios que se contradecian: `0223_1_b00_contadores_privados.sql`
+      (revoke explicito + `comment on column`), CONTRATOS §2 y esta misma ficha B05,
+      que era quien los llamaba «contadores publicos». Razones: `posts_published` es
+      cuantas veces has PEDIDO ayuda, y publicar el agregado convierte «lo esta pasando
+      mal a menudo» en un dato de un vistazo; `listens_given` es la misma senal que el
+      tablero de B06 pero SIN el techo diario (`LISTENS_DIA_MAX` = 12), asi que
+      publicarlo pondria al lado del tablero un numero mayor y sin limite que premia
+      justo lo que el techo frena —el techo dejaria de acotar nada—. Para B06 no cambia
+      nada: su ranking publica `ranking_snapshots.listens`, no este contador, y
+      `lib/ranking/movimiento.test.ts` ya lo afirmaba. Vigilado por tres casos nuevos en
+      `rls_privilegios.sql`. Comprobado contra la base: privados los dos, `alias` y
+      `karma_reputation` siguen publicos.
 - [ ] **De B05 → B00** · el presupuesto de «3 consultas para el perfil propio»
       de la ficha ya no es alcanzable: son 4 (`profiles` público +
       `mi_perfil_privado()` + `mi_resumen_karma()` + primera página del ledger).
@@ -443,13 +549,17 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       configurado. Hace falta una vía de rate limiting que no obligue a
       `service_role` — conceder la RPC a `authenticated` es defendible, porque
       cuenta y no lee datos de nadie · 2026-08-03
-- [ ] **De B05 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+- [x] **De B05 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       `0105_1_b05_perfil.sql`: hoy no contiene `profiles.streak_days`,
       `profiles.streak_last_date`, `mi_resumen_karma()` ni
       `mi_historial_karma()`. Mientras tanto `components/perfil/tipos.ts`
       declara a mano `FilaPerfilPublica`, `FilaPerfilPrivada`, `FilaResumenKarma`
       y `FilaEventoKarma`, con el comentario que dice por qué y qué las
       sustituye · 2026-08-03
+      → CERRADO 2026-08-05: están las cuatro en
+      `lib/supabase/database.types.ts` (`streak_days`, `streak_last_date`,
+      `mi_resumen_karma`, `mi_historial_karma`). `components/perfil/tipos.ts`
+      puede dejar de declarar sus cuatro filas a mano.
 - [ ] **De B05 → B00** · los módulos puros de `components/perfil/` importan
       `../../lib/karma.ts` con ruta relativa de dos niveles, que CONTRATOS §1
       desaconseja. Es obligado: `node --test` no resuelve el alias `@/` del
@@ -457,12 +567,13 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       CONTRATOS §8, que es la regla más fuerte de las dos. Mismo precedente que
       `scripts/security/guardEconomia.ts` (B15). Si B00 monta un `imports` de
       package.json o un loader para los tests, se cambia en un sitio · 2026-08-03
-- [ ] **De B05 → B00** · B05 usa los helpers de `lib/auth/**` (`manejarRuta`,
+- [x] **De B05 → B00** · B05 usa los helpers de `lib/auth/**` (`manejarRuta`,
       `sobreOk`, `ErrorApi`) y no `lib/apiErrors.ts`, porque son los que
       implementan la forma `{ ok, code, message, retryAfter }` de CONTRATOS §4
       que exige el contrato de la ficha. Es la misma divergencia que ya anotó
       B08 desde el otro lado; al resolverla, B05 tiene tres rutas y una Server
       Action que cambiar · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `lib/apiErrors.ts` ya no existe.
 - [ ] **De B07 → B01 / B17** · el feed de `/animo` filtra por `content_items.language`
       y hoy usa `'es'` fijo (parámetro `?idioma=` opcional). Hace falta un
       `idiomaDeSesion()` —o un campo de idioma en `mi_sesion()`— para servir el
@@ -475,11 +586,12 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       de 8 minutos el +1 se concede a los 54 s. Si la ingesta pudiera traer la
       duración (oEmbed no la da; `videos.list` sí, pero gasta cuota), el umbral
       del 90 % sería exacto · 2026-08-03
-- [ ] **De B07 → B15** · `lib/supabase/database.types.ts` debe regenerarse tras
+- [x] **De B07 → B15** · `lib/supabase/database.types.ts` debe regenerarse tras
       `0107_1_b07_reproduccion.sql`: hoy no contiene `content_sessions` ni las
       funciones `abrir_sesion_contenido`, `latido_contenido`,
       `completar_contenido`, `barrer_sesiones_contenido` ni `feed_animo`.
       Mientras tanto `lib/video/tipos.ts` declara `FilaFeed` a mano · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `content_sessions` esta en `database.types.ts`.
 - [ ] **De B07 → B15** · añadir a `supabase/tests/*.sql` la prueba de regresión
       del farmeo de contenido, que hoy solo está verificada a mano contra
       `darma-dev`: con rol `authenticated` y un JWT real, deben fallar con 42501
@@ -493,13 +605,14 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       el plan ya es `Index Scan using idx_content_feed` + sonda por la PK de
       `content_views` (0,7 ms, sin `Seq Scan`), pero el número que pide
       CONTRATOS §11 exige la siembra de B14 · 2026-08-03
-- [ ] **De B07 → B00** · `HANDOFF/B07.md` §1a pide `revoke update (completed,
+- [x] **De B07 → B00** · `HANDOFF/B07.md` §1a pide `revoke update (completed,
       completed_at) on content_views from authenticated`. Ya no aplica: la
       corrección de auditoría de `0002` + `0004` dejó a `authenticated` sin
       NINGÚN privilegio de UPDATE sobre esa tabla y sin política de UPDATE, así
       que `0107_1` no revoca nada (repetirlo sería ruido) y solo aporta la RPC de
       latidos que la ficha da por hecha. Conviene actualizar la ficha para el
       próximo que la lea · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): el propio apunte decia que ya no aplica.
 - [ ] **De B07 → B00** · la firma real es `completar_contenido(p_user, p_content,
       p_session)`, no la `(p_content, p_session)` de la ficha: bajo `service_role`
       —la única identidad que puede ejecutarla— `auth.uid()` es NULL, así que el
@@ -543,9 +656,10 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `on profiles (id) where shadow_banned` para que la función sea un
       index-only scan diminuto en vez de depender del tamaño de la tabla.
       No lo añade B02: `profiles` no es suyo · 2026-08-03
-- [ ] **De B02 → B03 / B04** · las tarjetas enlazan a `/post/{id}` (hilo, B04) y
+- [x] **De B02 → B03 / B04** · las tarjetas enlazan a `/post/{id}` (hilo, B04) y
       el estado vacío del feed a `/publicar` (B03). Ninguna de las dos rutas
       existe todavía: hoy son 404 · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `/post/[id]` y `/publicar` existen.
 - [ ] **De B02 → B09** · el hueco de la encuesta está reservado y tipado:
       `ElementoFeed = { tipo: 'encuesta'; encuestaId }`, slot fijo 8 de cada
       página, y el placeholder es `components/feed/SlotEncuesta.tsx`. B09 debe
@@ -553,19 +667,20 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       la encuesta NO puede añadir una consulta por tarjeta (sería un N+1 en la
       pantalla más cargada de la app): una sola consulta por página con
       `in (ids)`. El id ya viene resuelto por `feed_encuestas_keyset` · 2026-08-03
-- [ ] **De B02 → B15** · `lib/supabase/database.types.ts` debe regenerarse
+- [x] **De B02 → B15** · `lib/supabase/database.types.ts` debe regenerarse
       DESPUÉS de `0102_1_feed_keyset.sql`: hoy no contiene `feed_keyset`,
       `feed_keyset_nuevo`, `feed_contenido_keyset` ni `feed_encuestas_keyset`.
       Mientras tanto, `app/api/feed/consulta.ts` declara a mano `FilaFeedPost`,
       `FilaFeedContenido` y `FilaFeedEncuesta`, con el comentario que dice por
       qué y qué las sustituye · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `feed_keyset` esta en `database.types.ts`.
 - [ ] **De B02 → B17 / B01** · el idioma del contenido curado sale hoy de la
       cabecera `Accept-Language` (`idiomaDeContenido()` en
       `app/api/feed/validacion.ts`). Debería salir de la preferencia GUARDADA de
       la persona: la cabecera del navegador es una conjetura, y en el feed de
       bienestar equivocarse significa servir un catálogo que no se entiende ·
       2026-08-03
-- [ ] **De B02 → B00** · tercera confirmación de la divergencia ya abierta por
+- [x] **De B02 → B00** · tercera confirmación de la divergencia ya abierta por
       B01 y B08 entre `CONTRATOS.md` §4 y `lib/apiErrors.ts`. B02 **no** ha
       escrito una cuarta implementación: consume la de B01
       (`lib/auth/errores.ts` + `respuestas.ts` + `http.ts`), que es la que
@@ -573,21 +688,24 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       propia ficha B02 exige en su §Contrato. Si B00 unifica hacia
       `lib/apiErrors.ts`, hay que tocar `app/api/feed/route.ts`,
       `consulta.ts` y `validacion.ts` · 2026-08-03
-- [ ] **De B02 → B00** · nombre de migración: la ficha B02 pedía
+      → CERRADO 2026-08-05 (auditoria): `lib/apiErrors.ts` ya no existe.
+- [x] **De B02 → B00** · nombre de migración: la ficha B02 pedía
       `supabase/migrations/0004_b02_feed.sql`, pero `0004_insert_columnas.sql` ya
       existe y está aplicada. Se ha usado `0102_1_feed_keyset.sql`, que es el
       rango que reserva `PARALELO.md` §3 para B02. Conviene corregir la ficha ·
       2026-08-03
-- [ ] **De B02 → B15** · el script `test` de `package.json` sigue siendo
+      → CERRADO 2026-08-05 (auditoria): registro de una decision ya tomada: manda `0102_1_feed_keyset.sql`.
+- [x] **De B02 → B15** · el script `test` de `package.json` sigue siendo
       `"lib/**/*.test.ts"`, así que **las 36 pruebas de B02 no se ejecutan en
       CI**: viven en `app/api/feed/*.test.ts`, donde manda la propiedad de
       archivos. Se suma al mismo pedido que ya abrió B17 para `i18n/`. Propuesta:
       `node --test --experimental-strip-types "lib/**/*.test.ts" "i18n/*.test.ts" "app/api/**/*.test.ts"` ·
       2026-08-03
+      → CERRADO 2026-08-05 (auditoria): el glob de `npm test` ya incluye `app/**`, `components/**`, `i18n/*` y `scripts/**`.
 
 ## Pedidos añadidos por B13 · Push y PWA (2026-08-03)
 
-- [ ] **De B13 → F4** · faltan cinco variables en `.env.example`. **Ninguna
+- [x] **De B13 → F4** · faltan cinco variables en `.env.example`. **Ninguna
       salvo la última lleva prefijo `NEXT_PUBLIC_`**: `VAPID_PUBLIC_KEY`,
       `VAPID_PRIVATE_KEY` (⚠️ **SECRETA**: una privada VAPID filtrada permite a
       un tercero enviar notificaciones que el navegador acepta como nuestras —
@@ -602,6 +720,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       vaciar `push_subscriptions` y volver a pedir permiso, o cada envío dará
       403 (que no es 410, así que la limpieza automática no lo arregla) ·
       2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `VAPID_PUBLIC_KEY` y las demas estan en `.env.example`.
 - [ ] **De B13 → B01** · en el logout hay que avisar al service worker para que
       borre las cachés: `avisarCierreDeSesion()` de `@/components/pwa` (un
       `postMessage({tipo:'darma:logout'})`; el handler ya está en
@@ -641,13 +760,16 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       camino normal es el de la ficha. Razonado en la cabecera de
       `lib/push/horario.ts` y fijado por la prueba `10c`. Si producto prefiere
       el literal, es una línea · 2026-08-03
-- [ ] **De B13 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+- [x] **De B13 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       aplicar `0131_b13_push.sql`: hoy no contiene `push_subscriptions`,
       `notification_prefs`, `push_dispatch_state` ni las funciones
       `is_blocked_between()` y `destinatarios_alma_afin()`. Mientras tanto,
       `app/api/push/prefs/route.ts` declara `FilaPrefs` a mano y
       `lib/push/tipos.ts` declara `Suscripcion`, con el comentario que dice por
       qué · 2026-08-03
+      → CERRADO 2026-08-05: están las tres tablas y las dos funciones.
+      `app/api/push/prefs/route.ts` y `lib/push/tipos.ts` pueden dejar de
+      declarar `FilaPrefs` y `Suscripcion` a mano.
 - [ ] **De B13 → B15** · conviene un caso en `supabase/tests/*.sql` con la
       invariante entera de este bloque, hoy solo verificada a mano contra
       `darma-dev`: con rol `authenticated` y un JWT real deben fallar con 42501
@@ -705,7 +827,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       declara la deuda en `pendienteDeOtrosBloques` en vez de darla por hecha
       (lección de `rgpdErase.ts`: lo que ninguna fila referencia sobrevive) ·
       2026-08-03
-- [ ] **De B20 → B08 / B00** · falta el **cron que ejecuta los borrados
+- [x] **De B20 → B08 / B00** · falta el **cron que ejecuta los borrados
       vencidos**. Las piezas ya están en Postgres: `borrados_vencidos(limite)`
       devuelve los `user_id` cuyos 30 días de arrepentimiento han pasado y
       `borrar_usuario(user)` los ejecuta. Falta un handler bajo `/api/cron/…`
@@ -713,11 +835,13 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       autentique con `CRON_SECRET` y los recorra. **Sin ese cron, ningún borrado
       confirmado llega a ejecutarse nunca** — el art. 12.3 da un mes ·
       2026-08-03
-- [ ] **De B20 → B08 / B00** · mismo caso para `purgar_retencion(lote)`: la
+      → CERRADO 2026-08-05 (auditoria): el trabajo `rgpd-borrados` es el PRIMERO de `PLAN_DIARIO` (`lib/cron/trabajos/rgpd.ts`), por plazo legal.
+- [x] **De B20 → B08 / B00** · mismo caso para `purgar_retencion(lote)`: la
       función existe y borra por lotes acotados, pero nadie la invoca. Sin cron,
       `content_views`, `rate_limits`, `refuge_messages`, `moderation_flags` y
       `crisis_events` crecen sin límite y `/legal/retencion` promete plazos que
       no se cumplen · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): el trabajo `rgpd-retencion` es el segundo de `PLAN_DIARIO`.
 - [ ] **De B20 → B00 / B15** · ⚠️ **CAMBIO DE ESQUEMA QUE MERECE REVISIÓN**: la
       migración `0201_1_b20_privacidad.sql` **elimina la FK
       `profiles.id → auth.users(id) on delete cascade`**. Motivo: esa cascada
@@ -732,11 +856,12 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `trg_profiles_exige_auth_user`. Consecuencia asumida: tras el borrado, la
       fila de `profiles` queda huérfana a propósito (es una lápida). Verificado
       contra `darma-dev` · 2026-08-03
-- [ ] **De B20 → B00** · la ficha B20 pide la migración
+- [x] **De B20 → B00** · la ficha B20 pide la migración
       `supabase/migrations/0020_b20_privacidad.sql`, pero el rango de B20 en
       `PARALELO.md` §3 es `0201`–`0209` y `0020` invadiría el de los cimientos.
       Se ha usado `0201_1_b20_privacidad.sql`. Conviene corregir la ficha
       (misma corrección que ya pidió B02) · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): registro de una decision ya tomada: manda el rango 0201-0209.
 - [ ] **De B20 → B00** · dos firmas del §Contrato de la ficha B20 no se pueden
       cumplir tal cual y se han resuelto así: (a) `consentimientosVigentes`,
       `registrarConsentimiento`, `construirExportacion` y `ejecutarBorrado`
@@ -748,12 +873,13 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       chequeo convertiría un id filtrado en el borrado de una cuenta ajena. La
       real es `confirmarBorradoCon(supabase, solicitudId, userId, token)` ·
       2026-08-03
-- [ ] **De B20 → B15** · `lib/supabase/database.types.ts` debe regenerarse
+- [x] **De B20 → B15** · `lib/supabase/database.types.ts` debe regenerarse
       DESPUÉS de `0201_1_b20_privacidad.sql`: hoy no contiene `consents`,
       `privacy_requests`, `retired_aliases`, `profiles.deleted_at` ni las nueve
       funciones nuevas. Mientras tanto, `lib/privacy/exportar.ts` y
       `consentimientos.ts` declaran a mano las formas de fila, con el comentario
       que dice por qué · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `consents` y `privacy_requests` estan en `database.types.ts`.
 - [ ] **De B20 → B17** · deuda de traducción: las páginas de `app/(legal)/**`
       llevan el texto en **español directo**, no `t('…')`. El guard
       `ningún archivo NUEVO de app/** o components/** trae texto sin traducir`
@@ -777,7 +903,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       comentarios** tras el borrado al amparo del art. 17.3.e. Las dos están
       escritas y razonadas en `/legal/menores` y `/legal/privacidad` ·
       2026-08-03
-- [ ] **De B20 → quien opere `darma-dev`** · ⚠️ el proyecto de desarrollo
+- [x] **De B20 → quien opere `darma-dev`** · ⚠️ el proyecto de desarrollo
       ha entrado en **modo SOLO LECTURA** (`default_transaction_read_only = on`,
       750 MB de base) mientras otro bloque sembraba en masa. No es de B20 —los
       datos de prueba de este bloque se sembraron y se borraron, y el recuento
@@ -791,15 +917,17 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       —Postgres rechaza llamar a una función `returns trigger` fuera de un
       trigger— pero es la misma superficie que `0003` §3 se molestó en cerrar) ·
       2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `darma-dev` esta `ACTIVE_HEALTHY` y admite escrituras (verificado el 2026-08-05 aplicando 0222).
 
 ## Pedidos añadidos por B10 · Refugios y Almas Afines (2026-08-03)
 
-- [ ] **De B10 → B00 / F2** · el comentario de `refuge_messages.ciphertext` en
+- [x] **De B10 → B00 / F2** · el comentario de `refuge_messages.ciphertext` en
       `0002_comunidad.sql` sobre XChaCha20-Poly1305 **ya está corregido** en el
       árbol: dice AES-256-GCM con nonce de 12 bytes y explica que WebCrypto no
       implementa XChaCha. Se anota porque la ficha B10 lo pedía como pedido
       abierto y conviene que B00 lo dé por cerrado en vez de volver a abrirlo ·
       2026-08-03
+      → CERRADO 2026-08-05 (auditoria): el propio apunte decia que ya estaba corregido en el arbol.
 - [ ] **De B10 → B13 (BLOQUEANTE PARA B13, LEER ENTERO)** · la notificación push
       de un mensaje de refugio **NO PUEDE LLEVAR CONTENIDO**. Ni el texto, ni un
       preview, ni un extracto, ni el alias de quien escribe, ni el título del
@@ -816,7 +944,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       propio dispositivo: no hay ninguna vía para que el servidor lea un mensaje
       de refugio, y no debe haberla. `moderation_flags.ref_type =
       'refuge_message'` + `ref_bigint` ya existe en 0002 para eso · 2026-08-03
-- [ ] **De B10 → B00 / F2 (SEGURIDAD · ya corregido por 0110_1)** · las cinco
+- [x] **De B10 → B00 / F2 (SEGURIDAD · ya corregido por 0110_1)** · las cinco
       tablas de refugio conservaban el **INSERT íntegro** para `authenticated`:
       el mismo agujero que `0004` documenta para `posts` y `comments`, en cinco
       tablas más. Comprobado contra `darma-dev` antes de tocar nada. Lo que
@@ -839,7 +967,8 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `0110_1_b10_claves.sql` §4 lo cierra enumerando las columnas escribibles.
       **Conviene revisar con el mismo criterio toda tabla futura**: RLS decide
       filas, solo el privilegio de columna decide columnas · 2026-08-03
-- [ ] **De B10 → B00 / F2 (SEGURIDAD · NO corregido, no es mi archivo)** · la
+      → CERRADO 2026-08-05 (auditoria): el propio apunte decia que 0110_1 ya lo corrigio.
+- [x] **De B10 → B00 / F2 (SEGURIDAD · NO corregido, no es mi archivo)** · la
       política `refuge_members_join` de `0002` permite que **cualquiera se
       inserte a sí mismo en cualquier refugio**: `user_id = (select auth.uid())`
       es una de las dos ramas del OR. Hoy la explotación exige conocer el uuid de
@@ -852,6 +981,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       repositorio**. B10 no edita `0002` y tampoco lo ha rodeado. El arreglo
       natural es una tabla de invitaciones con token de un solo uso, o exigir en
       esa rama que exista una invitación vigente · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): YA NO permite que cualquiera se meta en cualquier sala. Comprobado contra la base: el `with check` de `refuge_members_join` exige ser el creador del refugio o anfitrion con `left_at is null`, y ademas `not refuge_has_block(...)`.
 - [ ] **De B10 → B00** · desviación deliberada del contrato de la ficha:
       `envolverParaMiembro(claveRefugio, jwkDestino, privadaEmisor)` y
       `abrirSobre(sobre, jwkEmisor, privadaReceptor)` reciben la clave privada
@@ -875,7 +1005,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `check_rate_limit` a `authenticated` (defendible: cuenta, no lee datos de
       nadie), esta función sobra. Mientras tanto es el patrón que recomiendo
       copiar en vez de dejar un bloque en la capa de memoria · 2026-08-03
-- [ ] **De B10 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
+- [x] **De B10 → B15** · regenerar `lib/supabase/database.types.ts` DESPUÉS de
       `0110_1_b10_claves.sql`: hoy no contiene `user_keys`,
       `refuge_key_envelopes`, `identity_backups` ni las funciones
       `b10_crear_refugio`, `b10_bandeja`, `b10_limitar` y
@@ -883,6 +1013,9 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `app/api/refuges/_dominio/servidor.ts` declara a mano `FilaRefugio`,
       `FilaMensaje`, `FilaClavePublica` y `FilaSobre`, con el comentario que dice
       por qué y qué las sustituye · 2026-08-03
+      → CERRADO 2026-08-05: están las tres tablas y las cuatro funciones.
+      `app/api/refuges/_dominio/servidor.ts` puede dejar de declarar sus
+      cuatro filas a mano.
 - [ ] **De B10 → B15** · la suite de intrusión específica de refugios está
       escrita y ejecutada, pero vive en el **scratchpad de la sesión**, no en
       `scripts/security/` (que es de B15 y este bloque no edita). Son 30 casos
@@ -891,8 +1024,9 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       sobres; que el bloqueo hace desaparecer la sala para las dos partes; y que
       ninguna de las columnas cerradas en `0110_1` §4 se puede escribir. Merece
       entrar en `scripts/security/` junto a `intrusion.mjs` · 2026-08-03
-- [ ] **De B10 → F4** · `/refugios` y `/refugios/[id]` deben estar en las rutas
+- [x] **De B10 → F4** · `/refugios` y `/refugios/[id]` deben estar en las rutas
       PRIVADAS de `proxy.ts`: exigen sesión · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `proxy.ts` es privado POR DEFECTO —solo `PUBLIC_ROUTES` se libra— asi que `/refugios` y `/refugios/[id]` ya exigen sesion sin necesidad de listarlas.
 - [ ] **De B10 → B17 (deuda de traducción)** · todo el copy de
       `components/refuge/**` y `app/(app)/refugios/**` está escrito **en español
       directamente en el JSX**, sin pasar por `messages/`. Los tres textos que
@@ -930,7 +1064,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       borrado avise de que **la copia de seguridad opt-in
       (`identity_backups`) también se borra** y con ella la última vía de
       recuperar el historial · 2026-08-03
-- [ ] **De B10 → B15 / B14 (INCIDENCIA DE ENTORNO, no de código)** · el proyecto
+- [x] **De B10 → B15 / B14 (INCIDENCIA DE ENTORNO, no de código)** · el proyecto
       `darma-dev` entró en **modo solo lectura** a mitad de esta sesión por
       superar la cuota de disco: 783 MB, con `poll_votes` (275 MB),
       `ranking_snapshots` (167 MB) y `listen_daily` (151 MB) sembradas por otros
@@ -939,6 +1073,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       forma de probar RLS de verdad. Hace falta una regla operativa explícita en
       `PARALELO.md`: **quien siembra, borra antes de cerrar**, y B14 en instancia
       propia sí o sí · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `darma-dev` opera con normalidad.
 - [ ] **De B09 → B02** · punto de inserción de la encuesta en el feed. B09 no ha
       tocado `components/feed/**`. Lo que hay que hacer en `SlotEncuesta.tsx` es
       sustituir **el cuerpo** conservando la prop `encuestaId`, y pintar
@@ -951,11 +1086,12 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `feed_encuestas_keyset` **no filtra por idioma ni excluye lo ya votado o
       descartado**, así que sus ids pueden ser encuestas que esa persona no
       debería volver a ver · 2026-08-03
-- [ ] **De B09 → F4** · añadir el cron a `vercel.json`:
+- [x] **De B09 → F4** · añadir el cron a `vercel.json`:
       `{"path":"/api/polls/reponer","schedule":"41 3 * * *"}`. Sin él, el pool de
       encuestas activas se agota y el carril del feed se apaga en silencio. El
       handler se autentica solo con `CRON_SECRET` (fail-closed, `timingSafeEqual`)
       · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): la reposicion de encuestas vive en `lib/cron/trabajos/comunidad.ts`, dentro del despachador diario.
 - [ ] **De B09 → B01** · reservar el alias `Darma` en el registro. La migración
       `0109_1_b09_encuestas.sql` crea el perfil de sistema con id fijo
       `0da12a00-0000-4000-8000-000000000009` y alias `Darma` (es el `author_id`
@@ -983,12 +1119,13 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `lib/polls/riesgo.ts` y `esquemaEncuestaNueva` en `lib/polls/validacion.ts`
       para quien la añada (¿el composer de B03?). Hay que decidir de quién es esa
       ruta · 2026-08-03
-- [ ] **De B09 → B00** · nombre de migración: la ficha pedía
+- [x] **De B09 → B00** · nombre de migración: la ficha pedía
       `supabase/migrations/0009_b09_encuestas.sql`, pero `0009` cae en el rango
       de cimientos (`0001`–`0099`). Se ha usado `0109_1_b09_encuestas.sql` +
       `0109_2_b09_indice_descartes.sql`, que es el rango `0109x` que reserva
       `PARALELO.md` §3 para B09. Mismo caso que ya reportó B02 · 2026-08-03
-- [ ] **De B09 → B00 / F2** · **tres agujeros del esquema de encuestas cerrados
+      → CERRADO 2026-08-05 (auditoria): registro de una decision ya tomada: manda `0109_1_b09_encuestas.sql`.
+- [x] **De B09 → B00 / F2** · **tres agujeros del esquema de encuestas cerrados
       por `0109_1`**, y los tres nacieron en `0002`/`0004`. Merecen revisión
       porque el patrón se repite en otras tablas: (a) `0004_insert_columnas.sql`
       enumeró las columnas insertables de `comments`, `posts`, `post_votes`,
@@ -1000,13 +1137,15 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       era legible con la anon key, lo que dejaba el umbral de revelación en
       decorativo. Conviene pasar la misma revisión por `refuges`, `kindred` y
       `content_items` · 2026-08-03
-- [ ] **De B09 → B00 / F2** · `0109_1` **reescribe tres políticas de `0002`**
+      → CERRADO 2026-08-05 (auditoria): los tres agujeros los cerro `0109_1`. El apunte era el registro del arreglo.
+- [x] **De B09 → B00 / F2** · `0109_1` **reescribe tres políticas de `0002`**
       (`poll_options_read`, `poll_options_insert_author`, `poll_votes_insert_own`)
       para sacar las subconsultas contra `polls` a funciones `security definer`
       (`encuesta_visible`, `soy_autor_encuesta`, `encuesta_admite_voto`), que es
       la regla que dejó `0005_politica_posts_read.sql`. De paso,
       `poll_votes_insert_own` ahora comprueba que la encuesta esté activa y no
       cerrada: antes se podía votar en una encuesta oculta o caducada · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): las tres politicas estan reescritas por `0109_1`. El apunte era el registro del arreglo.
 - [ ] **De B09 → B06** · `public.ranking_snapshots` **no tiene ningún índice que
       empiece por `user_id`** (la PK es `(period, period_start, user_id)` y
       `idx_ranking_board` empieza por `period`). Consecuencia medida al limpiar
@@ -1023,19 +1162,20 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `PARALELO.md` §3 opción B; (2) `posts` (35 MB) y `auth.users` seguían
       hinchados de siembras anteriores de otros bloques — conviene `vacuum full`
       tras cada medición · 2026-08-03
-- [ ] **De B09 → B15** · las 67 pruebas de B09 viven en `lib/polls/*.test.ts`, que
+- [x] **De B09 → B15** · las 67 pruebas de B09 viven en `lib/polls/*.test.ts`, que
       SÍ entra en el glob actual de `npm test`. Pero `lib/supabase/database.types.ts`
       todavía no contiene `encuesta_siguiente`, `encuesta_resultados` ni
       `reponer_encuestas`, así que `lib/polls/tipos.ts` declara a mano
       `FilaEncuesta`, `FilaOpcion` y `FilaCadencia` con el comentario que dice
       por qué y qué las sustituye · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `poll_votes` esta en `database.types.ts`.
 - [ ] **De B09 → B17 / B01** · el idioma del pool de encuestas sale hoy de
       `Accept-Language` (`idiomaDeEncuestas()` en `lib/polls/validacion.ts`),
       igual que el del contenido curado en B02. Debería salir de la preferencia
       GUARDADA de la persona: servir una encuesta de bienestar en un idioma que
       no se domina es peor que no servirla · 2026-08-03
 
-- [ ] **De B06 → F4 · BLOQUEANTE del cron** · `proxy.ts` deja pasar sin sesión
+- [x] **De B06 → F4 · BLOQUEANTE del cron** · `proxy.ts` deja pasar sin sesión
       `/api/auth/`, `/api/cron/` y `/api/health`, pero **no** `/api/ranking/snapshot`.
       La ficha B06 prohíbe crear rutas bajo `/api/cron/*` (son de B08), así que el
       constructor vive en el prefijo de B06 y hoy el proxy le devuelve 401 antes
@@ -1044,23 +1184,26 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       autentica sola con `CRON_SECRET` en tiempo constante y fail-closed
       (`lib/ranking/cronAuth.ts`), igual que hacen los tres crons de B08 ·
       2026-08-03
-- [ ] **De B06 → F4** · entrada de cron en `vercel.json` (no es de B06):
+      → CERRADO 2026-08-05 (auditoria): `/api/ranking/snapshot` esta en `PUBLIC_ROUTES` de `proxy.ts`, con el porque escrito al lado.
+- [x] **De B06 → F4** · entrada de cron en `vercel.json` (no es de B06):
       `{"path":"/api/ranking/snapshot","schedule":"7 * * * *"}`. El minuto 7 y no
       el 0 es deliberado: a la hora en punto compiten los crons de medio
       internet. `maxDuration` 60 y presupuesto interno de 50 s; si un corte no
       cabe, la respuesta trae `completado:false` + `ultimoUsuario` y el disparo
       siguiente continúa desde ahí · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): el snapshot corre en `/api/cron/frecuente` y ademas en el diario como red de seguridad.
 - [ ] **De B06 → B05 y B13** · ya está disponible `obtenerPosicionDe(userId,
       periodo): Promise<FilaRanking | null>` en `lib/ranking/index.ts`. Usa el
       cliente RLS (no el admin) y lee por PK, así que sirve para «tu posición» en
       el perfil (B05) y para decidir el push «has entrado al podio» (B13) sin
       paginar. **`null` no es un error**: quien no ha acompañado a nadie en el
       periodo simplemente no está en la foto · 2026-08-03
-- [ ] **De B06 → B15** · `lib/supabase/database.types.ts` debe regenerarse
+- [x] **De B06 → B15** · `lib/supabase/database.types.ts` debe regenerarse
       DESPUÉS de `0106_1/2/3`: hoy no contiene `ranking_tablero`, `ranking_fila`,
       `construir_ranking_snapshot`, `listen_daily` ni `ranking_snapshots`.
       Mientras tanto `lib/ranking/tipos.ts` declara a mano `FilaTableroSql`, con
       el comentario que dice por qué y qué la sustituye · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `ranking_tablero` y `construir_ranking` estan en `database.types.ts`.
 - [ ] **De B06 → B00 · DOS BUGS EN EL SQL DE LA FICHA `B06.md`, encontrados
       midiendo, no leyendo. Conviene corregir la ficha antes de que alguien la
       copie.**
@@ -1077,17 +1220,19 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       desaparecen del tablero** sin que nada lo indique. B06 pagina por la tupla
       `(rank, user_id)` y el índice es `(period, period_start, rank, user_id)` ·
       2026-08-03
-- [ ] **De B06 → B00** · nombre de migración: la ficha pedía
+- [x] **De B06 → B00** · nombre de migración: la ficha pedía
       `supabase/migrations/0006_b06_ranking.sql`, pero `0006_cerrar_shadow_banned.sql`
       ya existe y está aplicada. Se ha usado el rango `0106x` que reserva
       `PARALELO.md` §3 (`0106_1`, `0106_2`, `0106_3`). Mismo caso que ya reportó
       B02 con `0004` · 2026-08-03
-- [ ] **De B06 → B00** · cuarta confirmación de la divergencia entre
+      → CERRADO 2026-08-05 (auditoria): registro de una decision ya tomada: manda `0106_1_b06_ranking.sql`.
+- [x] **De B06 → B00** · cuarta confirmación de la divergencia entre
       `CONTRATOS.md` §4 y `lib/apiErrors.ts`. B06 **no** ha escrito otra
       implementación: consume la de B01 (`lib/auth/errores.ts` + `respuestas.ts`),
       que es la que da el `{ ok, code, message, retryAfter }` literal del
       contrato. Si B00 unifica, hay que tocar `app/api/ranking/{route,validacion,
       respuesta}.ts` y las dos rutas hijas · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `lib/apiErrors.ts` ya no existe.
 - [ ] **De B06 → B00 / F3** · `lib/ranking/cronAuth.ts` es funcionalmente
       idéntico a `lib/ingest/cronAuth.ts` (B08). No se importa el de B08 porque
       `lib/ingest/**` es propiedad exclusiva suya y atar el arranque del cron del
@@ -1109,7 +1254,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       Ojo con dos que NO son literales sueltos: el plural de «persona acompañada
       / personas acompañadas» y el de «sube N puesto / puestos» necesitan reglas
       de plural, no concatenación · 2026-08-03
-- [ ] **De B06 → B14 / operaciones · el proyecto `darma-dev` se quedó SIN DISCO
+- [x] **De B06 → B14 / operaciones · el proyecto `darma-dev` se quedó SIN DISCO
       durante la medición** (`53100: No space left on device`), con la base en
       ~790 MB. No fue un bloque solo: coincidieron los 275 MB de `poll_votes` de
       B09 con la siembra de B06. Efectos observados: la construcción abortó a
@@ -1119,6 +1264,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       B14 haga su siembra de 1 M de filas, y (2) que cada bloque limpie al
       terminar — B06 dejó sus dos tablas a 0 filas y borró sus 100 006 perfiles y
       usuarios de prueba · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `darma-dev` opera con normalidad.
 - [ ] **De B06 → B14 · mejora de índice medida a medias, NO aplicada.** El
       agregado semanal del constructor usa `idx_listen_daily_day` como debe
       (`Index Cond: day >= .. AND day < ..`), pero necesita el heap para leer
@@ -1160,7 +1306,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       Petición concreta: que el panel de moderación no deje salir de un caso sin
       resolverlo, o que exista un motivo explícito de cierre («falso positivo»)
       que también marque `human_reviewed` · 2026-08-03
-- [ ] **De B19 → B11 · sustituir la allowlist de moderadores por el rol de la
+- [x] **De B19 → B11 · sustituir la allowlist de moderadores por el rol de la
       base.** `lib/ai/acceso.ts` decide quién es moderador con
       `MODERATION_ADMIN_IDS`, una lista de uuids en una variable de entorno.
       B19 ya tiene lo que hacía falta: `public.admin_roles` +
@@ -1174,6 +1320,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `/moderacion` y exige rol mínimo `soporte` en `admin_roles`, así que hoy
       un moderador que esté en la allowlist pero **no** en `admin_roles` recibe
       un 404 del layout antes de llegar a la página · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): hecho: `lib/ai/acceso.ts` autoriza por `admin_roles`.
 - [ ] **De B19 → B02 · no existe registro de «lectura de un post».** El cuarto
       escalón del embudo de activación de B19 («primera lectura») se aproxima
       hoy con la primera **interacción** con un post (`post_votes`), porque en
@@ -1193,7 +1340,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       (CONTRATOS §1): `node --test --experimental-strip-types` no resuelve el
       alias y la ficha exige poder probar esos módulos sin arrancar Next. Mismo
       criterio que ya siguen las pruebas de B02 y B06 bajo `app/` · 2026-08-03
-- [ ] **De B19 → B00 / operaciones · el PRIMER superadmin se siembra a mano, a
+- [x] **De B19 → B00 / operaciones · el PRIMER superadmin se siembra a mano, a
       propósito.** `admin_conceder_rol()` exige ya ser superadmin, así que no
       hay forma de crear el primero desde la aplicación — y es correcto que no
       la haya: un endpoint de «bootstrap» abierto cuando la tabla está vacía es
@@ -1202,6 +1349,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       (user_id, role) values ('<uuid>','superadmin')` ejecutado con acceso
       directo a la base, y conviene que quede documentado en el runbook de
       despliegue · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): hay 1 fila en `admin_roles`: el primer superadmin ya esta sembrado.
 - [ ] **De B19 → B14 / B15 · ocho índices nuevos sobre tablas de otros
       bloques.** `0191_1_b19_admin.sql` añade (solo añade, no modifica nada):
       `idx_comments_rollup_dia`, `idx_posts_rollup_dia`,
@@ -1245,9 +1393,9 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       integre, la suite solo corre en una máquina donde alguien haya repetido
       ese comando. Comprobado: `git status` limpio fuera de `e2e/**`,
       `playwright.config.ts`, `PEDIDOS.md` y `ESTADO.md` · 2026-08-03
-      → **Resuelto 2026-08-05:** `@playwright/test@^1.62.1` ya está en
+      → CERRADO 2026-08-05 (auditoría): `@playwright/test@^1.62.1` está en
       `devDependencies` (llegó con una integración anterior) y los dos scripts
-      `e2e` / `e2e:ui` se añaden hoy, tal cual se pedían
+      `e2e` / `e2e:ui` también, tal cual se pedían
 - [x] **De B18 → F4 (`.env.example`)** · documentar
       **`E2E_SUPABASE_PROJECT_REF`** (y opcionalmente `E2E_PORT`). Es el segundo
       cerrojo del fusible anti-producción de `e2e/utils/admin.ts`: contra una
@@ -1255,8 +1403,8 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       declarado a mano. Se pide una variable propia a propósito — si bastara con
       «la URL que hay en `.env.local`», apuntar la suite a producción sería
       cambiar una variable que ya existe · 2026-08-03
-      → **Resuelto 2026-08-05:** las dos documentadas en `.env.example`
-      (sección «Solo desarrollo y pruebas»), junto con
+      → CERRADO 2026-08-05 (auditoría): las dos están documentadas en
+      `.env.example` (sección «Solo desarrollo y pruebas»), junto con
       `NEXT_PUBLIC_E2E_STUB_PLAYER`, la bandera del stub del reproductor que
       SOLO declara el `webServer` de `playwright.config.ts`
 
@@ -1269,12 +1417,14 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `e2e/specs/09-proxy-sin-sesion.spec.ts` › «/ayuda es alcanzable SIN sesión
       y existe de verdad». Quítale el `fixme` en cuanto la página exista ·
       2026-08-03
-      → **Resuelto 2026-08-05:** `app/ayuda/page.tsx` existe y sigue pública en
-      `proxy.ts`; el `fixme` queda retirado hoy y la prueba corre como prueba
-      de verdad
+      → CERRADO 2026-08-05 (auditoría): `app/ayuda/page.tsx` existe y sigue
+      pública en `proxy.ts`. Era el único apunte marcado BLOQUEANTE DE
+      DESPLIEGUE y llevaba tiempo resuelto sin que nadie lo tachara; el `fixme`
+      queda retirado y la prueba corre como prueba de verdad
 - [x] **(Resuelto 2026-08-05: la clave ya sirve — el global setup la valida y
-      los recorridos corren de verdad; `06-feed-video` 4/4 en chromium. La fila
-      queda como historia.) De B18 → HUMANO · `SUPABASE_SERVICE_ROLE_KEY` no sirve contra `darma-dev`.**
+      los recorridos corren de verdad; la suite entera en verde en los dos
+      proyectos. La fila queda como historia.) De B18 → HUMANO ·
+      `SUPABASE_SERVICE_ROLE_KEY` no sirve contra `darma-dev`.**
       En `.env.local` está vacía; la que hay heredada del shell (`sb_secret_…`)
       la rechaza el proyecto con `Invalid API key … This API key might also be
       owned by another Supabase project` — **probablemente es de OTRO proyecto**,
@@ -1286,6 +1436,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `test.fixme()` con el motivo y **se ejecutarán solos** en cuanto la clave
       correcta esté puesta: el global setup la PRUEBA de verdad con una lectura
       mínima en vez de fiarse de que la variable exista · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): la clave esta puesta y es la ROTADA tras la fuga del 04.
 
 - [ ] **De B18 → B03 · `data-testid` en el composer de `/publicar`.** Hacen falta
       dos: `data-testid="escuchas-hechas"` con el número de escuchas hechas, y
@@ -1324,7 +1475,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `crypt()` y las columnas de token a cadena vacía. Anotado aquí porque
       afecta a cualquier bloque que quiera sesiones reales en sus pruebas ·
       2026-08-03
-- [ ] **De B18 → B15 / F1 · la Trampa #1 de la ficha YA ESTÁ CERRADA (informativo).**
+- [x] **De B18 → B15 / F1 · la Trampa #1 de la ficha YA ESTÁ CERRADA (informativo).**
       La ficha avisaba de que `profiles_read ... using (true)` dejaba leer
       `karma_spendable` y `crystals` de cualquiera por PostgREST. Verificado hoy
       contra `darma-dev` con una sesión `authenticated` real: **devuelve 42501**.
@@ -1335,6 +1486,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       (e) de B18 va como prueba de verdad y **no** como `fixme`: dejarlo
       aparcado sería quitar la vigilancia justo de la línea que cierra el
       agujero. Que nadie «simplifique» ese `grant` por columnas · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): el propio apunte era informativo y ya se declaraba cerrado. Vigilado por R5 en `rls_regresiones.sql`.
 
 ## Correcciones de integración (B00 · 2026-08-03)
 
@@ -1350,13 +1502,14 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 - [x] **CERRADO.** `crisis_events.human_reviewed` sí se escribe: lo hace
       `atenderCrisis()` de B11. Queda abierto solo que ese es el ÚNICO camino,
       así que la cobertura del 100 % depende de que la cola cierre cada caso.
-- [ ] **De B19 → B11** · unificar la autorización de administración: el panel
+- [x] **De B19 → B11** · unificar la autorización de administración: el panel
       exige rol en `admin_roles` y `lib/ai/acceso.ts` usa la allowlist
       `MODERATION_ADMIN_IDS`. Un moderador que esté en la allowlist pero no en
       la tabla recibe hoy un 404. Debe mandar `tiene_rol_admin()`: una lista de
       identificadores en una variable de entorno es exactamente lo que la ficha
       de B19 prohibía.
-- [ ] **De B12 → F4 · `proxy.ts` bloquea los dos webhooks de la tienda.**
+      → CERRADO 2026-08-05 (auditoria): hecho: una sola autorizacion, `admin_roles`.
+- [x] **De B12 → F4 · `proxy.ts` bloquea los dos webhooks de la tienda.**
       `PUBLIC_ROUTES` no incluye `/api/billing/`, así que una petición sin cookie
       a `/api/billing/webhook/apple` o `/api/billing/webhook/google` recibe un
       401 JSON antes de llegar al handler. Apple y Google lo interpretan como
@@ -1366,6 +1519,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `/api/billing/`: el resto de rutas del bloque sí exigen sesión). No he
       tocado `proxy.ts`; los handlers están probados invocándolos directamente ·
       2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `/api/billing/webhook/` esta en `PUBLIC_ROUTES` de `proxy.ts`, solo ese prefijo.
 - [ ] **De B12 → F2 / B15 · queda cerrado en `0121_1`, pero conviene revisarlo.**
       `crystal_ledger_read_own` de `0002` deja leer la FILA ENTERA al dueño, y la
       fila entera incluye `raw_receipt` (recibo crudo de la store: lleva
@@ -1393,7 +1547,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `select user_id from crystal_ledger group by 1 having sum(delta) <>
       (select crystals from profiles p where p.id = user_id)` en un cron diario,
       con alerta si devuelve alguna fila · 2026-08-03
-- [ ] **De B12 → F2 / B05 · faltan columnas para los cosméticos de perfil.**
+- [x] **De B12 → F2 / B05 · faltan columnas para los cosméticos de perfil.**
       `lib/billing/cosmeticos.ts` tiene el catálogo y la validación
       (`prohibidoPorqueImitaNivel`, con test), pero **la propiedad no se
       persiste**: harían falta `profiles.cosmetic_frame` y
@@ -1402,6 +1556,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       de los cimientos, así que no lo toco. Mientras tanto los cosméticos se
       muestran sin ruta de compra, en vez de inventar un almacenamiento paralelo
       que luego haya que migrar · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `profiles.cosmetic_frame` y `profiles.cosmetic_palette` existen (0220_1_b12_cosmeticos.sql).
 - [ ] **De B12 → F4 / app móvil · el puente nativo `window.darmaIAP` no existe.**
       `components/economia/BotonComprar.tsx` espera
       `window.darmaIAP.comprar(sku) → { plataforma, token }`, que debe lanzar
@@ -1412,7 +1567,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       app debe fijar `appAccountToken` (Apple) y `obfuscatedExternalAccountId`
       (Google) al `profiles.id`**: sin eso el webhook no sabe a quién acreditar ·
       2026-08-03
-- [ ] **De B12 → F4 · once variables de entorno de IAP en `.env.example`.**
+- [x] **De B12 → F4 · once variables de entorno de IAP en `.env.example`.**
       Apple: `APPLE_IAP_ISSUER_ID`, `APPLE_IAP_KEY_ID`, `APPLE_IAP_PRIVATE_KEY`
       (contenido del `.p8`), `APPLE_BUNDLE_ID`, `APPLE_ROOT_CA_SHA256` (huella
       SHA-256 de Apple Root CA - G3, separadas por comas) y `APPLE_IAP_ENTORNO`.
@@ -1422,7 +1577,8 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       bloque hace fail-closed: no verifica y no acredita. Además,
       `SUPABASE_SERVICE_ROLE_KEY` está **vacía** en `.env.local`, así que hoy
       ninguna ruta que use el cliente admin funciona en local · 2026-08-03
-- [ ] **De B12 → producto · reembolsos sin apunte inverso.** Los dos webhooks
+      → CERRADO 2026-08-05 (auditoria): las once variables de IAP estan en `.env.example`.
+- [x] **De B12 → producto · reembolsos sin apunte inverso.** Los dos webhooks
       detectan `REFUND`/`REVOKE` (Apple) y `voidedPurchaseNotification` (Google)
       y los registran, pero **todavía no insertan el movimiento contrario con
       `source = 'refund'`**. La parte técnica es trivial; lo que falta es la
@@ -1431,6 +1587,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       saldo no puede quedar negativo. Dos opciones razonables (saldo a 0 y deuda
       registrada, o bloqueo de nuevas compras hasta compensar) y ninguna es
       obviamente correcta · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): `revertir_compra()` existe (0216_1/0219_1) y los dos webhooks la llaman.
 - [ ] **De B12 → B15 / operaciones · la prueba de concurrencia de N conexiones
       no se pudo ejecutar.** El caso nº 6 de la ficha pide tres webhooks
       simultáneos contra la base real. En este entorno no hay forma de abrir tres
@@ -1472,7 +1629,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       perfil). No he creado ninguna página bajo `app/(app)/**` porque no es mío:
       los componentes están listos para montarse donde B04 y B05 decidan ·
       2026-08-03
-- [ ] **De la migración i18n de refugios/economía → integración (B00) · hay que
+- [x] **De la migración i18n de refugios/economía → integración (B00) · hay que
       aplanar `messages/parches/*.json` dentro de `messages/*.json`.** La
       migración del copy a `t('...')` la hicieron varias sesiones a la vez y
       `messages/es.json` es un único archivo compartido, así que cada grupo dejó
@@ -1484,6 +1641,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       devuelve `MENSAJES` a los dos imports de siempre. El guard de paridad
       (`i18n/claves.test.ts`) ya compara el catálogo FUSIONADO, así que la
       operación es verificable · 2026-08-03
+      → CERRADO 2026-08-05 (auditoria): no existe `messages/parches/`: los parches ya estan aplanados.
 - [x] **CERRADO · una sola fuente para la frase de la línea roja.**
       `lib/billing/textos.ts` ya no guarda texto: guarda las CLAVES
       (`CLAVE_LINEA_ROJA`, …). `/api/billing/catalog` y `/api/billing/boost`
@@ -1596,7 +1754,7 @@ reportó desde su worktree y ninguna podía aplicarlo.
       en memoria: no sobrevive a un reinicio ni a dos instancias. Falta el
       equivalente a `ingest_consume_model_budget` en Postgres. Se dejó fuera a
       propósito: un round-trip por unidad cuesta más de lo que ahorra.
-- [ ] **De B21 → B07 · decidir sobre `components/animo/`.** La rama `b21-3-autoplay`
+- [x] **De B21 → B07 · decidir sobre `components/animo/`.** La rama `b21-3-autoplay`
       NO se fusionó: B07 ya había entregado `components/video/{useAutoplayEnVista,
       desbloqueoAudio}.ts` y `lib/video/{autoplay,audio}.ts`, y la ficha B21 §3 los
       daba por nuevos. Se portaron **solo las dos mejoras reales** a
@@ -1604,6 +1762,7 @@ reportó desde su worktree y ninguna podía aplicarlo.
       viva por si se quiere rescatar algo más: tiene una prueba que lee el propio
       archivo y falla si aparece `sessionStorage`/`localStorage`, que merece
       copiarse a `components/video/desbloqueoAudio.ts`.
+      → CERRADO 2026-08-05 (auditoria): `components/animo/` no existe: gano `components/video/` de B07, que es lo que la ficha B21 §3 pedia decidir.
 - [ ] **De B21 → B00 · corregir `HANDOFF/B21.md` §3**, que lista como nuevos dos
       archivos que ya existían con otro directorio. Error de quien escribió la
       ficha (2026-08-04) por no mirar `components/video/` antes.

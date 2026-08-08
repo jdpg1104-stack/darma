@@ -44,7 +44,9 @@ export async function CabeceraPerfil({ perfil, bio }: CabeceraPerfilProps) {
       <Avatar semilla={perfil.avatarSeed} tamano={80} alias={perfil.alias} nivel={perfil.nivel} />
 
       <div className={estilos.identidad}>
-        <h1 className={estilos.alias}>{perfil.alias}</h1>
+        <h1 className={estilos.alias} data-testid="perfil-alias">
+          {perfil.alias}
+        </h1>
 
         <div className={estilos.distintivos}>
           <Insignia nivel={perfil.nivel} conEtiqueta />

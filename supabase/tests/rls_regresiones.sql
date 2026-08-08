@@ -10,7 +10,22 @@
 -- grants). Aquí van las comprobaciones de COMPORTAMIENTO, que necesitan
 -- ejecutar código.
 --
--- Ejecutar con:  supabase test db
+-- Ejecutar con:  supabase test db  (o `npm run db:test`). Desde el 2026-08-05
+-- también lo corre CI, que es cuando se descubrió que este archivo llevaba
+-- desde el 3 de agosto sin ejecutarse ni una vez.
+--
+-- ── POR QUÉ LOS CASOS DE COMPORTAMIENTO SON FUNCIONES Y NO `do $$` ─────────
+-- Estaban escritos como `do $$ … perform ok(…) … $$`. En pgTAP el resultado de
+-- una prueba es la FILA que devuelve `ok()`, y `perform` la descarta: esos once
+-- casos se ejecutaban y no imprimían nada. Consecuencia, que es la que importa:
+-- una afirmación que FALLARA dentro de un `do` no emitía «not ok», así que
+-- pg_prove no la veía y la suite pasaba igual. Once comprobaciones decorativas
+-- en el archivo que cubre el farmeo de karma y el ledger append-only.
+--
+-- El patrón correcto es una función `returns setof text` con `return next`, y
+-- llamarla con `select * from …()`. Lo que delata al patrón viejo es un
+-- «Tests out of sequence» de pg_prove: el contador interno de pgTAP avanza y la
+-- salida no.
 -- ============================================================================
 
 begin;
@@ -70,7 +85,7 @@ select ok(
 
 -- Comportamiento de extremo a extremo: un gasto real deja un apunte de la clase
 -- correcta y con delta_spendable negativo.
-do $$
+create or replace function prueba_r4_gasto_real() returns setof text language plpgsql as $$
 declare
   v_user uuid;
   v_kind text;
@@ -84,10 +99,11 @@ begin
   select kind, delta_spendable into v_kind, v_delta
     from public.karma_events where user_id = v_user order by id desc limit 1;
 
-  perform is(v_kind, 'karma_spend', 'R4 · el apunte del gasto lleva la clase karma_spend');
-  perform is(v_delta, -50, 'R4 · el gasto queda como delta_spendable negativo');
+  return next is(v_kind, 'karma_spend', 'R4 · el apunte del gasto lleva la clase karma_spend');
+  return next is(v_delta, -50, 'R4 · el gasto queda como delta_spendable negativo');
 end
 $$;
+select * from prueba_r4_gasto_real();
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- R2 y R3 · farmeo de karma por `content_views`
@@ -146,7 +162,7 @@ select ok(
 );
 
 -- ── El gate de reciprocidad sigue vivo (ataque nombrado nº 2) ───────────────
-do $$
+create or replace function prueba_gate_reciprocidad() returns setof text language plpgsql as $$
 declare
   v_user uuid;
   v_ok   boolean := false;
@@ -166,19 +182,20 @@ begin
     v_ok := true;
   end;
 
-  perform ok(v_ok, 'reciprocidad · el segundo post sin créditos levanta check_violation');
-  perform is(
+  return next ok(v_ok, 'reciprocidad · el segundo post sin créditos levanta check_violation');
+  return next is(
     (select count(*) from public.posts where author_id = v_user),
     1::bigint,
     'reciprocidad · la fila rechazada no quedó escrita'
   );
 end
 $$;
+select * from prueba_gate_reciprocidad();
 
 -- ── El ledger de cristales es append-only DE VERDAD ────────────────────────
 -- Los revokes blindan a anon/authenticated, pero service_role los saltaría: el
 -- trigger hace que ni un script del propio equipo pueda reescribir el histórico.
-do $$
+create or replace function prueba_ledger_append_only() returns setof text language plpgsql as $$
 declare
   v_user uuid;
   v_id   bigint;
@@ -195,9 +212,142 @@ begin
     v_ok := true;
   end;
 
-  perform ok(v_ok, 'crystal_ledger · el UPDATE lo bloquea el trigger, incluso como dueño');
+  return next ok(v_ok, 'crystal_ledger · el UPDATE lo bloquea el trigger, incluso como dueño');
 end
 $$;
+select * from prueba_ledger_append_only();
+
+-- ── `posts.reply_count` sube y TAMBIÉN baja ────────────────────────────────
+-- Subía al validar un comentario y no bajaba nunca: ni al retirarlo
+-- (`state = 'removed'`, que es lo que hace DELETE /api/comments/[id]) ni al
+-- ocultarlo. Como `trg_posts_hot` recalcula `hot_score` con cada cambio del
+-- contador, y una respuesta pesa 13,5 veces más que un voto, el hilo que
+-- moderación acababa de limpiar conservaba su empuje en el feed por unas
+-- respuestas que ya no existían.
+--
+-- Se prueba el CICLO ENTERO y no solo la resta: un trigger que restara de más
+-- pasaría una prueba que solo mirase el final. Ver 0217_1_b04_reply_count.sql.
+create or replace function prueba_reply_count() returns setof text language plpgsql as $$
+declare
+  v_autor      uuid;
+  v_escucha    uuid;
+  v_post       uuid;
+  v_comentario uuid;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'rc_autor@darma.test') returning id into v_autor;
+  insert into public.profiles (id, alias) values (v_autor, 'regresion_rc_autor');
+  insert into auth.users (id, email) values (gen_random_uuid(), 'rc_escucha@darma.test') returning id into v_escucha;
+  insert into public.profiles (id, alias) values (v_escucha, 'regresion_rc_escucha');
+
+  -- El primer post es gratis: no hace falta sembrar créditos de reciprocidad.
+  insert into public.posts (author_id, body)
+  values (v_autor, 'Post de la prueba del contador de respuestas, con longitud suficiente.')
+  returning id into v_post;
+
+  insert into public.comments (post_id, author_id, body)
+  values (v_post, v_escucha, 'Comentario de la prueba del contador, con la longitud minima que exige el check.')
+  returning id into v_comentario;
+
+  return next is(
+    (select reply_count from public.posts where id = v_post), 0,
+    'reply_count · un comentario SIN validar no cuenta'
+  );
+
+  update public.comments set is_validated = true where id = v_comentario;
+  return next is(
+    (select reply_count from public.posts where id = v_post), 1,
+    'reply_count · validar suma 1'
+  );
+
+  update public.comments set state = 'hidden' where id = v_comentario;
+  return next is(
+    (select reply_count from public.posts where id = v_post), 0,
+    'reply_count · ocultar resta (el hilo se lee con state = active)'
+  );
+
+  update public.comments set state = 'active' where id = v_comentario;
+  return next is(
+    (select reply_count from public.posts where id = v_post), 1,
+    'reply_count · devolverlo a activo lo vuelve a contar'
+  );
+
+  update public.comments set state = 'removed' where id = v_comentario;
+  return next is(
+    (select reply_count from public.posts where id = v_post), 0,
+    'reply_count · retirar resta: este era el fallo'
+  );
+
+  -- Nunca por debajo de cero: un contador negativo rompe compute_hot_score().
+  update public.comments set state = 'removed' where id = v_comentario;
+  return next ok(
+    (select reply_count from public.posts where id = v_post) >= 0,
+    'reply_count · no baja de cero'
+  );
+end
+$$;
+select * from prueba_reply_count();
+
+-- ── Retirar tu propio comentario ya no borra su rastro antiplantilla ───────
+-- El ciclo que esto cierra: pegas la plantilla, se valida y cobra karma, la
+-- RETIRAS (0104 concede `update (body, state)` al autor), su texto desaparece
+-- de `comments_read` —`using (state = 'active')`— y la vuelves a pegar en otro
+-- post sin nada con lo que compararla. El karma no vuelve (0217, a propósito),
+-- así que el ciclo era puro beneficio y repetible sin límite.
+--
+-- Se prueba con el ROL y el JWT de una sesión de verdad, no como `postgres`:
+-- toda la seguridad de `previos_del_autor()` está en que el autor sale de
+-- `auth.uid()`, y como superusuario ese valor es nulo y la prueba pasaría en
+-- vacío. Ver 0222_1_b04_previos_del_autor.sql.
+create or replace function prueba_previos_del_autor() returns setof text language plpgsql as $$
+declare
+  v_autor    uuid;
+  v_otro     uuid;
+  v_post     uuid;
+  v_mios     text[];
+  v_ajenos   text[];
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'prev_autor@darma.test') returning id into v_autor;
+  insert into public.profiles (id, alias) values (v_autor, 'regresion_prev_autor');
+  insert into auth.users (id, email) values (gen_random_uuid(), 'prev_otro@darma.test') returning id into v_otro;
+  insert into public.profiles (id, alias) values (v_otro, 'regresion_prev_otro');
+
+  insert into public.posts (author_id, body)
+  values (v_otro, 'Post para la prueba del historial antiplantilla, con longitud suficiente.')
+  returning id into v_post;
+
+  -- Nace ya validado: el trigger de karma es `after update of is_validated`, no
+  -- de insert, así que esto no mueve la economia y la prueba mide una sola cosa.
+  insert into public.comments (post_id, author_id, body, is_validated)
+  values (v_post, v_autor, 'La plantilla que se pega en todas partes y luego se retira sin devolver nada.', true);
+
+  -- El paso del farmeo.
+  update public.comments set state = 'removed' where author_id = v_autor;
+
+  set local role authenticated;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_autor)::text, true);
+  select array_agg(t) into v_mios from public.previos_del_autor(now() - interval '30 days') t;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_otro)::text, true);
+  select array_agg(t) into v_ajenos from public.previos_del_autor(now() - interval '30 days') t;
+
+  -- Fuera del rol ANTES de emitir el TAP: pgTAP se ejecuta como el dueno.
+  reset role;
+  perform set_config('request.jwt.claims', null, true);
+
+  return next is(
+    coalesce(array_length(v_mios, 1), 0),
+    1,
+    'previos_del_autor · el comentario RETIRADO sigue contando: este era el agujero'
+  );
+  return next is(
+    coalesce(array_length(v_ajenos, 1), 0),
+    0,
+    'previos_del_autor · el historial de otra persona no se ve jamas'
+  );
+end
+$$;
+select * from prueba_previos_del_autor();
 
 select * from finish();
 rollback;

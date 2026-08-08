@@ -146,3 +146,15 @@
 .error {
   color: var(--danger, inherit);
 }
+
+/* «En tu perfil»: el estado de un cosmético ya puesto. Borde de acento como
+   RELLENO/BORDE (nunca tinta, ver la cabecera) para que se distinga de las
+   tarjetas comprables sin parecer una insignia. */
+.enPerfil {
+  align-self: flex-start;
+  padding: 0.125rem var(--space-2, 0.5rem);
+  border: 1px solid var(--accent2, currentColor);
+  border-radius: var(--radius-sm, 0.5rem);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}

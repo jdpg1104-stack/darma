@@ -16,20 +16,23 @@ export class PerfilPage extends BasePage {
     await this.esperarQuieta()
   }
 
-  /** El panel privado. En un perfil ajeno no debe existir. */
+  /** El panel privado. En un perfil ajeno no debe existir (ni en el DOM). */
   get panelPrivado(): Locator {
-    return this.page.locator('section[aria-labelledby="titulo-panel-privado"]')
+    return this.page.getByTestId('perfil-panel-privado')
   }
 
+  /** La barra del medidor, DENTRO del medidor: el rol sigue siendo el contrato
+   *  accesible; el testid evita casar con cualquier otro progressbar. */
   get medidorKarma(): Locator {
-    return this.page.getByRole('progressbar')
+    return this.page.getByTestId('ui-medidor-karma').getByRole('progressbar')
   }
 
   get alias(): Locator {
-    return this.page.getByRole('heading', { level: 1 })
+    return this.page.getByTestId('perfil-alias')
   }
 
-  /** Valor numérico de una fila del panel privado, por su etiqueta. */
+  /** Valor numérico de una fila del panel privado, por su etiqueta VISIBLE.
+   *  Para no depender del copy, usa `saldoPorClave`. */
   async valorPrivado(etiqueta: string): Promise<number | null> {
     const fila = this.panelPrivado.locator('div', { hasText: etiqueta }).last()
     if (!(await fila.count())) return null
@@ -38,9 +41,24 @@ export class PerfilPage extends BasePage {
     return Number.isFinite(n) ? n : null
   }
 
+  /**
+   * Valor de un saldo del panel privado por su clave ESTABLE
+   * (`gastable` · `cristales` · `creditos` · `escuchas` · `publicaciones`),
+   * que no cambia con el idioma ni con el copy.
+   */
+  async saldoPorClave(
+    clave: 'gastable' | 'cristales' | 'creditos' | 'escuchas' | 'publicaciones',
+  ): Promise<number | null> {
+    const fila = this.page.getByTestId(`perfil-saldo-${clave}`)
+    if (!(await fila.count())) return null
+    const texto = await fila.locator('dd').first().innerText()
+    const n = Number.parseInt(texto.replace(/\D/g, ''), 10)
+    return Number.isFinite(n) ? n : null
+  }
+
   /** Karma de reputación visible en el medidor. */
   async karmaVisible(): Promise<number> {
-    const texto = await this.page.getByText(/de karma/).first().innerText()
+    const texto = await this.page.getByTestId('ui-medidor-karma-valor').first().innerText()
     return Number.parseInt(texto.replace(/\D/g, ''), 10)
   }
 }

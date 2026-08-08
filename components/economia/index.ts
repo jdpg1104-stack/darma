@@ -1,10 +1,10 @@
 // ============================================================================
 // components/economia — barril. Única vía de import para el resto de la app.
 //
-// Ocho componentes; solo TRES llevan `'use client'`, y los tres son botones:
-// comprar, impulsar y regalar. Todo lo demás es texto y se sirve con cero bytes
-// de JavaScript, que es lo que deja la tienda dentro del presupuesto de 120 KB
-// por ruta de CONTRATOS §11.
+// Once componentes; solo CUATRO llevan `'use client'`, y los cuatro son
+// botones: comprar, impulsar, regalar y comprar cosmético. Todo lo demás es
+// texto y se sirve con cero bytes de JavaScript, que es lo que deja la tienda
+// dentro del presupuesto de 120 KB por ruta de CONTRATOS §11.
 //
 // 🔴 Ningún componente de este directorio acepta una prop con un importe que
 // venga del cliente, ni una cantidad de cristales a acreditar. Los botones
@@ -28,6 +28,12 @@ export type { SelectorRegaloProps } from './SelectorRegalo'
 
 export { BotonRegalar } from './BotonRegalar'
 export type { BotonRegalarProps } from './BotonRegalar'
+
+export { TiendaCosmeticos } from './TiendaCosmeticos'
+export type { TiendaCosmeticosProps } from './TiendaCosmeticos'
+
+export { BotonCosmetico } from './BotonCosmetico'
+export type { BotonCosmeticoProps } from './BotonCosmetico'
 
 export { SaldoCristales } from './SaldoCristales'
 export type { SaldoCristalesProps } from './SaldoCristales'

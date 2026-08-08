@@ -114,7 +114,7 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
   if (descartada) return null
 
   return (
-    <Tarjeta como="section" className={estilos.tarjeta}>
+    <Tarjeta como="section" className={estilos.tarjeta} data-testid="poll-tarjeta">
       <p className={estilos.pregunta}>
         <Chip>{t('feed.encuesta.etiqueta')}</Chip> {encuesta.pregunta}
       </p>
@@ -145,6 +145,7 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
               <button
                 type="button"
                 className={estilos.opcion}
+                data-testid="poll-opcion"
                 disabled={enCurso}
                 onClick={() => votar(o.id)}
               >
@@ -158,7 +159,7 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
       {/* `role="status"` y no un `alert`: el fallo de un voto merece leerse, no
           interrumpir lo que la persona esté escuchando. */}
       {aviso ? (
-        <p className={estilos.pie} role="status">
+        <p className={estilos.pie} role="status" data-testid="poll-aviso">
           {aviso}
         </p>
       ) : null}
@@ -167,7 +168,13 @@ export function TarjetaEncuesta({ encuesta: inicial, alDescartar }: TarjetaEncue
         <span>{t('feed.encuesta.respuestas', { n: encuesta.totalVotos })}</span>
         <span className={estilos.acciones}>
           {heVotado ? null : (
-            <button type="button" className={estilos.descartar} onClick={descartar} disabled={enCurso}>
+            <button
+              type="button"
+              className={estilos.descartar}
+              data-testid="poll-boton-descartar"
+              onClick={descartar}
+              disabled={enCurso}
+            >
               {t('feed.encuesta.descartar')}
             </button>
           )}
