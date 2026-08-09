@@ -178,6 +178,13 @@ export const ACCIONES = {
   curacionCola: 'admin.curacion.cola',
   curacionAprobar: 'admin.curacion.aprobar',
   curacionRechazar: 'admin.curacion.rechazar',
+  /**
+   * Recortar un ítem YA aprobado al fragmento que se enseña. Se audita aparte
+   * de aprobar por la misma razón que rechazar: la pregunta tras un incidente
+   * no es «¿quién aprobó esta charla?» sino «¿quién eligió ESTE minuto de ella?».
+   * El encuadre es una decisión de contenido por derecho propio.
+   */
+  curacionRecortar: 'admin.curacion.recortar',
   /** El que de verdad importa: alguien intentó entrar y no pudo. */
   denegado: 'admin.denegado',
 } as const

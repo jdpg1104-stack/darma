@@ -18,6 +18,7 @@ import {
   sembrarPosts,
   sembrarVideo,
   validarComentario,
+  type FragmentoSembrado,
 } from './datos.fixture'
 import {
   borrarUsuario,
@@ -92,8 +93,17 @@ export interface FixturesDarma {
   creditosDe: (u: UsuarioE2E) => Promise<number>
   /** Karma acumulado en el LEDGER, que es la fuente de verdad. */
   karmaDe: (u: UsuarioE2E) => Promise<number>
-  /** Siembra un vídeo publicado y lo retira al terminar. */
-  sembrarVideo: (duracionSegundos?: number) => Promise<string>
+  /**
+   * Siembra un vídeo publicado y lo retira al terminar.
+   *
+   * Con `fragmento`, siembra una pieza LARGA de la que solo se enseña un trozo
+   * (migración 0224_1): es el caso real del catálogo —charlas de 55 minutos de
+   * media— y el único en el que el +1 es alcanzable.
+   */
+  sembrarVideo: (
+    duracionSegundos?: number,
+    fragmento?: FragmentoSembrado | null,
+  ) => Promise<string>
   /** Prefijo único de esta ejecución: `e2e_<8hex>_`. */
   idRun: string
 }
@@ -157,8 +167,8 @@ export const test = base.extend<FixturesDarma>({
 
   sembrarVideo: async ({}, usar) => {
     const ids: string[] = []
-    await usar(async (duracion?: number) => {
-      const id = await sembrarVideo(String(ids.length + 1), duracion)
+    await usar(async (duracion?: number, fragmento?: FragmentoSembrado | null) => {
+      const id = await sembrarVideo(String(ids.length + 1), duracion, fragmento ?? null)
       ids.push(id)
       return id
     })

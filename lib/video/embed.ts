@@ -21,6 +21,7 @@
 // todo lo demás se descarta antes de tocar el DOM.
 // ============================================================================
 
+import { duracionUtil } from './acreditacion.ts'
 import type { ItemVideo } from './tipos.ts'
 
 /** El ÚNICO origen de reproducción permitido. Espejo del `frame-src` de la CSP. */
@@ -62,10 +63,29 @@ const PARAMETROS_FIJOS: ReadonlyArray<readonly [string, string]> = [
   ['mute', '1'],
 ]
 
+/**
+ * Parámetros del FRAGMENTO. No están en `PARAMETROS_FIJOS` porque no son fijos:
+ * salen de la fila curada. Pero tampoco son configurables desde fuera — quien
+ * llama no puede inventarse un recorte, solo puede pasar el ítem.
+ *
+ *  · `start` → segundo en el que el reproductor empieza.
+ *  · `end`   → segundo en el que PARA. Es lo que convierte el embed en un
+ *    fragmento y no en «un vídeo largo que empieza más tarde»: sin `end`, la
+ *    entrevista de 87 minutos sigue sonando después del momento curado.
+ *
+ * Los dos van juntos o no va ninguno. Un `start` suelto no es medio fragmento:
+ * es el vídeo entero empezando tarde, que es peor que no recortar.
+ */
+const PARAMETRO_INICIO = 'start'
+const PARAMETRO_FIN = 'end'
+
 /** Lo mínimo que hay que saber de un ítem para decidir si se puede reproducir. */
 export interface CandidatoEmbed {
   platform: string
   external_id: string
+  /** Marcas del fragmento curado. Ausentes o nulas = vídeo entero. */
+  clip_start_seconds?: number | null
+  clip_end_seconds?: number | null
 }
 
 /** ¿Es un id de vídeo de YouTube bien formado? */
@@ -120,6 +140,25 @@ export function urlEmbed(
   const parametros = new URLSearchParams(PARAMETROS_FIJOS.map(([k, v]) => [k, v]))
   parametros.set('origin', opciones.origen ?? origenPropio())
 
+  // El fragmento se aplica solo si la PAREJA está completa y es coherente. La
+  // fuente normal es una fila que ya pasó los CHECK del esquema, pero esta
+  // función también la llaman los tests y —el día de mañana— cualquier ruta
+  // nueva: un `start` mayor que el `end` produciría un embed que no reproduce
+  // nada, y en silencio.
+  const inicio = item.clip_start_seconds
+  const fin = item.clip_end_seconds
+  if (
+    typeof inicio === 'number' &&
+    typeof fin === 'number' &&
+    Number.isInteger(inicio) &&
+    Number.isInteger(fin) &&
+    inicio >= 0 &&
+    fin > inicio
+  ) {
+    parametros.set(PARAMETRO_INICIO, String(inicio))
+    parametros.set(PARAMETRO_FIN, String(fin))
+  }
+
   return `${ORIGEN_EMBED}/embed/${item.external_id}?${parametros.toString()}`
 }
 
@@ -131,7 +170,15 @@ export function urlEmbed(
  * cuela un día un `platform: 'youtube'` fijo sin comprobar el id real.
  */
 export function urlEmbedDeItem(item: ItemVideo, opciones: OpcionesEmbed = {}): string | null {
-  return urlEmbed({ platform: item.plataforma, external_id: item.externalId }, opciones)
+  return urlEmbed(
+    {
+      platform: item.plataforma,
+      external_id: item.externalId,
+      clip_start_seconds: item.clipInicioSegundos,
+      clip_end_seconds: item.clipFinSegundos,
+    },
+    opciones,
+  )
 }
 
 /**
@@ -171,10 +218,20 @@ export function itemVideoDesde(
     duration_seconds: number | null
     thumbnail_url: string | null
     topic: string | null
+    clip_start_seconds?: number | null
+    clip_end_seconds?: number | null
   },
   completado = false,
 ): ItemVideo | null {
   if (!esReproducible(fila)) return null
+
+  // La pareja se normaliza AQUÍ, en el único sitio donde nace un `ItemVideo`.
+  // Una mitad suelta —que el esquema no deja escribir, pero que una fila vieja
+  // o un test podrían traer— se trata como «sin fragmento»: es la única lectura
+  // que no miente al reproductor ni a la acreditación.
+  const inicio = fila.clip_start_seconds ?? null
+  const fin = fila.clip_end_seconds ?? null
+  const conFragmento = inicio !== null && fin !== null && fin > inicio
 
   return {
     id: fila.id,
@@ -187,5 +244,12 @@ export function itemVideoDesde(
     miniaturaUrl: urlMiniatura(fila, fila.thumbnail_url),
     tema: fila.topic,
     completado,
+    clipInicioSegundos: conFragmento ? inicio : null,
+    clipFinSegundos: conFragmento ? fin : null,
+    duracionUtilSegundos: duracionUtil(
+      fila.duration_seconds,
+      conFragmento ? inicio : null,
+      conFragmento ? fin : null,
+    ),
   }
 }

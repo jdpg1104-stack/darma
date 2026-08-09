@@ -23,12 +23,14 @@
 // ============================================================================
 
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 import { obtenerTraductor, resolverLocale } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { CLIP_MAX_S, CLIP_MIN_S } from '@/lib/video/acreditacion'
 import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
-import { ColaCuracion, type ItemPendiente } from './ColaCuracion.tsx'
+import { ColaCuracion, type Cola, type ItemPendiente } from './ColaCuracion.tsx'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -49,26 +51,54 @@ interface FilaPendiente {
   url: string
   language: string
   topic: string | null
+  duration_seconds: number | null
 }
 
-export default async function PaginaCuracion() {
+/** `?cola=recorte` y nada más. Un valor desconocido cae en la cola normal. */
+function colaDe(valor: string | string[] | undefined): Cola {
+  return valor === 'recorte' ? 'recorte' : 'pendientes'
+}
+
+export default async function PaginaCuracion({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   await requireAdmin('moderador', { limite: 'lectura', accion: ACCIONES.curacionCola })
 
   const locale = await resolverLocale()
   const t = obtenerTraductor(locale)
   const admin = createAdminClient()
+  const cola = colaDe((await searchParams).cola)
 
-  const { data } = await admin
-    .from('content_items')
-    .select('id, source, title, summary, url, language, topic')
-    .eq('state', 'pending')
-    .order('created_at', { ascending: true })
-    .limit(LIMITE_COLA)
+  const CAMPOS = 'id, source, title, summary, url, language, topic, duration_seconds'
 
-  const { count } = await admin
-    .from('content_items')
-    .select('id', { count: 'exact', head: true })
-    .eq('state', 'pending')
+  // Las dos colas, escritas enteras. Mismo criterio que en la ruta de API: los
+  // tipos del constructor de consultas cambian con cada `.eq()`, y compartir el
+  // encadenado obliga a un `as never` que apaga la comprobación.
+  const seleccion =
+    cola === 'recorte'
+      ? admin
+          .from('content_items')
+          .select(CAMPOS)
+          .eq('state', 'approved')
+          .is('clip_start_seconds', null)
+          .gt('duration_seconds', CLIP_MAX_S)
+      : admin.from('content_items').select(CAMPOS).eq('state', 'pending')
+
+  const { data } = await seleccion.order('created_at', { ascending: true }).limit(LIMITE_COLA)
+
+  const conteo =
+    cola === 'recorte'
+      ? admin
+          .from('content_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('state', 'approved')
+          .is('clip_start_seconds', null)
+          .gt('duration_seconds', CLIP_MAX_S)
+      : admin.from('content_items').select('id', { count: 'exact', head: true }).eq('state', 'pending')
+
+  const { count } = await conteo
 
   const items: ItemPendiente[] = ((data ?? []) as FilaPendiente[]).map((f) => ({
     id: f.id,
@@ -78,14 +108,37 @@ export default async function PaginaCuracion() {
     url: f.url,
     language: f.language,
     topic: f.topic,
+    duracionSegundos: f.duration_seconds,
   }))
+
+  const enRecorte = cola === 'recorte'
 
   return (
     <main>
-      <h1>{t('admin.curacion.titulo')}</h1>
-      <p>{t('admin.curacion.intro')}</p>
+      <h1>{t(enRecorte ? 'admin.curacion.tituloRecorte' : 'admin.curacion.titulo')}</h1>
+      <p>{t(enRecorte ? 'admin.curacion.introRecorte' : 'admin.curacion.intro')}</p>
+
+      {/* Enlaces y no pestañas con estado: son dos URLs distintas, y así el
+          moderador puede dejar una abierta en cada una. */}
+      <nav>
+        <Link href="/panel/curacion" aria-current={enRecorte ? undefined : 'page'}>
+          {t('admin.curacion.colaPendientes')}
+        </Link>{' '}
+        ·{' '}
+        <Link href="/panel/curacion?cola=recorte" aria-current={enRecorte ? 'page' : undefined}>
+          {t('admin.curacion.colaRecorte')}
+        </Link>
+      </nav>
+
       {items.length > 0 ? <p>{t('admin.curacion.mostrando', { n: items.length })}</p> : null}
-      <ColaCuracion inicial={items} total={count ?? 0} locale={locale} />
+      <ColaCuracion
+        inicial={items}
+        total={count ?? 0}
+        locale={locale}
+        cola={cola}
+        minSegundos={CLIP_MIN_S}
+        maxSegundos={CLIP_MAX_S}
+      />
     </main>
   )
 }

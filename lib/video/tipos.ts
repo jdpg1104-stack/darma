@@ -25,11 +25,30 @@ export interface ItemVideo {
   titulo: string
   fuente: string
   idioma: string
+  /** Lo que dura el VÍDEO. Para lo que hay que ver, `duracionUtilSegundos`. */
   duracionSegundos: number | null
   miniaturaUrl: string | null
   tema: string | null
   /** ¿Esta persona ya lo completó? Decide si la tarjeta ofrece el +1. */
   completado: boolean
+
+  /**
+   * El fragmento curado, o `null` en los dos si la tarjeta reproduce el vídeo
+   * entero. Van SIEMPRE en pareja (lo impone un CHECK, ver `0224_1_b07_clips`).
+   */
+  clipInicioSegundos: number | null
+  clipFinSegundos: number | null
+
+  /**
+   * Los segundos que de verdad hay que ver: la longitud del fragmento si lo
+   * hay, si no la del vídeo, si no 60.
+   *
+   * Viaja RESUELTO y no se recalcula en cada consumidor a propósito. La regla
+   * vive en `duracionUtil()` y en `duracion_util()` de Postgres; una tercera
+   * copia en el componente sería la que un día se quedara atrás — y quedarse
+   * atrás aquí significa pedir 78 minutos por un fragmento de 40 segundos.
+   */
+  duracionUtilSegundos: number
 }
 
 /** Paginación keyset (CONTRATOS §5). El cursor es opaco: nunca se interpreta
@@ -69,7 +88,7 @@ export interface ResultadoCompletado {
  */
 export type MotivoRpc = MotivoNoAcreditado | 'sesion_invalida' | 'no_disponible'
 
-/** Fila que devuelve `feed_animo()` (migración 0107_1). */
+/** Fila que devuelve `feed_animo()` (migraciones 0107_1 y 0224_1). */
 export interface FilaFeed {
   id: string
   platform: string
@@ -81,4 +100,6 @@ export interface FilaFeed {
   thumbnail_url: string | null
   topic: string | null
   performance_score: number
+  clip_start_seconds: number | null
+  clip_end_seconds: number | null
 }

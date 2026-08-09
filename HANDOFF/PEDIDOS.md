@@ -1806,6 +1806,60 @@ reportó desde su worktree y ninguna podía aplicarlo.
             `profiles` y el puente viva solo en `identity_vault`.
       Mientras no se haga, la app NO debe prometer anonimato absoluto en
       marketing, tienda de apps ni landing.
+## El fragmento de `/animo` (2026-08-08)
+
+- [ ] **De B22 → HUMANO (curación) · elegir el momento de 25 charlas.** La
+      pantalla ya existe: `/panel/curacion?cola=recorte` sirve los **25 ítems
+      aprobados que duran más de 180 s y se siguen enseñando enteros** (medido
+      contra `darma-dev`; el 26º es el clip de 45 s de la OPS, que ya es el
+      fragmento). Mientras no se hagan, `/animo` sigue enseñando entrevistas de
+      55 minutos de media en una interfaz de deslizar. Son 25 decisiones de
+      minuto y medio cada una: abrir el vídeo, anotar el segundo en que empieza
+      lo que merece la pena y el segundo en que termina. El enlace de la
+      pantalla salta solo al inicio escrito para poder comprobarlo · 2026-08-08
+
+- [ ] **De B22 → B15 · dos funciones `security definer` alcanzables por `anon`.**
+      Encontradas midiendo, no leyendo: `previos_del_autor(timestamptz,integer)`
+      y `comments_sync_reply_count()` devuelven **`has_function_privilege('anon',
+      …, 'execute') = true`** contra `darma-dev`. La causa está escrita —como
+      afirmación FALSA— en un comentario de `0222_1_b04_previos_del_autor.sql`:
+      «`revoke ... from public` incluye a `anon` y a `service_role`, que heredan
+      de PUBLIC». En Supabase **no**: los privilegios por defecto conceden
+      EXECUTE **directamente** a `anon` y `authenticated` sobre cada función
+      nueva de `public`, y un `revoke from public` no toca ese grant. Hay que
+      nombrar el rol, que es lo que hace `0224_1` (`from public, anon`) y por lo
+      que sus dos funciones sí salen cerradas.
+      **Impacto práctico ≈ nulo** —`previos_del_autor` filtra por `auth.uid()`,
+      que para `anon` es null, y una función de trigger llamada por RPC falla—,
+      así que esto es higiene, no incidente. Pero la suposición está escrita en
+      el repo y se puede repetir: conviene (a) los dos `revoke ... from anon`,
+      (b) corregir ese comentario de `0222_1`, y (c) un caso en
+      `supabase/tests/rls_privilegios.sql` que recorra TODA función `prosecdef`
+      de `public` y afirme `anon = false` salvo lista blanca. Hoy son 2 de 127;
+      la lista blanca nace vacía · 2026-08-08
+
+- [ ] **De B22 → B21 / producto · el fragmento no arregla el catálogo, solo el
+      encuadre.** Sigue en pie la decisión de fondo: `/animo` tiene 26 piezas
+      aprobadas y todas son entrevistas largas de Aprendemos Juntos más un clip
+      de la OPS. Recortarlas da hopecore de verdad, pero de **una sola fuente**.
+      Las otras tres salidas siguen sin decidir: permiso explícito a creadores
+      en español (la regla 2 los admite si publican lo suyo), contenido propio, y
+      abrir el inglés filtrando en el feed en vez de en la ingesta —lo que
+      recuperaría las 13 piezas de «The Social Connection Series» de la OMS que
+      la guarda de idioma tiró · 2026-08-08
+
+- [ ] **De B22 → B00 · seis `mensajeClave` apuntaban a una raíz inexistente.**
+      `app/api/admin/curacion/route.ts` devolvía `curacion.motivoObligatorio` y
+      `curacion.yaDecidido`, pero en `messages/*.json` esa raíz **no existe**
+      (es `admin.curacion.*`), y `obtenerTraductor()` devuelve la clave cruda
+      cuando no la encuentra: el 422 pintaba `curacion.motivoObligatorio` en
+      pantalla. Corregido en esta sesión. **Merece un guard**: hoy nada impide
+      que una ruta invente una clave que el catálogo no tiene, y el fallo solo
+      se ve pulsando el botón exacto. Un test que recorra los `mensajeClave`
+      literales de `app/**` y los busque en el catálogo lo cerraría — el mismo
+      patrón que ya usa `CODIGOS_DE_ERROR` para que un código nuevo no compile
+      si falta en los dos sitios · 2026-08-08
+
 - [ ] **Al subir a v2, quien aceptó la v1 volverá a ver el consentimiento.** Es
       el comportamiento correcto —`cubreVersionActual()` devuelve false— y hay
       que contarlo antes de desplegar, o parecerá un fallo.
