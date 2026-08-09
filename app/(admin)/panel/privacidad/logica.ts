@@ -50,12 +50,13 @@
 //     `count: 'exact'` del historial no es la agregación en vivo que
 //     `_lib/dashboard.ts` prohíbe sobre las tablas grandes.
 //
-// ── POR QUÉ EL COPY VIVE AQUÍ, EN ESPAÑOL DIRECTO ──────────────────────────
-// El panel admin es deliberadamente solo en español y los catálogos
-// `messages/*.json` son de otro bloque (misma deuda consciente que
-// `_componentes/Formato.ts`, anotada en PEDIDOS.md para B17: si algún día el
-// panel se traduce, `TEXTOS` y las `ETIQUETA_*` de este archivo van en ese
-// lote).
+// ── EL COPY VIVE EN EL CATÁLOGO, NO AQUÍ ───────────────────────────────────
+// Todo el texto de la pantalla está en `messages/{es,en}.json` bajo
+// `admin.privacidad.*`. Este módulo sigue siendo PURO y sin traductor: las
+// `CLAVE_*` mapean cada valor del esquema (`kind`, `state`, urgencia) a la
+// CLAVE de su etiqueta, y la página la resuelve con `t()`. Así las pruebas de
+// clasificación siguen comprobando la DECISIÓN (qué vence y cuándo) y no la
+// redacción, que es lo que puede cambiar de idioma.
 // ============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -480,73 +481,26 @@ export async function leerHistorial(
   }
 }
 
-// ── Copy del panel (español directo; ver la cabecera) ───────────────────────
+// ── Claves del copy (el texto vive en el catálogo; ver la cabecera) ─────────
 
-export const ETIQUETA_TIPO: Readonly<Record<TipoSolicitud, string>> = {
-  export: 'Exportación',
-  erase: 'Borrado',
+export const CLAVE_TIPO: Readonly<Record<TipoSolicitud, string>> = {
+  export: 'admin.privacidad.tipoExport',
+  erase: 'admin.privacidad.tipoErase',
 }
 
-export const ETIQUETA_ESTADO: Readonly<Record<EstadoSolicitud, string>> = {
-  pending_confirm: 'Pendiente de confirmar',
-  confirmed: 'Confirmada',
-  processing: 'En ejecución',
-  done: 'Ejecutada',
-  failed: 'Fallida',
-  cancelled: 'Cancelada',
+export const CLAVE_ESTADO: Readonly<Record<EstadoSolicitud, string>> = {
+  pending_confirm: 'admin.privacidad.estadoPendienteConfirmar',
+  confirmed: 'admin.privacidad.estadoConfirmada',
+  processing: 'admin.privacidad.estadoEnEjecucion',
+  done: 'admin.privacidad.estadoEjecutada',
+  failed: 'admin.privacidad.estadoFallida',
+  cancelled: 'admin.privacidad.estadoCancelada',
 }
 
-export const ETIQUETA_URGENCIA: Readonly<Record<Urgencia, string>> = {
-  vencida: 'Vencida',
-  vence_pronto: 'Vence pronto',
-  en_plazo: 'En plazo',
-  caducada: 'Caducada',
+export const CLAVE_URGENCIA: Readonly<Record<Urgencia, string>> = {
+  vencida: 'admin.privacidad.urgenciaVencida',
+  vence_pronto: 'admin.privacidad.urgenciaVencePronto',
+  en_plazo: 'admin.privacidad.urgenciaEnPlazo',
+  caducada: 'admin.privacidad.urgenciaCaducada',
 }
 
-export const TEXTOS = {
-  titulo: 'Solicitudes de privacidad',
-  intro:
-    'Exportaciones y borrados RGPD, con su reloj. Esta pantalla existe para poder demostrar el plazo del art. 12.3: un borrado confirmado se ejecuta al acabar sus 30 días de arrepentimiento, y cada solicitud cerrada declara si se completó a tiempo. Aquí no aparece quién pidió qué: solo el id de la solicitud.',
-  seccionUrgentes: 'Vencen ya o pronto',
-  notaUrgentes:
-    'Borrados cuyo arrepentimiento termina en menos de una semana o ya terminó. Si uno lleva vencido más del margen del cron, el cron de ejecución es lo primero que hay que mirar.',
-  seccionFallidas: 'Fallidas',
-  notaFallidas:
-    'Cada una es un incidente abierto, tenga la edad que tenga. El detalle del error no se pinta aquí: se consulta la fila por su id con service_role.',
-  seccionAbiertas: 'Abiertas y en plazo',
-  notaAbiertas:
-    'Pendientes de confirmar, exportaciones listas para descargar y borrados dentro del arrepentimiento. Las caducadas son enlaces que expiraron sin que la persona actuara: madera muerta, no incumplimiento.',
-  seccionHistorial: 'Cerradas (ejecutadas y canceladas)',
-  totales: 'Totales',
-  totalVencidas: 'Vencidas',
-  totalVencenPronto: 'Vencen pronto',
-  totalFallidas: 'Fallidas',
-  totalPendientesConfirmar: 'Pendientes de confirmar',
-  totalConfirmadas: 'Confirmadas en curso',
-  totalEnEjecucion: 'En ejecución',
-  totalCaducadas: 'Caducadas',
-  totalCerradas: 'Cerradas en total',
-  colSolicitud: 'Solicitud',
-  colTipo: 'Tipo',
-  colEstado: 'Estado',
-  colSolicitada: 'Solicitada',
-  colAntiguedad: 'Antigüedad',
-  colVence: 'Vence',
-  colResuelta: 'Resuelta',
-  colPlazo: 'Plazo',
-  dentroDelPlazo: 'Dentro del plazo',
-  fueraDePlazo: 'Fuera de plazo',
-  todoAlDia: 'Nada vencido ni a punto de vencer',
-  vacioTitulo: 'Sin solicitudes de privacidad',
-  vacioDescripcion:
-    'Nadie ha pedido exportar ni borrar su cuenta todavía. Cuando ocurra, cada solicitud aparecerá aquí con su plazo.',
-  masAntiguas: 'Más antiguas',
-  volverAlPrincipio: 'Volver a las más recientes',
-  sinFilasHistorial: 'No hay solicitudes cerradas en este tramo.',
-} as const
-
-/** Aviso de desborde. Función y no plantilla ICU: el copy del panel no pasa
- *  por el catálogo (ver la cabecera). */
-export function textoDesborde(tope: number): string {
-  return `Hay más de ${tope}; se muestran las ${tope} más relevantes. Ese desborde es en sí mismo el incidente que investigar.`
-}

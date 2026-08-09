@@ -23,7 +23,7 @@ import { useState } from 'react'
 
 import { Boton, Dialogo } from '@/components/ui'
 import { useTraductor } from '@/i18n/Proveedor'
-import { bloquear } from './api'
+import { bloquear, textoDeError } from './api'
 import estilos from './refugio.module.css'
 
 export interface MenuBloquearProps {
@@ -46,7 +46,7 @@ export function MenuBloquear({ userId, alias }: MenuBloquearProps) {
       setHecho(modo)
       setAbierto(false)
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : t('refugios.bloquear.error'))
+      setError(textoDeError(causa, t, 'refugios.bloquear.error'))
     } finally {
       setEnviando(false)
     }

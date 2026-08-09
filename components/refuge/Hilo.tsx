@@ -44,6 +44,7 @@ import {
   marcarLeido,
   obtenerClaves,
   registrarCrisis,
+  textoDeError,
 } from './api'
 import estilos from './refugio.module.css'
 
@@ -147,7 +148,7 @@ export function Hilo({ refugeId, userId, titulo, pais = null }: HiloProps) {
         }
       } catch (causa) {
         if (!vivo) return
-        setError(causa instanceof Error ? causa.message : t('refugios.hilo.error'))
+        setError(textoDeError(causa, t, 'refugios.hilo.error'))
         setEstado((p) => ({ ...p, cargando: false }))
       }
     }

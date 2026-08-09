@@ -1,0 +1,81 @@
+-- ============================================================================
+-- Darma · 0225_1 · B15 · Ninguna función `security definer` alcanzable sin sesión
+--
+-- ── LA FRASE QUE ERA MENTIRA ───────────────────────────────────────────────
+-- La cabecera de 0222_1_b04_previos_del_autor.sql afirma que «`revoke ... from
+-- public` incluye a `anon` y a `service_role`, que heredan de PUBLIC». En un
+-- Postgres desnudo esa frase sería razonable; en Supabase es falsa, y de ahí
+-- salen las dos funciones que este fragmento cierra.
+--
+-- El proyecto trae `alter default privileges in schema public grant execute on
+-- functions to anon, authenticated, service_role`. Eso NO es herencia: cada
+-- función nueva de `public` nace con un grant DIRECTO a nombre de cada uno de
+-- esos tres roles, además del `=X` de PUBLIC que Postgres pone por su cuenta.
+-- Un `revoke from public` retira exactamente uno de los cuatro —el de PUBLIC— y
+-- deja los otros tres intactos. Medido sobre `darma-dev` el 2026-08-09, el ACL
+-- de `previos_del_autor` era literalmente:
+--
+--     {postgres=X/postgres, anon=X/postgres,
+--      authenticated=X/postgres, service_role=X/postgres}
+--
+-- El `=X` de PUBLIC no está: el revoke de 0222_1 SÍ hizo su trabajo. Lo que no
+-- hizo —porque no podía— es tocar la línea `anon=X`, que nunca vino de PUBLIC.
+-- Es decir: la migración se escribió creyendo que concedía EXECUTE solo a
+-- `authenticated`, y lo que dejó fue una función `security definer` invocable
+-- con la anon key, `POST /rest/v1/rpc/previos_del_autor`, sin sesión ninguna.
+--
+-- ── QUÉ SE PODÍA HACER CON ESO, HONESTAMENTE ───────────────────────────────
+-- Poco, hoy. `previos_del_autor` filtra por `auth.uid()`, que para `anon` es
+-- NULL, así que la llamada responde cero filas (comprobado con `set role anon`,
+-- no deducido). Y `comments_sync_reply_count()` devuelve `trigger`, un tipo que
+-- Postgres se niega a invocar fuera de un disparador.
+--
+-- Pero eso es la suerte que hay, no la protección que se puso. Lo que separa a
+-- un anónimo del historial de comentarios de OTRA persona —incluidos los
+-- retirados y los ocultos por moderación, que es justo lo que esta función
+-- existe para ver— es una única cláusula `where` dentro de un cuerpo que corre
+-- con los privilegios del dueño y sin RLS. La regla del repo no es «que la
+-- función se defienda sola»: es que a la función no se llegue. Un `security
+-- definer` al alcance de la anon key es una puerta que solo aguanta porque nadie
+-- ha cambiado el picaporte todavía.
+--
+-- ── POR QUÉ ESTO NO SE ARREGLA EDITANDO 0222_1 ─────────────────────────────
+-- 0222_1 está aplicada. Reescribirla dejaría el fichero diciendo una cosa y la
+-- base de datos otra en cualquier entorno donde ya corrió, que es el modo exacto
+-- en el que un historial de migraciones deja de valer como historia. La frase
+-- falsa se queda donde está; la verdad se escribe aquí, y 0224_1_b07_clips.sql
+-- —que ya nombra a `anon` en sus revokes— es el modelo que se generaliza.
+--
+-- El guardián de que esto no vuelva a pasar NO es esta migración, que solo cura
+-- los dos casos de hoy: es el recorrido que 0225_1 añade a
+-- `supabase/tests/rls_privilegios.sql`, que barre TODA función `prosecdef` de
+-- `public` y falla si alguna es ejecutable por `anon`. La lista blanca de ese
+-- test nace vacía a propósito. Si algún día hace falta una excepción, que cueste
+-- escribir su nombre y su porqué.
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1 · previos_del_autor · el historial propio no se pide sin sesión
+--
+-- Se nombra `anon` porque `public` no lo alcanza. `authenticated` conserva su
+-- grant —es el único rol con `auth.uid()`, y sin él la señal `self_repetition`
+-- se queda ciega— y `service_role` conserva el suyo.
+-- ----------------------------------------------------------------------------
+revoke execute on function public.previos_del_autor(timestamptz, integer) from public, anon;
+
+comment on function public.previos_del_autor(timestamptz, integer) is
+  'Cuerpos de los comentarios VALIDADOS de auth.uid() dentro de la ventana, sin filtrar por state. Alimenta la senal self_repetition. security definer para ver los retirados y ocultos: sin eso, retirar el propio comentario borraba su rastro y la misma plantilla pasaba otra vez. El autor sale de auth.uid(), nunca de un parametro. EXECUTE solo para authenticated: el revoke de 0222_1 nombraba a PUBLIC, y en Supabase el grant a anon es directo y no cuelga de PUBLIC, asi que hizo falta 0225_1 para retirarlo de verdad.';
+
+-- ----------------------------------------------------------------------------
+-- 2 · comments_sync_reply_count · un disparador no es una ruta
+--
+-- Devuelve `trigger`, así que nadie la llama por RPC ni aunque tenga el
+-- privilegio; y el privilegio tampoco es lo que la deja dispararse, porque
+-- Postgres comprueba EXECUTE al CREAR el trigger, no al ejecutarlo. Retirar
+-- EXECUTE a `anon` no cambia el comportamiento de nada: cambia que el catálogo
+-- deje de afirmar algo que no es cierto, que a alguien sin sesión se le concedió
+-- ejecutar código con privilegios de dueño.
+--
+-- Aquí sí hay `=X` de PUBLIC que retirar: 0217_1 no llevaba revoke ninguno.
+-- ----------------------------------------------------------------------------
+revoke execute on function public.comments_sync_reply_count() from public, anon;
