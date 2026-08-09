@@ -35,7 +35,7 @@ import { Avatar, Boton, Dialogo } from '@/components/ui'
 import { useTraductor } from '@/i18n/Proveedor'
 import type { AlmaAfin } from '@/lib/crypto/tipos'
 
-import { ErrorDeRed, crearRefugio } from './api'
+import { ErrorDeRed, crearRefugio, textoDeError } from './api'
 import { asegurarIdentidad, prepararSobresDeSalaNueva } from './identidad'
 import {
   MAX_INVITADOS_CIRCULO,
@@ -87,8 +87,7 @@ export function CrearCirculo({ miId, almas }: CrearCirculoProps) {
       // buscas») es verdad para un GET y absurdo para una creación.
       return t('refugios.circulo.rechazado')
     }
-    if (causa instanceof Error && causa.message) return causa.message
-    return t('refugios.circulo.error')
+    return textoDeError(causa, t, 'refugios.circulo.error')
   }
 
   async function crear() {

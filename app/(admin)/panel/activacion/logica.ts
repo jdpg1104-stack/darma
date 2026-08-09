@@ -39,10 +39,15 @@
 // es de presentación y lo aplica la página, nunca este módulo: las tasas se
 // calculan sobre los números reales.
 //
-// ── POR QUÉ EL COPY VIVE AQUÍ, EN ESPAÑOL DIRECTO ──────────────────────────
-// Los catálogos `messages/*.json` son de otro bloque y este panel es
-// deliberadamente solo en español (mismo criterio documentado en
-// panel/privacidad/logica.ts y en _componentes/Formato.ts; deuda para B17).
+// ── EL COPY VIVE EN EL CATÁLOGO, NO AQUÍ ───────────────────────────────────
+// Todo el texto de la pantalla está en `messages/{es,en}.json` bajo
+// `admin.activacion.*`. Este módulo sigue siendo PURO y sin traductor: lo que
+// devuelve `escalonesDeVentana()` es la CLAVE de cada escalón (`etiquetaKey`),
+// y la página la resuelve con `t()`. Mismo patrón que `_lib/navegacion.ts`.
+//
+// Devolver la clave y no el texto es además lo que mantiene las pruebas de
+// este módulo independientes del idioma: comprueban el ORDEN del embudo, que
+// es la decisión, no la redacción.
 // ============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -93,7 +98,8 @@ export interface EmbudoVentana {
 
 /** Un escalón listo para la tabla: personas y tasa sobre el registro. */
 export interface EscalonVentana {
-  etiqueta: string
+  /** CLAVE del catálogo (`admin.activacion.escalon*`), nunca el texto. */
+  etiquetaKey: string
   personas: number
   /** 0..1, calculada sobre los números reales. */
   sobreRegistro: number
@@ -183,12 +189,12 @@ export function embudoDeVentana(
 export function escalonesDeVentana(embudo: EmbudoVentana): EscalonVentana[] {
   const sobre = (n: number): number => ratio(n, embudo.registrados)
   return [
-    { etiqueta: TEXTOS.escalonRegistro, personas: embudo.registrados, sobreRegistro: sobre(embudo.registrados) },
-    { etiqueta: TEXTOS.escalonOnboarding, personas: embudo.onboardingCompleto, sobreRegistro: sobre(embudo.onboardingCompleto) },
-    { etiqueta: TEXTOS.escalonLectura, personas: embudo.primeraLectura, sobreRegistro: sobre(embudo.primeraLectura) },
-    { etiqueta: TEXTOS.escalonEscucha, personas: embudo.primeraEscuchaValidada, sobreRegistro: sobre(embudo.primeraEscuchaValidada) },
-    { etiqueta: TEXTOS.escalonPublicacion, personas: embudo.primeraPublicacion, sobreRegistro: sobre(embudo.primeraPublicacion) },
-    { etiqueta: TEXTOS.escalonVueltaD1, personas: embudo.vueltaD1Actividad, sobreRegistro: sobre(embudo.vueltaD1Actividad) },
+    { etiquetaKey: CLAVE_ESCALON.registro, personas: embudo.registrados, sobreRegistro: sobre(embudo.registrados) },
+    { etiquetaKey: CLAVE_ESCALON.onboarding, personas: embudo.onboardingCompleto, sobreRegistro: sobre(embudo.onboardingCompleto) },
+    { etiquetaKey: CLAVE_ESCALON.lectura, personas: embudo.primeraLectura, sobreRegistro: sobre(embudo.primeraLectura) },
+    { etiquetaKey: CLAVE_ESCALON.escucha, personas: embudo.primeraEscuchaValidada, sobreRegistro: sobre(embudo.primeraEscuchaValidada) },
+    { etiquetaKey: CLAVE_ESCALON.publicacion, personas: embudo.primeraPublicacion, sobreRegistro: sobre(embudo.primeraPublicacion) },
+    { etiquetaKey: CLAVE_ESCALON.vueltaD1, personas: embudo.vueltaD1Actividad, sobreRegistro: sobre(embudo.vueltaD1Actividad) },
   ]
 }
 
@@ -241,47 +247,18 @@ export async function leerEmbudoDiario(
   })
 }
 
-// ── Copy en español directo (ver cabecera) ──────────────────────────────────
+// ── Claves de los escalones (el texto vive en el catálogo) ──────────────────
 
-export const TEXTOS = {
-  // Escalones de la tabla comparada. Numerados como los del catálogo para que
-  // las dos tablas de la página se lean como el mismo embudo.
-  escalonRegistro: '1 · Cuenta con perfil completado',
-  escalonOnboarding: '2 · Onboarding completo',
-  escalonLectura: '3 · Primera lectura de un post',
-  escalonEscucha: '4 · Primera escucha validada',
-  escalonPublicacion: '5 · Primera publicación',
-  escalonVueltaD1: '6 · Volvió tras su primer día (actividad medible)',
-
-  tituloVentanas: 'Embudo comparado: últimos 7 y 30 días',
-  colEscalon: 'Escalón',
-  colPersonas7: 'Personas (7 días)',
-  colTasa7: 'Sobre el registro (7 días)',
-  colPersonas30: 'Personas (30 días)',
-  colTasa30: 'Sobre el registro (30 días)',
-
-  notaCuentas:
-    'El primer escalón es el perfil completado. «Cuenta creada» y «perfil completado» son el mismo acontecimiento medible: la fila de profiles nace al terminar el onboarding y el consentimiento de edad se registra en ese instante. Las altas anónimas que nunca terminan viven solo en auth.users, fuera del esquema público: no se miden, y se dice en vez de inventar el número.',
-  notaVueltaD1a:
-    '«Volvió tras su primer día» cuenta a quien dejó actividad medible (una vista de contenido o un evento de karma) entre las 24 y las 48 horas posteriores al registro. Subestima: quien vuelve y solo lee no deja rastro, y no se añade tracking nuevo para verlo. La cota superior —fue visto en cualquier momento después de su primer día— fue de',
-  notaVueltaD1b: 'personas en 7 días y',
-  notaVueltaD1c: 'en 30. La vuelta real vive entre las dos cifras.',
-
-  tituloPilar1: 'Pilar 1 · Ánimo: vídeos completados',
-  introPilar1:
-    'Lo que mide el éxito del pilar 1 con datos que ya existen: completados de content_views agregados por día, sin una fila por persona. Un completado por persona y vídeo (lo garantiza la clave primaria, no la app).',
-  resumenPilar1a: 'Últimos 7 días:',
-  resumenPilar1b: 'vídeos completados por',
-  resumenPilar1c: 'personas distintas. Últimos 30 días:',
-  resumenPilar1d: 'completados por',
-  resumenPilar1e: 'personas.',
-  notaPilar1:
-    'Las «personas distintas» de una ventana suman las de cada día, así que sobrecuentan a quien completó vídeos en dos días distintos: es una cota superior consciente, la misma que usa «compradores únicos» en economía. El cálculo exacto exigiría agregar en vivo sobre content_views, la tabla más grande de la app, y eso este panel no lo hace.',
-  colDia: 'Día',
-  colVideos: 'Vídeos completados',
-  colPersonas: 'Personas distintas',
-  tituloSeriePilar1: 'Serie diaria del pilar 1, últimos 30 días',
-
-  sinRollupEmbudo:
-    'El rollup del embudo (admin_embudo_daily, migración 0218) aún no ha corrido: la vuelta D1 y el pilar 1 se pintan como 0. Con pg_cron se calcula solo cada hora; sin pg_cron necesita que el despachador de la app lo dispare (pedido anotado).',
+/**
+ * Los seis escalones de la tabla comparada, por CLAVE. Numerados en el catálogo
+ * como los de `admin.embudo.*` para que las dos tablas de la página se lean
+ * como el mismo embudo.
+ */
+export const CLAVE_ESCALON = {
+  registro: 'admin.activacion.escalonRegistro',
+  onboarding: 'admin.activacion.escalonOnboarding',
+  lectura: 'admin.activacion.escalonLectura',
+  escucha: 'admin.activacion.escalonEscucha',
+  publicacion: 'admin.activacion.escalonPublicacion',
+  vueltaD1: 'admin.activacion.escalonVueltaD1',
 } as const

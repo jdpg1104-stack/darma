@@ -1806,6 +1806,76 @@ reportó desde su worktree y ninguna podía aplicarlo.
             `profiles` y el puente viva solo en `identity_vault`.
       Mientras no se haga, la app NO debe prometer anonimato absoluto en
       marketing, tienda de apps ni landing.
+## Lo que destapó medir de verdad (2026-08-09)
+
+- [ ] **🔴 De B23 → B14 / B16 / F4 · LAS 22 RUTAS INCUMPLEN EL PRESUPUESTO DE
+      120 KB.** Primera medición real (`scripts/load/RENDIMIENTO.md`): de **183
+      a 276 KB gzip** por ruta contra los 120 que fija CONTRATOS §11. No es una
+      ruta gorda: **180,5 KB son base compartida por las 22**, así que el
+      presupuesto se agota antes de cargar una línea de producto. Los dos
+      bultos identificados dentro de esa base:
+        · **34,8 KB gz de catálogo de idioma** — el chunk lleva `es.json` **y**
+          `en.json` completos, verificado buscando cadenas de cada uno. Es la
+          contrapartida, hasta hoy no medida, de la decisión de B00b de NO usar
+          `next-intl` («el catálogo ya viaja en el bundle»). La decisión sigue
+          siendo razonable; lo que no sabíamos es que cuesta 34,8 KB y que se
+          pagan los DOS idiomas en cada visita.
+        · **64,4 KB gz de `@supabase/supabase-js`** con GoTrue y Realtime/phoenix,
+          que es lo que dispara `/refugios`, `/perfil/[id]` y `/post/[id]` por
+          encima de los 265 KB.
+      Ninguna de las dos se arregla con una decisión pequeña: partir el catálogo
+      por idioma, y cargar Realtime solo donde se usa, son trabajo de verdad.
+      **Y hasta que se decida, CONTRATOS §11 está describiendo algo que no se
+      cumple en ninguna ruta**, que es peor que no tener presupuesto · 2026-08-09
+
+- [ ] **🔴 De B23 → B16 · la primera pantalla de Darma es invisible para Web
+      Vitals.** `/entrar` y `/onboarding` **no emiten FCP ni LCP en Chromium**.
+      No es un fallo de medición: demostrado con A/B interceptando el MISMO HTML
+      y quitando solo la clase — `/onboarding` con `fade-in` no reporta, sin ella
+      reporta 264 ms; `/entrar`, 420 ms. La causa es `.fade-in` de
+      `app/globals.css`, que arranca en `opacity: 0` con `fill-mode: both`, y
+      Chromium descarta como no-contentful lo pintado con opacidad cero.
+      Descartado `prefers-reduced-motion`: con `reduce` sigue sin reportarse.
+      La usan solo `components/auth/PanelEntrada.tsx:128` y
+      `components/auth/AsistenteOnboarding.tsx:118`.
+      **La decisión NO es técnica y por eso se deja aquí**: el arreglo de una
+      línea es sacar `opacity` del keyframe y dejar solo el `translateY` —la
+      pantalla sigue entrando, pero deja de fundirse—, y esa animación es del
+      sistema de diseño de B16, en la primera pantalla que ve alguien que llega
+      de madrugada. Quien decida: o se acepta el cambio visual, o se acepta que
+      la puerta de entrada nunca aparezca en los datos de campo · 2026-08-09
+
+- [ ] **De B23 → B01 / B05 · un 500 con sesión anónima sin onboarding.** Con una
+      cuenta anónima recién creada y el onboarding **sin completar**, `/perfil` y
+      `/perfil/editar` devuelven **HTTP 500 en vez de redirigir**:
+      `content_views_user_id_fkey · Key (user_id)=(…) is not present in table
+      "profiles"`. Es el estado por defecto de cualquiera que se dé de alta y
+      toque «perfil» antes de terminar: no es un caso de laboratorio. Apareció
+      midiendo rendimiento, no buscándolo, así que **no está reproducido en un
+      test**: eso es lo primero que hay que hacer · 2026-08-09
+
+- [ ] **De B23 → B14 · Next 16 con Turbopack ya no imprime `First Load JS`.** La
+      tabla del build es solo la lista de rutas con su marca ○/ƒ, y los
+      manifiestos por ruta no sirven (solo listan `rootMainFiles`, idénticos para
+      todas). La medición de `RENDIMIENTO.md` se hizo por **tráfico real** contra
+      `next start`, con Chromium, red estrangulada a Slow 4G por CDP, caché fría
+      y 3 pasadas por ruta. Quien quiera repetirla: el método está escrito ahí,
+      y **no vale mirar la salida del build** · 2026-08-09
+
+- [ ] **De B23 → B14 · la medición de carga de `EXPLAIN.md` sigue sin poder
+      hacerse.** Docker está instalado pero el demonio no corre, así que
+      `supabase start` no está disponible; y `darma-dev` va por **210 MB de los
+      500** del plan gratuito, cuando el objetivo del documento es 1 M de posts +
+      800 k comentarios + 100 k perfiles. No cabe, y esa base ya se quedó en solo
+      lectura una vez por esto. Necesita un Postgres local levantado o un plan de
+      pago · 2026-08-09
+
+- [ ] **De B23 → B14 · el rendimiento de las pantallas de admin sigue sin medir.**
+      `/panel/*`, `/moderacion` y `/encuestas` exigen rol admin, y medirlas
+      habría exigido escribirse un rol en el Supabase COMPARTIDO. No se hizo, a
+      propósito. Igual `/refugios/[id]`: no hay ningún refugio que abrir ·
+      2026-08-09
+
 ## El fragmento de `/animo` (2026-08-08)
 
 - [ ] **De B22 → HUMANO (curación) · elegir el momento de 25 charlas.** La
@@ -1818,7 +1888,7 @@ reportó desde su worktree y ninguna podía aplicarlo.
       lo que merece la pena y el segundo en que termina. El enlace de la
       pantalla salta solo al inicio escrito para poder comprobarlo · 2026-08-08
 
-- [ ] **De B22 → B15 · dos funciones `security definer` alcanzables por `anon`.**
+- [x] **De B22 → B15 · dos funciones `security definer` alcanzables por `anon`.** CERRADO 2026-08-09 por `0225_1_b15_definer_sin_anon.sql`: 2 → 0 de 81 definers, con barrido en `rls_privilegios.sql` y lista blanca vacía.
       Encontradas midiendo, no leyendo: `previos_del_autor(timestamptz,integer)`
       y `comments_sync_reply_count()` devuelven **`has_function_privilege('anon',
       …, 'execute') = true`** contra `darma-dev`. La causa está escrita —como
@@ -1848,7 +1918,7 @@ reportó desde su worktree y ninguna podía aplicarlo.
       recuperaría las 13 piezas de «The Social Connection Series» de la OMS que
       la guarda de idioma tiró · 2026-08-08
 
-- [ ] **De B22 → B00 · seis `mensajeClave` apuntaban a una raíz inexistente.**
+- [x] **De B22 → B00 · seis `mensajeClave` apuntaban a una raíz inexistente.** CERRADO 2026-08-09 por `scripts/security/guardClaves.ts`, que además destapó 13 claves rotas EN PANTALLA (la tarjeta de encuesta del feed). Ya arregladas.
       `app/api/admin/curacion/route.ts` devolvía `curacion.motivoObligatorio` y
       `curacion.yaDecidido`, pero en `messages/*.json` esa raíz **no existe**
       (es `admin.curacion.*`), y `obtenerTraductor()` devuelve la clave cruda

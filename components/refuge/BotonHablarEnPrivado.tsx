@@ -7,7 +7,7 @@ import { guardarClaveRefugio } from '@/lib/crypto/almacen'
 import { Boton } from '@/components/ui'
 import { useTraductor } from '@/i18n/Proveedor'
 
-import { crearRefugio } from './api'
+import { crearRefugio, textoDeError } from './api'
 import { asegurarIdentidad, prepararSobresDeSalaNueva } from './identidad'
 import estilos from './refugio.module.css'
 
@@ -73,7 +73,7 @@ export function BotonHablarEnPrivado({ miId, otroId, otroAlias }: BotonHablarEnP
       await guardarClaveRefugio(miId, refugeId, clave)
       router.push(`/refugios/${refugeId}`)
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : t('refugios.privado.error'))
+      setError(textoDeError(e, t, 'refugios.privado.error'))
       setEstado('listo')
     }
   }

@@ -27,9 +27,10 @@
 // discute. Los vídeos completados son EVENTOS y van sin máscara, como los
 // posts y los comentarios en el resto del panel.
 //
-// ── COPY NUEVO EN ESPAÑOL DIRECTO ──────────────────────────────────────────
-// Vive en `logica.ts` (TEXTOS): los catálogos messages/*.json son de otro
-// bloque. Mismo criterio documentado en panel/privacidad/logica.ts.
+// ── TODO EL COPY VIENE DEL CATÁLOGO ────────────────────────────────────────
+// `admin.activacion.*` en `messages/{es,en}.json`. `escalonesDeVentana()`
+// devuelve la CLAVE de cada escalón y esta página la resuelve con `t()`: la
+// lógica del embudo no conoce el idioma.
 // ============================================================================
 
 import { obtenerTraductor, resolverLocale } from '@/i18n'
@@ -49,7 +50,6 @@ import { TablaSerie } from '../../_componentes/TablaSerie.tsx'
 import { entero, porcentaje } from '../../_componentes/Formato.ts'
 import {
   DIAS_VENTANA_EMBUDO,
-  TEXTOS,
   embudoDeVentana,
   escalonesDeVentana,
   filtrarUltimosDias,
@@ -106,16 +106,16 @@ export default async function PaginaActivacion() {
       <p>{t('admin.activacion.notaMedicion')}</p>
 
       <TablaSerie
-        titulo={TEXTOS.tituloVentanas}
+        titulo={t('admin.activacion.tituloVentanas')}
         columnas={[
-          { clave: 'escalon', etiqueta: TEXTOS.colEscalon },
-          { clave: 'p7', etiqueta: TEXTOS.colPersonas7 },
-          { clave: 't7', etiqueta: TEXTOS.colTasa7 },
-          { clave: 'p30', etiqueta: TEXTOS.colPersonas30 },
-          { clave: 't30', etiqueta: TEXTOS.colTasa30 },
+          { clave: 'escalon', etiqueta: t('admin.activacion.colEscalon') },
+          { clave: 'p7', etiqueta: t('admin.activacion.colPersonas7') },
+          { clave: 't7', etiqueta: t('admin.activacion.colTasa7') },
+          { clave: 'p30', etiqueta: t('admin.activacion.colPersonas30') },
+          { clave: 't30', etiqueta: t('admin.activacion.colTasa30') },
         ]}
         filas={escalones7.map((e7, i) => ({
-          escalon: e7.etiqueta,
+          escalon: t(e7.etiquetaKey),
           p7: enmascarar(e7.personas),
           // Las tasas se calculan sobre los números reales, no sobre los
           // enmascarados: enmascarar es de presentación, no de cálculo.
@@ -125,31 +125,31 @@ export default async function PaginaActivacion() {
         }))}
       />
 
-      <p>{TEXTOS.notaCuentas}</p>
+      <p>{t('admin.activacion.notaCuentas')}</p>
       <p>
-        {TEXTOS.notaVueltaD1a} <strong>{enmascarar(ventana7.vueltaD1Cota)}</strong>{' '}
-        {TEXTOS.notaVueltaD1b} <strong>{enmascarar(ventana30.vueltaD1Cota)}</strong>{' '}
-        {TEXTOS.notaVueltaD1c}
+        {t('admin.activacion.notaVueltaD1a')} <strong>{enmascarar(ventana7.vueltaD1Cota)}</strong>{' '}
+        {t('admin.activacion.notaVueltaD1b')} <strong>{enmascarar(ventana30.vueltaD1Cota)}</strong>{' '}
+        {t('admin.activacion.notaVueltaD1c')}
       </p>
-      {filasEmbudo.length === 0 ? <p>{TEXTOS.sinRollupEmbudo}</p> : null}
+      {filasEmbudo.length === 0 ? <p>{t('admin.activacion.sinRollupEmbudo')}</p> : null}
 
-      <h2>{TEXTOS.tituloPilar1}</h2>
-      <p>{TEXTOS.introPilar1}</p>
+      <h2>{t('admin.activacion.tituloPilar1')}</h2>
+      <p>{t('admin.activacion.introPilar1')}</p>
       <p>
-        {TEXTOS.resumenPilar1a} <strong>{entero(pilar7.videosCompletados)}</strong>{' '}
-        {TEXTOS.resumenPilar1b} <strong>{enmascarar(pilar7.personasCompletaronCota)}</strong>{' '}
-        {TEXTOS.resumenPilar1c} <strong>{entero(pilar30.videosCompletados)}</strong>{' '}
-        {TEXTOS.resumenPilar1d} <strong>{enmascarar(pilar30.personasCompletaronCota)}</strong>{' '}
-        {TEXTOS.resumenPilar1e}
+        {t('admin.activacion.resumenPilar1a')} <strong>{entero(pilar7.videosCompletados)}</strong>{' '}
+        {t('admin.activacion.resumenPilar1b')} <strong>{enmascarar(pilar7.personasCompletaronCota)}</strong>{' '}
+        {t('admin.activacion.resumenPilar1c')} <strong>{entero(pilar30.videosCompletados)}</strong>{' '}
+        {t('admin.activacion.resumenPilar1d')} <strong>{enmascarar(pilar30.personasCompletaronCota)}</strong>{' '}
+        {t('admin.activacion.resumenPilar1e')}
       </p>
-      <p>{TEXTOS.notaPilar1}</p>
+      <p>{t('admin.activacion.notaPilar1')}</p>
 
       <TablaSerie
-        titulo={TEXTOS.tituloSeriePilar1}
+        titulo={t('admin.activacion.tituloSeriePilar1')}
         columnas={[
-          { clave: 'dia', etiqueta: TEXTOS.colDia },
-          { clave: 'videos', etiqueta: TEXTOS.colVideos },
-          { clave: 'personas', etiqueta: TEXTOS.colPersonas },
+          { clave: 'dia', etiqueta: t('admin.activacion.colDia') },
+          { clave: 'videos', etiqueta: t('admin.activacion.colVideos') },
+          { clave: 'personas', etiqueta: t('admin.activacion.colPersonas') },
         ]}
         filas={pilar30.serie.map((p) => ({
           dia: p.dia,

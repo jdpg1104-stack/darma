@@ -38,6 +38,7 @@ import { Boton, Dialogo } from '@/components/ui'
 import { useTraductor } from '@/i18n/Proveedor'
 import { crearFraseRecuperacionSincrona } from '@/lib/crypto/frase'
 import { ADVERTENCIAS_RESPALDO } from '@/lib/crypto/respaldo'
+import { textoDeError } from './api'
 import estilos from './refugio.module.css'
 
 export interface DialogoFraseRecuperacionProps {
@@ -75,7 +76,7 @@ export function DialogoFraseRecuperacion({ abierto, alCerrar, alConfirmar }: Dia
       await alConfirmar(frase)
       setPaso('guardada')
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : t('refugios.respaldo.errorGuardar'))
+      setError(textoDeError(causa, t, 'refugios.respaldo.errorGuardar'))
     } finally {
       setEnviando(false)
     }

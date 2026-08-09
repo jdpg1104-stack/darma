@@ -7,6 +7,7 @@
 // texto que escribió una persona, la respuesta es que no.
 // ============================================================================
 
+import { traducirCodigoError, type Traductor } from '@/i18n'
 import type {
   AlmaAfin,
   ClavePublicaPerfil,
@@ -18,6 +19,11 @@ import type {
 
 type Respuesta<T> = { ok: true; data: T } | { ok: false; code: string; message: string }
 
+/**
+ * ⚠️ `message` ES DIAGNÓSTICO, NO COPY. Nunca se pinta tal cual: viene del
+ * servidor, está en un solo idioma y puede llevar detalle que no debe verse
+ * (CONTRATOS §4). La interfaz traduce por CÓDIGO con `textoDeError()`.
+ */
 export class ErrorDeRed extends Error {
   readonly code: string
   constructor(code: string, message: string) {
@@ -25,6 +31,21 @@ export class ErrorDeRed extends Error {
     this.name = 'ErrorDeRed'
     this.code = code
   }
+}
+
+/**
+ * Lo único que este bloque pinta cuando algo falla.
+ *
+ * Antes cada componente hacía `causa instanceof Error ? causa.message : t(…)`,
+ * y eso enseñaba el `message` del servidor —español fijo, sin pasar por el
+ * catálogo— a quien tuviera la interfaz en inglés. Aquí se traduce por código,
+ * que es la regla que ya sigue el resto de la app (`traducirCodigoError`).
+ *
+ * @param respaldo clave del catálogo para lo que NO es un error de red (fallos
+ *        de criptografía, de almacenamiento local…), que no tiene código.
+ */
+export function textoDeError(causa: unknown, t: Traductor, respaldo: string): string {
+  return causa instanceof ErrorDeRed ? traducirCodigoError(causa.code, t) : t(respaldo)
 }
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
@@ -40,7 +61,9 @@ async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
   try {
     cuerpo = (await respuesta.json()) as Respuesta<T>
   } catch {
-    throw new ErrorDeRed('error_interno', 'No hemos podido conectar. Inténtalo otra vez.')
+    // El texto es DIAGNÓSTICO (ver `ErrorDeRed`): lo que ve la persona sale de
+    // `textoDeError()`, que traduce `errores.error_interno` en su idioma.
+    throw new ErrorDeRed('error_interno', 'respuesta no interpretable')
   }
 
   if (!cuerpo.ok) throw new ErrorDeRed(cuerpo.code, cuerpo.message)

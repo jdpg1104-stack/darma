@@ -15,21 +15,21 @@
 // una decisión de contenido sino información de operación y cumplimiento, más
 // sensible que cualquier métrica agregada. Igual que economía.
 //
-// El copy va en español directo desde `logica.ts` (el panel admin es solo en
-// español; los catálogos son de otro bloque — deuda anotada, ver logica.ts).
+// Todo el copy sale del catálogo (`admin.privacidad.*`). `logica.ts` devuelve
+// CLAVES, no texto: la clasificación de plazos no conoce el idioma.
 // ============================================================================
 
 import Link from 'next/link'
 import { Chip, EstadoVacio } from '@/components/ui'
+import { obtenerTraductor, resolverLocale, type Traductor } from '@/i18n'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '../../../api/admin/_guard.ts'
 import { ACCIONES } from '../../_lib/acceso.ts'
 import { duracion, entero, fecha } from '../../_componentes/Formato.ts'
 import {
-  ETIQUETA_ESTADO,
-  ETIQUETA_TIPO,
-  ETIQUETA_URGENCIA,
-  TEXTOS,
+  CLAVE_ESTADO,
+  CLAVE_TIPO,
+  CLAVE_URGENCIA,
   TOPE_ABIERTAS,
   aVista,
   leerAbiertas,
@@ -38,7 +38,6 @@ import {
   parsearCursor,
   prepararAbiertas,
   resumirAbiertas,
-  textoDesborde,
   type SolicitudVista,
 } from './logica.ts'
 
@@ -47,7 +46,7 @@ export const runtime = 'nodejs'
 
 /** El chip que marca cada fila frente a su plazo. El color nunca va solo:
  *  el texto dice lo mismo (§Seguridad 5). */
-function MarcaPlazo({ vista }: { vista: SolicitudVista }) {
+function MarcaPlazo({ vista, t }: { vista: SolicitudVista; t: Traductor }) {
   if (vista.urgencia !== null) {
     const tono =
       vista.urgencia === 'vencida'
@@ -55,13 +54,13 @@ function MarcaPlazo({ vista }: { vista: SolicitudVista }) {
         : vista.urgencia === 'vence_pronto'
           ? 'aviso'
           : 'neutro'
-    return <Chip tono={tono}>{ETIQUETA_URGENCIA[vista.urgencia]}</Chip>
+    return <Chip tono={tono}>{t(CLAVE_URGENCIA[vista.urgencia])}</Chip>
   }
   if (vista.cumplioPlazo !== null) {
     return vista.cumplioPlazo ? (
-      <Chip tono="logro">{TEXTOS.dentroDelPlazo}</Chip>
+      <Chip tono="logro">{t('admin.privacidad.dentroDelPlazo')}</Chip>
     ) : (
-      <Chip tono="peligro">{TEXTOS.fueraDePlazo}</Chip>
+      <Chip tono="peligro">{t('admin.privacidad.fueraDePlazo')}</Chip>
     )
   }
   return <>—</>
@@ -70,22 +69,24 @@ function MarcaPlazo({ vista }: { vista: SolicitudVista }) {
 function TablaSolicitudes({
   titulo,
   filas,
+  t,
 }: {
   titulo: string
   filas: readonly SolicitudVista[]
+  t: Traductor
 }) {
   return (
     <table>
       <caption>{titulo}</caption>
       <thead>
         <tr>
-          <th scope="col">{TEXTOS.colSolicitud}</th>
-          <th scope="col">{TEXTOS.colTipo}</th>
-          <th scope="col">{TEXTOS.colEstado}</th>
-          <th scope="col">{TEXTOS.colSolicitada}</th>
-          <th scope="col">{TEXTOS.colAntiguedad}</th>
-          <th scope="col">{TEXTOS.colVence}</th>
-          <th scope="col">{TEXTOS.colPlazo}</th>
+          <th scope="col">{t('admin.privacidad.colSolicitud')}</th>
+          <th scope="col">{t('admin.privacidad.colTipo')}</th>
+          <th scope="col">{t('admin.privacidad.colEstado')}</th>
+          <th scope="col">{t('admin.privacidad.colSolicitada')}</th>
+          <th scope="col">{t('admin.privacidad.colAntiguedad')}</th>
+          <th scope="col">{t('admin.privacidad.colVence')}</th>
+          <th scope="col">{t('admin.privacidad.colPlazo')}</th>
         </tr>
       </thead>
       <tbody>
@@ -94,19 +95,19 @@ function TablaSolicitudes({
             <th scope="row">
               <code>{v.id}</code>
             </th>
-            <td>{ETIQUETA_TIPO[v.kind]}</td>
+            <td>{t(CLAVE_TIPO[v.kind])}</td>
             <td>
               {v.state === 'failed' ? (
-                <Chip tono="peligro">{ETIQUETA_ESTADO[v.state]}</Chip>
+                <Chip tono="peligro">{t(CLAVE_ESTADO[v.state])}</Chip>
               ) : (
-                ETIQUETA_ESTADO[v.state]
+                t(CLAVE_ESTADO[v.state])
               )}
             </td>
             <td>{fecha(v.solicitadaEn)}</td>
             <td>{duracion(v.edadSegundos)}</td>
             <td>{v.venceEn === null ? '—' : fecha(v.venceEn)}</td>
             <td>
-              <MarcaPlazo vista={v} />
+              <MarcaPlazo vista={v} t={t} />
             </td>
           </tr>
         ))}
@@ -123,6 +124,7 @@ interface PropsPagina {
 export default async function PaginaPrivacidad({ searchParams }: PropsPagina) {
   await requireAdmin('operaciones', { accion: `${ACCIONES.panel}.privacidad` })
 
+  const t = obtenerTraductor(await resolverLocale())
   const params = await searchParams
   const crudo = Array.isArray(params.antes) ? params.antes[0] : params.antes
   // Un cursor inválido o manipulado NO es un error de pantalla: primera página.
@@ -150,16 +152,16 @@ export default async function PaginaPrivacidad({ searchParams }: PropsPagina) {
 
   return (
     <section>
-      <h1>{TEXTOS.titulo}</h1>
-      <p>{TEXTOS.intro}</p>
+      <h1>{t('admin.privacidad.titulo')}</h1>
+      <p>{t('admin.privacidad.intro')}</p>
 
       {!hayAlgo ? (
-        <EstadoVacio titulo={TEXTOS.vacioTitulo} descripcion={TEXTOS.vacioDescripcion} />
+        <EstadoVacio titulo={t('admin.privacidad.vacioTitulo')} descripcion={t('admin.privacidad.vacioDescripcion')} />
       ) : (
         <>
-          <dl aria-label={TEXTOS.totales}>
+          <dl aria-label={t('admin.privacidad.totales')}>
             <div>
-              <dt>{TEXTOS.totalVencidas}</dt>
+              <dt>{t('admin.privacidad.totalVencidas')}</dt>
               <dd>
                 {resumen.vencidas > 0 ? (
                   <Chip tono="peligro">{entero(resumen.vencidas)}</Chip>
@@ -169,7 +171,7 @@ export default async function PaginaPrivacidad({ searchParams }: PropsPagina) {
               </dd>
             </div>
             <div>
-              <dt>{TEXTOS.totalVencenPronto}</dt>
+              <dt>{t('admin.privacidad.totalVencenPronto')}</dt>
               <dd>
                 {resumen.vencenPronto > 0 ? (
                   <Chip tono="aviso">{entero(resumen.vencenPronto)}</Chip>
@@ -179,7 +181,7 @@ export default async function PaginaPrivacidad({ searchParams }: PropsPagina) {
               </dd>
             </div>
             <div>
-              <dt>{TEXTOS.totalFallidas}</dt>
+              <dt>{t('admin.privacidad.totalFallidas')}</dt>
               <dd>
                 {vistasFallidas.length > 0 ? (
                   <Chip tono="peligro">{entero(vistasFallidas.length)}</Chip>
@@ -189,77 +191,77 @@ export default async function PaginaPrivacidad({ searchParams }: PropsPagina) {
               </dd>
             </div>
             <div>
-              <dt>{TEXTOS.totalPendientesConfirmar}</dt>
+              <dt>{t('admin.privacidad.totalPendientesConfirmar')}</dt>
               <dd>{entero(resumen.pendientesConfirmar)}</dd>
             </div>
             <div>
-              <dt>{TEXTOS.totalConfirmadas}</dt>
+              <dt>{t('admin.privacidad.totalConfirmadas')}</dt>
               <dd>{entero(resumen.confirmadas)}</dd>
             </div>
             <div>
-              <dt>{TEXTOS.totalEnEjecucion}</dt>
+              <dt>{t('admin.privacidad.totalEnEjecucion')}</dt>
               <dd>{entero(resumen.enEjecucion)}</dd>
             </div>
             <div>
-              <dt>{TEXTOS.totalCaducadas}</dt>
+              <dt>{t('admin.privacidad.totalCaducadas')}</dt>
               <dd>{entero(resumen.caducadas)}</dd>
             </div>
             {cursor === null ? (
               <div>
-                <dt>{TEXTOS.totalCerradas}</dt>
+                <dt>{t('admin.privacidad.totalCerradas')}</dt>
                 <dd>{entero(historial.totalDesdeCursor)}</dd>
               </div>
             ) : null}
           </dl>
 
-          {abiertas.desbordadas ? <p>{textoDesborde(TOPE_ABIERTAS)}</p> : null}
+          {abiertas.desbordadas ? <p>{t('admin.privacidad.desborde', { tope: TOPE_ABIERTAS })}</p> : null}
 
           {urgentes.length > 0 ? (
             <section>
-              <h2>{TEXTOS.seccionUrgentes}</h2>
-              <p>{TEXTOS.notaUrgentes}</p>
-              <TablaSolicitudes titulo={TEXTOS.seccionUrgentes} filas={urgentes} />
+              <h2>{t('admin.privacidad.seccionUrgentes')}</h2>
+              <p>{t('admin.privacidad.notaUrgentes')}</p>
+              <TablaSolicitudes titulo={t('admin.privacidad.seccionUrgentes')} filas={urgentes} t={t} />
             </section>
           ) : (
             <p>
-              <Chip tono="logro">{TEXTOS.todoAlDia}</Chip>
+              <Chip tono="logro">{t('admin.privacidad.todoAlDia')}</Chip>
             </p>
           )}
 
           {vistasFallidas.length > 0 ? (
             <section>
-              <h2>{TEXTOS.seccionFallidas}</h2>
-              <p>{TEXTOS.notaFallidas}</p>
-              {fallidas.desbordadas ? <p>{textoDesborde(TOPE_ABIERTAS)}</p> : null}
-              <TablaSolicitudes titulo={TEXTOS.seccionFallidas} filas={vistasFallidas} />
+              <h2>{t('admin.privacidad.seccionFallidas')}</h2>
+              <p>{t('admin.privacidad.notaFallidas')}</p>
+              {fallidas.desbordadas ? <p>{t('admin.privacidad.desborde', { tope: TOPE_ABIERTAS })}</p> : null}
+              <TablaSolicitudes titulo={t('admin.privacidad.seccionFallidas')} filas={vistasFallidas} t={t} />
             </section>
           ) : null}
 
           {restoAbiertas.length > 0 ? (
             <section>
-              <h2>{TEXTOS.seccionAbiertas}</h2>
-              <p>{TEXTOS.notaAbiertas}</p>
-              <TablaSolicitudes titulo={TEXTOS.seccionAbiertas} filas={restoAbiertas} />
+              <h2>{t('admin.privacidad.seccionAbiertas')}</h2>
+              <p>{t('admin.privacidad.notaAbiertas')}</p>
+              <TablaSolicitudes titulo={t('admin.privacidad.seccionAbiertas')} filas={restoAbiertas} t={t} />
             </section>
           ) : null}
 
           <section>
-            <h2>{TEXTOS.seccionHistorial}</h2>
+            <h2>{t('admin.privacidad.seccionHistorial')}</h2>
             {vistasHistorial.length > 0 ? (
-              <TablaSolicitudes titulo={TEXTOS.seccionHistorial} filas={vistasHistorial} />
+              <TablaSolicitudes titulo={t('admin.privacidad.seccionHistorial')} filas={vistasHistorial} t={t} />
             ) : (
-              <p>{TEXTOS.sinFilasHistorial}</p>
+              <p>{t('admin.privacidad.sinFilasHistorial')}</p>
             )}
             <p>
               {historial.siguienteCursor !== null ? (
                 <Link
                   href={`/panel/privacidad?antes=${encodeURIComponent(historial.siguienteCursor)}`}
                 >
-                  {TEXTOS.masAntiguas}
+                  {t('admin.privacidad.masAntiguas')}
                 </Link>
               ) : null}{' '}
               {cursor !== null ? (
-                <Link href="/panel/privacidad">{TEXTOS.volverAlPrincipio}</Link>
+                <Link href="/panel/privacidad">{t('admin.privacidad.volverAlPrincipio')}</Link>
               ) : null}
             </p>
           </section>
