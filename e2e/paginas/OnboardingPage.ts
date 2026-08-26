@@ -2,11 +2,14 @@ import type { Locator } from '@playwright/test'
 import { BasePage } from './BasePage'
 
 /**
- * `/onboarding` — tres pasos: alias, nivel de entrada y confirmación.
+ * `/onboarding` — cuatro pasos: alias, nivel de entrada, edad declarada y
+ * confirmación.
  *
  * Es la pantalla donde se cumple o se rompe la promesa del producto: al salir
  * de aquí la persona tiene una identidad completa y en ningún momento se ha
- * pedido —ni se ha enseñado— nada que la identifique.
+ * pedido —ni se ha enseñado— nada que la identifique. La fecha de nacimiento
+ * del paso 3 no la contradice: se comprueba en el cliente y se descarta en el
+ * acto, sin viajar en ninguna petición (ver `components/auth/edad.ts`).
  */
 export class OnboardingPage extends BasePage {
   readonly ruta = '/onboarding'
@@ -33,7 +36,12 @@ export class OnboardingPage extends BasePage {
     return this.page.getByTestId('auth-boton-continuar')
   }
 
-  // ── Paso 3 · confirmación ─────────────────────────────────────────────────
+  // ── Paso 3 · edad declarada ───────────────────────────────────────────────
+  get campoFechaNacimiento(): Locator {
+    return this.page.getByTestId('auth-campo-fecha-nacimiento')
+  }
+
+  // ── Paso 4 · confirmación ─────────────────────────────────────────────────
   get botonEntrar(): Locator {
     return this.page.getByTestId('auth-boton-entrar-darma')
   }
@@ -58,11 +66,15 @@ export class OnboardingPage extends BasePage {
     return etiqueta === 'svg'
   }
 
-  /** Recorre los tres pasos aceptando lo que propone el servidor. */
+  /** Recorre los cuatro pasos aceptando lo que propone el servidor. */
   async completar(): Promise<string> {
     const alias = await this.aliasPropuesto()
     await this.botonContinuar.click()
     // Paso 2: se acepta el nivel de entrada por defecto ('escucha').
+    await this.botonContinuar.click()
+    // Paso 3: fecha declarada mayor de edad; se comprueba en el cliente y se
+    // descarta en el acto, así que cualquier fecha válida sirve al spec.
+    await this.campoFechaNacimiento.fill('1990-01-01')
     await this.botonContinuar.click()
     await this.botonEntrar.click()
     await this.page.waitForURL(/\/feed/)

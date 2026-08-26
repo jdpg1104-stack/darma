@@ -376,6 +376,17 @@
       "atras": "Atrás",
       "comprobando": "Comprobando…",
       "creando": "Creando…",
+      "edad": {
+        "etiqueta": "Tu fecha de nacimiento",
+        "fechaInvalida": "Esa fecha no puede ser. Revísala e inténtalo de nuevo.",
+        "noCumpleAyuda": "Y si lo estás pasando mal, eso no tiene que esperar a ningún cumpleaños: hay personas y teléfonos que pueden acompañarte hoy.",
+        "noCumpleEnlace": "Ver dónde pedir ayuda",
+        "noCumpleTexto": "Para tener cuenta en Darma hay que haber cumplido los {edad}. No es nada personal: es la manera de cuidar de quien aún no los tiene. Tu fecha no ha quedado guardada en ninguna parte y no se ha creado nada; cuando llegue el día, esta puerta estará abierta.",
+        "noCumpleTitulo": "Todavía no",
+        "nota": "La comprobación ocurre en tu dispositivo: la fecha no se guarda ni se envía a ninguna parte, y en cuanto la comprobamos se descarta.",
+        "texto": "Para tener cuenta en Darma hay que tener {edad} años o más. Dinos tu fecha de nacimiento para comprobarlo.",
+        "titulo": "Una cosa más, por tu seguridad"
+      },
       "errorComprobar": "No hemos podido comprobarlo. Revisa tu conexión.",
       "errorCrear": "No hemos podido crear tu identidad. Revisa tu conexión.",
       "etiquetaAlias": "Tu alias",

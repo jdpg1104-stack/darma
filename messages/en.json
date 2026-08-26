@@ -376,6 +376,17 @@
       "atras": "Back",
       "comprobando": "Checking…",
       "creando": "Creating…",
+      "edad": {
+        "etiqueta": "Your date of birth",
+        "fechaInvalida": "That date can't be right. Have another look and try again.",
+        "noCumpleAyuda": "And if you're having a hard time, that doesn't have to wait for a birthday: there are people and helplines that can be there for you today.",
+        "noCumpleEnlace": "See where to find help",
+        "noCumpleTexto": "To have an account on Darma you need to have turned {edad}. It's nothing personal: it's how we look after those who aren't there yet. Your date hasn't been stored anywhere and nothing has been created; when the day comes, this door will be open.",
+        "noCumpleTitulo": "Not just yet",
+        "nota": "The check happens on your device: the date isn't stored or sent anywhere, and the moment it's checked it's discarded.",
+        "texto": "To have an account on Darma you need to be {edad} or older. Tell us your date of birth so we can check.",
+        "titulo": "One more thing, for your safety"
+      },
       "errorComprobar": "We couldn't check it. Have a look at your connection.",
       "errorCrear": "We couldn't create your identity. Have a look at your connection.",
       "etiquetaAlias": "Your alias",
