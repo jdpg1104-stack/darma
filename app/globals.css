@@ -260,9 +260,15 @@ button, input, textarea, select {
    Se respeta `prefers-reduced-motion` de verdad: quien lo activa suele hacerlo
    por vértigo o migraña, no por gusto. Todo se vuelve instantáneo en lugar de
    simplemente "más rápido". */
+/* Sin `opacity` a propósito: el keyframe arrancaba en `opacity: 0` y, con
+   `fill-mode: both`, Chromium descartaba como no-contentful todo lo pintado
+   con opacidad cero — /entrar y /onboarding no emitían FCP ni LCP nunca. Por
+   eso el keyframe solo mueve: la pantalla sigue entrando con movimiento, pero
+   sin fundido. (La clase se sigue llamando `.fade-in`; renombrarla tocaría
+   componentes de otros dueños.) */
 @keyframes darma-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(8px); }
+  to   { transform: translateY(0); }
 }
 
 .fade-in {
