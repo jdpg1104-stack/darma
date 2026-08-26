@@ -65,6 +65,28 @@ for (const [ruta, codigo] of paginasDePerfil) {
   })
 }
 
+// ── El puente al chat cifrado vive en el perfil AJENO ───────────────────────
+// Quitar `BotonHablarEnPrivado` de [id]/page.tsx no rompe ningún tipo ni test
+// de integración: simplemente los refugios vuelven a quedarse sin puerta de
+// entrada, que es exactamente el hueco que el pedido B10 → B05 vino a cerrar.
+
+const fuenteAjeno = paginasDePerfil[2][1]
+
+test('[id]/page.tsx monta BotonHablarEnPrivado: sin él nadie puede abrir un refugio', () => {
+  assert.match(fuenteAjeno, /<BotonHablarEnPrivado\b/)
+})
+
+test('el desvío al perfil propio corta ANTES de pintar el botón: nadie abre un refugio consigo mismo', () => {
+  const posicionDesvio = fuenteAjeno.indexOf("redirect('/perfil')")
+  const posicionBoton = fuenteAjeno.indexOf('<BotonHablarEnPrivado')
+  assert.ok(posicionDesvio > -1, 'el desvío al perfil propio existe')
+  assert.ok(posicionBoton > posicionDesvio, 'el botón solo se pinta en perfiles ajenos')
+})
+
+test('[id]/page.tsx no importa lib/crypto: la criptografía es solo de navegador y esto es un Server Component', () => {
+  assert.doesNotMatch(fuenteAjeno, /lib\/crypto/)
+})
+
 test('la Server Action de editar SÍ conserva requirePerfil: una action no debe redirigir en silencio', () => {
   const acciones = readFileSync(join(carpeta, 'editar', 'acciones.ts'), 'utf8')
   assert.match(acciones, /requirePerfil\(\)/)
