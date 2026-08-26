@@ -40,7 +40,13 @@ export function SlotEncuesta({ encuestaId }: SlotEncuestaProps) {
   return (
     <Tarjeta como="section" className={estilos.tarjeta} data-encuesta={encuestaId}>
       <p className={estilos.encuesta}>
-        <Chip>{t('feed.encuesta')}</Chip>
+        {/* `feed.encuesta.etiqueta` y no `feed.encuesta`: esa clave era una hoja
+            de texto Y a la vez el espacio de nombres que usa `components/polls`.
+            Una clave no puede ser las dos cosas —`aplanar()` se queda con la
+            cadena y todo lo que cuelgue queda inalcanzable—, así que la tarjeta
+            de encuesta del feed llevaba pintando doce identificadores en crudo.
+            Lo destapó `scripts/security/guardClaves.ts` en su primera pasada. */}
+        <Chip>{t('feed.encuesta.etiqueta')}</Chip>
         {t('feed.encuestaTexto')}
       </p>
     </Tarjeta>

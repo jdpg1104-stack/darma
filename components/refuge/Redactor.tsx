@@ -26,6 +26,7 @@ import { useState, type FormEvent } from 'react'
 import { Boton, BotonCrisis } from '@/components/ui'
 import { useTraductor } from '@/i18n/Proveedor'
 import { assessCrisisRisk, type RiskLevel } from '@/lib/crisis'
+import { textoDeError } from './api'
 import { TarjetaCrisis } from './TarjetaCrisis'
 import estilos from './refugio.module.css'
 
@@ -60,7 +61,7 @@ export function Redactor({ alEnviar, puedeEscribir, pais = null }: RedactorProps
       await alEnviar(contenido, evaluacion.risk_level)
       setTexto('')
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : t('refugios.redactor.error'))
+      setError(textoDeError(causa, t, 'refugios.redactor.error'))
     } finally {
       setEnviando(false)
     }

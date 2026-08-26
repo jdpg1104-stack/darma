@@ -330,5 +330,51 @@ select ok(
   'rate_limits: SELECT revocado'
 );
 
+-- ── B15 · NINGUNA `security definer` AL ALCANCE DE LA ANON KEY ──────────────
+-- Este bloque no vigila una columna: vigila un ERROR DE CREENCIA, que es lo que
+-- se repite. 0222_1 escribió `revoke all ... from public` convencida de que eso
+-- alcanzaba a `anon` «porque hereda de PUBLIC». En Supabase no hereda: el
+-- proyecto trae `alter default privileges ... grant execute on functions to
+-- anon, authenticated, service_role`, así que cada función nueva de `public`
+-- nace con una línea `anon=X` PROPIA, y un revoke a PUBLIC retira otra distinta.
+-- La migración quedó diciendo una cosa y el catálogo otra, y dos funciones
+-- `security definer` —código que corre con los privilegios del dueño y sin
+-- RLS— acabaron invocables con la anon key. 0225_1 las cerró nombrando el rol.
+--
+-- Por eso esto se comprueba BARRIENDO el catálogo entero y no función por
+-- función: escribir el caso de `previos_del_autor` a mano habría cazado la de
+-- ayer y ninguna de las de mañana, que es exactamente lo que pasó. Cualquier
+-- migración futura que cree una definer y se olvide de nombrar a `anon` sale
+-- aquí, con su firma, sin que nadie tenga que acordarse de añadir una línea.
+--
+-- La lista blanca nace VACÍA y esa es la postura: si algún día una definer debe
+-- ser alcanzable sin sesión, que el coste sea escribir su firma aquí y el porqué
+-- al lado, no relajar la regla.
+select is_empty(
+  $$
+    select p.oid::regprocedure::text as firma
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.prosecdef
+       and has_function_privilege('anon', p.oid, 'EXECUTE')
+       -- Lista blanca (vacía a propósito). Firmas exactas, como las imprime
+       -- `oid::regprocedure`: 'mi_funcion(uuid, integer)'.
+       and p.oid::regprocedure::text <> all (array[]::text[])
+  $$,
+  'B15 · ninguna función SECURITY DEFINER de public es ejecutable por anon'
+);
+
+-- El barrido de arriba pasa solo con no encontrar nada, y «no encuentro nada»
+-- es también lo que diría si el `where` estuviera mal escrito o si el esquema
+-- llegara vacío. Esta línea le pone suelo: que haya definers que recorrer.
+select cmp_ok(
+  (select count(*)::int from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef),
+  '>=', 50,
+  'B15 · el barrido anterior recorre de verdad las definer de public (no es un conjunto vacío)'
+);
+
 select * from finish();
 rollback;

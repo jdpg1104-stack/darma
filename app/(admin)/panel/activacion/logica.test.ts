@@ -18,8 +18,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { type FilaRollup, type MetricasDia } from '../../_lib/dashboard.ts'
 import {
+  CLAVE_ESCALON,
   DIAS_VENTANA_EMBUDO,
-  TEXTOS,
   VENTANAS_COMPARADAS,
   embudoDeVentana,
   escalonesDeVentana,
@@ -207,15 +207,17 @@ test('el orden de los escalones es el del embudo del encargo', () => {
     primeraPublicacion: 1,
     vueltaD1Actividad: 1,
     vueltaD1Cota: 1,
-  }).map((e) => e.etiqueta)
+  }).map((e) => e.etiquetaKey)
 
+  // Se comprueban las CLAVES, no el texto: lo que este módulo decide es el
+  // orden del embudo, y el orden no cambia porque cambie el idioma.
   assert.deepEqual(etiquetas, [
-    TEXTOS.escalonRegistro,
-    TEXTOS.escalonOnboarding,
-    TEXTOS.escalonLectura,
-    TEXTOS.escalonEscucha,
-    TEXTOS.escalonPublicacion,
-    TEXTOS.escalonVueltaD1,
+    CLAVE_ESCALON.registro,
+    CLAVE_ESCALON.onboarding,
+    CLAVE_ESCALON.lectura,
+    CLAVE_ESCALON.escucha,
+    CLAVE_ESCALON.publicacion,
+    CLAVE_ESCALON.vueltaD1,
   ])
 })
 
