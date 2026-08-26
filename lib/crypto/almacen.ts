@@ -138,6 +138,22 @@ export async function olvidarDispositivo(userId: string): Promise<void> {
   await borrarPorPrefijo(`refugio:${userId}:`)
 }
 
+/**
+ * Borra TODAS las identidades y claves de refugio del dispositivo, de todas
+ * las cuentas que hayan pasado por él — no solo la del usuario actual.
+ *
+ * Es lo que llama el botón de Salir, que no conoce ningún userId. Y borrar
+ * todo, no solo lo de quien sale, es la semántica correcta: compartir el móvil
+ * es lo normal en esta app, y quien pulsa «Salir» está ENTREGANDO el
+ * dispositivo. Una clave de OTRA cuenta que quedara viva en IndexedDB abriría
+ * sus refugios a quien reciba el aparato, aunque esa otra sesión llevara meses
+ * caducada: la clave, no la sesión, es lo que abre las conversaciones.
+ */
+export async function olvidarEsteDispositivo(): Promise<void> {
+  await borrarPorPrefijo('identidad:')
+  await borrarPorPrefijo('refugio:')
+}
+
 /** ¿Hay identidad guardada aquí? Es lo que distingue «dispositivo conocido» de
  *  «dispositivo nuevo», que son dos pantallas muy distintas. */
 export async function hayIdentidad(userId: string): Promise<boolean> {

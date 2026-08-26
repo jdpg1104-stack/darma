@@ -75,6 +75,11 @@ export function TarjetaCrisis({ nivel, pais = null }: TarjetaCrisisProps) {
         ))}
       </ul>
       <p className={estilos.explicacion}>{t('refugios.crisis.pie')}</p>
+      {/* El aviso permanente de no-terapia (pedido B20 → B16/F4): la MISMA
+          clave de catálogo que pinta el layout de (app). Va el último y en
+          tono de explicación a propósito: lo importante de esta tarjeta son
+          los teléfonos, y nada debe desplazarlos. */}
+      <p className={estilos.explicacion}>{t('legal.avisoNoTerapia')}</p>
     </aside>
   )
 }

@@ -17,6 +17,9 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
+import { AVISO_NO_TERAPIA } from '../../lib/privacy/avisos.ts'
+
+const raiz = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const fuente = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'layout.tsx'), 'utf8')
 
 test('monta BotonCrisis: CONTRATOS §9, en todas las pantallas', () => {
@@ -29,6 +32,23 @@ test('monta RegistroServiceWorker: sin él, /ayuda no funciona sin red', () => {
 
 test('monta AvisoSinConexion: el banner global de sin conexión', () => {
   assert.match(fuente, /<AvisoSinConexion\b/)
+})
+
+test('pinta el aviso permanente de no-terapia desde el catálogo (pedido B20 → B16/F4)', () => {
+  // Un `<footer>` con la clave del catálogo, no el literal español: el layout
+  // se sirve en los dos idiomas.
+  assert.match(fuente, /<footer\b/)
+  assert.match(fuente, /legal\.avisoNoTerapia/)
+})
+
+test('la clave española del catálogo es palabra por palabra AVISO_NO_TERAPIA', () => {
+  // `lib/privacy/avisos.ts` es el único dueño de la redacción (su cabecera
+  // explica por qué): si un abogado la cambia allí, esta prueba obliga a
+  // actualizar el catálogo en vez de dejar dos versiones vivas.
+  const catalogo = JSON.parse(readFileSync(join(raiz, 'messages', 'es.json'), 'utf8')) as {
+    legal?: { avisoNoTerapia?: string }
+  }
+  assert.equal(catalogo.legal?.avisoNoTerapia, AVISO_NO_TERAPIA)
 })
 
 test('NO monta OptInPush: pedir permiso al cargar quema el origen para siempre', () => {

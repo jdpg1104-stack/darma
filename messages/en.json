@@ -787,6 +787,7 @@
   },
   "legal": {
     "actualizado": "Updated on {fecha}",
+    "avisoNoTerapia": "Darma is peer support between people, not healthcare: if you're having a hard time, talking here helps, and seeking professional help does too.",
     "documento": {
       "actualizadoEn": "Last updated {fecha}",
       "descripcionMeta": "Darma legal document, version {version}.",

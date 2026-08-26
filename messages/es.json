@@ -787,6 +787,7 @@
   },
   "legal": {
     "actualizado": "Actualizado el {fecha}",
+    "avisoNoTerapia": "Darma es acompañamiento entre personas, no atención sanitaria: si lo estás pasando mal, hablar aquí ayuda y pedir ayuda profesional también.",
     "documento": {
       "actualizadoEn": "Última actualización {fecha}",
       "descripcionMeta": "Documento legal de Darma, versión {version}.",
