@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { AvisoSinConexion, RegistroServiceWorker } from '@/components/pwa'
 import { BotonCrisis } from '@/components/ui'
+import { obtenerTraductor, resolverLocale } from '@/i18n'
 
 // ============================================================================
 // Layout de `app/(app)` — todo lo que hay detrás de la sesión.
@@ -34,15 +35,42 @@ import { BotonCrisis } from '@/components/ui'
 //  · `BotonInstalar` pertenece a ajustes/perfil, no a un flotante global.
 // Ambos montajes están pedidos a sus dueños en HANDOFF/PEDIDOS.md.
 //
+// ── AVISO PERMANENTE DE NO-TERAPIA (pedido B20 → B16/F4) ───────────────────
+// Por la misma garantía estructural se pinta aquí `legal.avisoNoTerapia`: la
+// frase de `AVISO_NO_TERAPIA` (`lib/privacy/avisos.ts`), que debe verse en
+// TODAS las pantallas con sesión, no solo en /legal. Es un `<footer>` de texto
+// plano, sin JS, y el copy sale del CATÁLOGO —no del literal español— porque
+// este layout se sirve en los dos idiomas. La prueba de este archivo vigila
+// que no desaparezca, y `layout.test.ts` comprueba además que la clave española
+// del catálogo sigue siendo palabra por palabra el texto de `avisos.ts`.
+//
 // A propósito NO lleva `<main>`: cada pantalla monta el suyo con su propio
 // ancho, y anidar dos elementos `main` es HTML inválido y confunde a los
 // lectores de pantalla.
 // ============================================================================
 
-export default function LayoutApp({ children }: { children: ReactNode }) {
+export default async function LayoutApp({ children }: { children: ReactNode }) {
+  const t = obtenerTraductor(await resolverLocale())
+
   return (
     <>
       {children}
+      {/* Discreto a propósito (tokens de globals.css, nada de hex): presente
+          siempre, protagonista nunca. El padding inferior deja sitio al botón
+          de crisis flotante para que no tape la frase en móvil. */}
+      <footer
+        style={{
+          color: 'var(--muted)',
+          fontSize: 13,
+          lineHeight: 1.6,
+          textAlign: 'center',
+          maxWidth: '46rem',
+          margin: '0 auto',
+          padding: '16px 20px calc(72px + env(safe-area-inset-bottom))',
+        }}
+      >
+        <p style={{ margin: 0 }}>{t('legal.avisoNoTerapia')}</p>
+      </footer>
       <AvisoSinConexion />
       <BotonCrisis posicion="flotante" />
       <RegistroServiceWorker />
