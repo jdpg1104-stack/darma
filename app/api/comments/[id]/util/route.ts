@@ -28,6 +28,7 @@ import { manejarRuta } from '@/lib/auth/http'
 import { sobreOk } from '@/lib/auth/respuestas'
 import { ErrorApi } from '@/lib/auth/errores'
 import { exigirPerfil, getContextoSesion } from '@/lib/auth/session'
+import { avisar } from '@/lib/push'
 
 import { limitarHilo } from '../../limites.ts'
 import { esquemaUuid, validar } from '../../validacion.ts'
@@ -61,7 +62,7 @@ export async function POST(
     const supabase = await createClient()
     const { data: comentario, error } = await supabase
       .from('comments')
-      .select('id, author_id, post:posts!comments_post_id_fkey(author_id)')
+      .select('id, author_id, post_id, post:posts!comments_post_id_fkey(author_id)')
       .eq('id', comentarioId)
       .eq('state', 'active')
       .maybeSingle()
@@ -94,6 +95,32 @@ export async function POST(
 
     if (fila.estado === 'no_encontrado') throw new ErrorApi('no_encontrado')
     if (fila.estado !== 'ok') throw new ErrorApi('sin_permiso')
+
+    // ── Aviso «te ayudó» (B13). SOLO aquí, con el `estado = 'ok'` de
+    // `marcar_comentario_util()` ya devuelto: la marca —y su karma— están
+    // confirmados en Postgres, igual que el disparador hermano de
+    // `route.ts` espera al `returning` de `is_validated`. `avisar()` aplica
+    // sola la política entera —bloqueo, preferencias, silencio nocturno,
+    // techo diario y agrupación— y su contrato es NO lanzar; el `try` de
+    // fuera es la garantía LOCAL de que, aunque ese contrato se rompiera,
+    // un fallo del push jamás convierte una marca ya pagada en un 500. La
+    // guarda del autoaviso es redundante con la propia función de Postgres
+    // (nadie marca su comentario en su propio post sin comentarse a sí
+    // mismo, que B04 rechaza), y está a propósito: si aquello cambiara
+    // algún día, nadie se avisaría a sí mismo.
+    if (comentario.author_id !== userId) {
+      try {
+        await avisar({
+          destinatarioId: comentario.author_id,
+          tipo: 'te_ayudo',
+          emisorId: userId,
+          url: `/post/${comentario.post_id}`,
+        })
+      } catch {
+        // Sin uuids ni contenido: el aviso es anónimo también en los logs.
+        console.warn('[darma][b13] aviso te_ayudo no enviado')
+      }
+    }
 
     return sobreOk<RespuestaUtil>({
       comentarioId,

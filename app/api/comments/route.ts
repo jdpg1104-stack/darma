@@ -54,6 +54,7 @@ import { perfilPublicoDesde } from '@/lib/auth/perfil'
 import { assertNoPii, PiiDetectedError } from '@/lib/anonymity'
 import { paisDePeticion } from '@/lib/auth/peticion'
 import { hayClaveIA } from '@/lib/ai/cliente'
+import { avisar } from '@/lib/push'
 
 import { limitarHilo } from './limites.ts'
 import { evaluar, registrar } from './crisisHilo.ts'
@@ -294,6 +295,30 @@ export async function POST(request: Request) {
             .limit(1)
 
           karmaGanado = karmaConcedido(evento)
+
+          // ── Aviso «te escucharon» (B13). SOLO aquí, con el `returning` ya
+          // confirmado: avisar de una validación que no ocurrió sería hacer
+          // vibrar un teléfono por nada. `avisar()` aplica sola la política
+          // entera —bloqueo, preferencias, silencio nocturno, techo diario y
+          // agrupación— y su contrato es NO lanzar; el `try` de fuera es la
+          // garantía LOCAL de que, aunque ese contrato se rompiera, un fallo
+          // del push jamás convierte una escucha ya pagada en un 500. La
+          // guarda del autoaviso es redundante con el rechazo del
+          // autocomentario de más arriba, y está a propósito: si aquel
+          // `throw` cambiara algún día, nadie se avisaría a sí mismo.
+          if (post.author_id !== userId) {
+            try {
+              await avisar({
+                destinatarioId: post.author_id,
+                tipo: 'te_escucharon',
+                emisorId: userId,
+                url: `/post/${entrada.postId}`,
+              })
+            } catch {
+              // Sin uuids ni contenido: el aviso es anónimo también en los logs.
+              console.warn('[darma][b13] aviso te_escucharon no enviado')
+            }
+          }
         }
       }
     } else {

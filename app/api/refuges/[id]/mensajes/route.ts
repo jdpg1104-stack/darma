@@ -12,6 +12,7 @@
 // ============================================================================
 
 import type { NextRequest } from 'next/server'
+import { avisar } from '@/lib/push'
 import { manejarRuta } from '@/lib/auth/http'
 import { sobreOk } from '@/lib/auth/respuestas'
 import { ErrorApi } from '@/lib/auth/errores'
@@ -146,6 +147,43 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single()
 
     if (error) throw codigoDesdeErrorDeRefugio(error)
+
+    // ── Aviso «mensaje_refugio» (B13) a los DEMÁS miembros de la sala ──────
+    // SOLO con el INSERT ya confirmado. A `avisar()` van exclusivamente ids y
+    // la ruta interna: NI el contenido (el servidor recibe un blob AES-256-GCM
+    // y no tiene la clave — pedido B10 → B13), NI un alias, NI el título del
+    // refugio. La plantilla de `mensaje_refugio` en `lib/push/plantillas.ts`
+    // tampoco los acepta: la firma de `construirCarga` es la barrera.
+    //
+    // La lista de miembros sale del MISMO cliente RLS (regla 1 de
+    // `_dominio/servidor.ts`: aquí jamás entra el admin) y trae `muted`, así
+    // que quien silenció la sala se descarta ya en la ruta, sin una consulta
+    // por destinatario; `avisar()` vuelve a comprobarlo por dentro
+    // (`silenciadoEnRefugio`, con el `refugeId` que se le pasa) como segunda
+    // capa. El `try` envuelve el bloque entero: un fallo del push jamás rompe
+    // un mensaje que ya está guardado.
+    try {
+      const { data: miembros } = await ctx.supabase
+        .from('refuge_members')
+        .select('user_id, muted')
+        .eq('refuge_id', refugeId)
+        .is('left_at', null)
+
+      for (const miembro of (miembros ?? []) as { user_id: string; muted: boolean | null }[]) {
+        if (miembro.user_id === ctx.sesion.userId) continue
+        if (miembro.muted === true) continue
+        await avisar({
+          destinatarioId: miembro.user_id,
+          tipo: 'mensaje_refugio',
+          emisorId: ctx.sesion.userId,
+          refugeId,
+          url: `/refugios/${refugeId}`,
+        })
+      }
+    } catch {
+      // Sin uuids ni contenido: el aviso es anónimo también en los logs.
+      console.warn('[darma][b13] aviso mensaje_refugio no enviado')
+    }
 
     return sobreOk({ mensaje: aMensaje(data as FilaMensaje) }, 201)
   })
