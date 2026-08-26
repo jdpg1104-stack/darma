@@ -27,9 +27,10 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { obtenerTraductor, resolverLocale } from '@/i18n'
-import { requirePerfil } from '@/lib/auth/session'
+import { requireSesion } from '@/lib/auth/session'
 import { BotonInstalar } from '@/components/pwa'
 import { BotonSalir } from '@/components/perfil/BotonSalir'
 import { CabeceraPerfil } from '@/components/perfil/CabeceraPerfil'
@@ -55,7 +56,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PaginaPerfilPropio() {
-  const sesion = await requirePerfil()
+  // `requireSesion()` y NO `requirePerfil()`: en una página, el `sin_permiso`
+  // que lanza `requirePerfil()` no se convierte en redirección sino en un 500.
+  // Una cuenta anónima recién creada, sin onboarding, se manda a terminarlo —
+  // el mismo idioma que /publicar.
+  const sesion = await requireSesion()
+  if (!sesion.perfilCompleto) redirect('/onboarding')
   const t = obtenerTraductor(await resolverLocale())
 
   const [propio, historial] = await Promise.all([
