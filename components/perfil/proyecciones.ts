@@ -21,6 +21,7 @@ import { insigniasPublicas } from './insignias.ts'
 import type {
   CambiosPerfil,
   DesgloseKarma,
+  Disponibilidad,
   EditarPerfilInput,
   EventoKarma,
   FilaEventoKarma,
@@ -183,4 +184,23 @@ export function cambiosPerfilDesdeEntrada(entrada: EditarPerfilInput): CambiosPe
  *  SIN una consulta nueva: es el mismo agregado que ya pinta el resumen. */
 export function vecesMeAyudo(desglose: DesgloseKarma[]): number {
   return desglose.find((d) => d.kind === 'marked_helpful')?.veces ?? 0
+}
+
+/**
+ * ¿Este guardado es LA TRANSICIÓN a `necesito_hablar`?
+ *
+ * Es la condición del aviso «alma afín disponible» (B13) y es deliberadamente
+ * estricta: el aviso señala un CAMBIO de estado, no un submit. Reeditar la bio
+ * estando ya en `necesito_hablar` no re-avisa (el formulario reenvía siempre la
+ * disponibilidad actual, así que sin mirar la previa cada guardado avisaría), y
+ * un guardado que no toca la disponibilidad tampoco. `previa: null` —la fila no
+ * se pudo leer— cuenta como transición: ante la duda, que la señal de quien
+ * está mal llegue pesa más que el riesgo de un aviso repetido, que además
+ * `avisar()` agrupa y limita por su cuenta.
+ */
+export function transicionANecesitoHablar(
+  previa: Disponibilidad | null,
+  cambios: CambiosPerfil,
+): boolean {
+  return cambios.availability === 'necesito_hablar' && previa !== 'necesito_hablar'
 }

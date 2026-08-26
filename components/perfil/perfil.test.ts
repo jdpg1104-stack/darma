@@ -1,5 +1,5 @@
 // ============================================================================
-// Pruebas de B05. Once casos, ocho de FALLO.
+// Pruebas de B05. Doce casos, ocho de FALLO.
 //
 // Un test que solo comprueba el camino feliz de un perfil pasa igual con las
 // políticas RLS desactivadas y con el karma gastable saliendo en el JSON del
@@ -25,6 +25,7 @@ import {
   eventoKarmaDesdeFila,
   perfilAjenoDesdeFila,
   resumenDesdeFila,
+  transicionANecesitoHablar,
   vecesMeAyudo,
 } from './proyecciones.ts'
 import { argumentosHistorial } from './argumentos.ts'
@@ -437,5 +438,44 @@ describe('11 · formato de fecha determinista', () => {
 
   it('una cadena que no reconoce se devuelve tal cual, no se pierde la fila', () => {
     assert.equal(formatearFechaCorta('sin formato'), 'sin formato')
+  })
+})
+
+// ── 12. Aviso de alma afín · la TRANSICIÓN, no el submit ────────────────────
+describe('12 · alma afín (B13): el aviso lo dispara la transición, no el guardado', () => {
+  it('pasar a necesito_hablar desde cualquier otro estado avisa', () => {
+    const cambios = cambiosPerfilDesdeEntrada({ disponibilidad: 'necesito_hablar' })
+    assert.equal(transicionANecesitoHablar('disponible', cambios), true)
+    assert.equal(transicionANecesitoHablar('ausente', cambios), true)
+  })
+
+  it('guardar estando YA en necesito_hablar NO re-avisa', () => {
+    // El formulario reenvía siempre la disponibilidad actual: reeditar la bio
+    // sin esta guarda sería una forma barata de re-acaparar la atención de
+    // quien acude, que es el recurso más escaso de Darma.
+    const cambios = cambiosPerfilDesdeEntrada({
+      bio: 'Sigo aquí.',
+      disponibilidad: 'necesito_hablar',
+    })
+    assert.equal(transicionANecesitoHablar('necesito_hablar', cambios), false)
+  })
+
+  it('un guardado que no toca la disponibilidad no avisa', () => {
+    const cambios = cambiosPerfilDesdeEntrada({ alias: 'Faro Sereno 1234' })
+    assert.equal(transicionANecesitoHablar('disponible', cambios), false)
+    assert.equal(transicionANecesitoHablar('necesito_hablar', cambios), false)
+  })
+
+  it('salir de necesito_hablar no avisa a nadie', () => {
+    const cambios = cambiosPerfilDesdeEntrada({ disponibilidad: 'disponible' })
+    assert.equal(transicionANecesitoHablar('necesito_hablar', cambios), false)
+  })
+
+  it('sin disponibilidad previa legible, la señal gana: sí avisa', () => {
+    // Ante la duda pesa más que llegue el aviso de quien está mal que el
+    // riesgo de repetirlo — y repetirlo ya lo amortiguan el techo y la
+    // agrupación de `avisar()`.
+    const cambios = cambiosPerfilDesdeEntrada({ disponibilidad: 'necesito_hablar' })
+    assert.equal(transicionANecesitoHablar(null, cambios), true)
   })
 })
