@@ -34,7 +34,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
 import { obtenerTraductor, resolverLocale } from '@/i18n'
-import { requirePerfil } from '@/lib/auth/session'
+import { requireSesion } from '@/lib/auth/session'
 import { CabeceraPerfil } from '@/components/perfil/CabeceraPerfil'
 import { RejillaInsignias } from '@/components/perfil/RejillaInsignias'
 import { leerPerfilAjeno } from '@/components/perfil/consultas'
@@ -60,8 +60,11 @@ export default async function PaginaPerfilAjeno({
 }) {
   // Exige sesión: `profiles_read` solo concede lectura a `authenticated`, así
   // que sin sesión esta consulta no devolvería nada de todas formas. Pedirla
-  // aquí convierte un vacío inexplicable en un redirect al login.
-  const sesion = await requirePerfil()
+  // aquí convierte un vacío inexplicable en un redirect al login. Y sin
+  // onboarding, al onboarding — en una página, el `sin_permiso` de
+  // `requirePerfil()` sería un 500, no una redirección.
+  const sesion = await requireSesion()
+  if (!sesion.perfilCompleto) redirect('/onboarding')
   const t = obtenerTraductor(await resolverLocale())
 
   const { id } = await params
