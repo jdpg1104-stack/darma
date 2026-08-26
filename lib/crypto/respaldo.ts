@@ -38,7 +38,7 @@
 // activación (`components/refuge/DialogoFraseRecuperacion.tsx`) dice las tres
 // cosas literalmente, sin eufemismos, ANTES de enseñar las palabras — y las
 // dice igual de fuerte en inglés (`ADVERTENCIAS_RESPALDO`, al final de este
-// archivo, y `messages/parches/refugios.*.json`).
+// archivo; las claves viven en `messages/es.json` y `messages/en.json`).
 //
 // ── POR QUÉ ACTIVARLA MÁS TARDE ROTA LA CLAVE ──────────────────────────────
 // WebCrypto no puede volver extraíble una clave que se creó no extraíble — y

@@ -93,7 +93,7 @@ npm run dev            # http://localhost:3000
 | `npm run build` | Build de producción |
 | `npm run typecheck` | `tsc --noEmit` — debe salir limpio siempre |
 | `npm run lint` | ESLint 9 (flat config) |
-| `npm test` | Más de 1.400 pruebas con el runner nativo de Node |
+| `npm test` | Más de 1.700 pruebas con el runner nativo de Node |
 | `npm run db:push` | Aplica las migraciones |
 
 ### Contribuir
@@ -213,16 +213,18 @@ Está contado en [`app/SIN-LOADING.md`](./app/SIN-LOADING.md).
 
 ## Estado
 
-Compila, pasa más de 1.400 pruebas, construye 110 rutas y funciona en dos idiomas. El
+Compila, pasa más de 1.700 pruebas, construye 110 rutas y funciona en dos idiomas. El
 bucle completo está verificado contra Postgres: publicar, escuchar, validar,
-karma, y el segundo intento de publicar bloqueado.
+karma, y el segundo intento de publicar bloqueado. El feed de `/animo` sirve un
+catálogo curado de 34 piezas con el fragmento elegido a mano (70–180 s por
+tarjeta), así que el +1 por ver contenido vuelve a ser alcanzable.
 
 **Lo que falta antes de que esto pueda usarlo alguien:**
 
 | | |
 |---|---|
 | 🔴 **Verificar los 24 teléfonos de crisis** | Se escribieron sin confirmarlos con cada organización. `tablaListaParaProduccion()` devuelve `false` y **detiene el build de producción** desde `prebuild`: no es una convención, el despliegue se para. Un número muerto en esa pantalla es peor que no mostrar ninguno. La lista para trabajar —con la fuente oficial de cada uno— está en [`HANDOFF/VERIFICACION-TELEFONOS.md`](./HANDOFF/VERIFICACION-TELEFONOS.md); son 11 llamadas, no 24. |
-| **Clave del clasificador** | Sin ella la app corre siempre degradada: publica y escala el riesgo, pero nadie gana karma. Coste estimado: ~485 $/día a 100.000 comentarios. |
+| **Clave del clasificador** | Sin ella la app corre degradada: la heurística determinista valida comentarios y paga karma, pero se cuela relleno que el modelo habría rechazado y la detección de crisis pierde el matiz que solo da leer el texto. Coste estimado: ~485 $/día a 100.000 comentarios. |
 | **Pruebas de carga** | Escritas, sin ejecutar. Necesitan una base mayor que el plan gratuito. |
 | **Revisión legal** | Menores, retención y política de borrado. |
 
