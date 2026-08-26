@@ -11,12 +11,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { obtenerTraductor, resolverLocale } from '@/i18n'
-import { requirePerfil } from '@/lib/auth/session'
+import { requireSesion } from '@/lib/auth/session'
 import { FormularioEditar } from '@/components/perfil/FormularioEditar'
 import { leerPerfilEditable } from '@/components/perfil/consultas'
 import { editarPerfil } from './acciones'
 import estilos from '@/components/perfil/perfil.module.css'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +29,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PaginaEditarPerfil() {
-  const sesion = await requirePerfil()
+  // En una página, el `sin_permiso` de `requirePerfil()` es un 500, no una
+  // redirección. Sin onboarding no hay nada que editar: a terminar el alta,
+  // como /publicar. La Server Action de `acciones.ts` sí sigue con
+  // `requirePerfil()` — una action no debe redirigir en silencio.
+  const sesion = await requireSesion()
+  if (!sesion.perfilCompleto) redirect('/onboarding')
   const t = obtenerTraductor(await resolverLocale())
 
   // UNA consulta a las columnas públicas por PK. No se piden saldos: esta
