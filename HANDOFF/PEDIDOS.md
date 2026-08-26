@@ -721,12 +721,17 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       403 (que no es 410, así que la limpieza automática no lo arregla) ·
       2026-08-03
       → CERRADO 2026-08-05 (auditoria): `VAPID_PUBLIC_KEY` y las demas estan en `.env.example`.
-- [ ] **De B13 → B01** · en el logout hay que avisar al service worker para que
+- [x] **De B13 → B01** · en el logout hay que avisar al service worker para que
       borre las cachés: `avisarCierreDeSesion()` de `@/components/pwa` (un
       `postMessage({tipo:'darma:logout'})`; el handler ya está en
       `public/sw.js`). Sin eso, el shell cacheado de una cuenta sigue vivo
       cuando otra persona entra en el mismo dispositivo — y compartir el móvil
       en una app de apoyo emocional es lo normal, no la excepción · 2026-08-03
+      → CERRADO 2026-08-26: `BotonSalir` (components/perfil/BotonSalir.tsx)
+      llama a `avisarCierreDeSesion()` antes de la navegación dura desde que
+      existe, y la rama `aviso-no-terapia-y-logout` añade el paso que faltaba
+      de verdad: `olvidarEsteDispositivo()` borra también las claves E2E de
+      IndexedDB. El orden completo está en la cabecera del componente.
 - [ ] **De B13 → B04** · falta el disparador del aviso «te escucharon». El punto
       de entrada está listo y es uno solo:
       `await avisar({ destinatarioId: autorDelPost, tipo: 'te_escucharon',
@@ -735,6 +740,11 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       No lanza nunca y aplica sola la política entera (bloqueo, preferencias,
       silencio nocturno, techo, agrupación y alias del emisor). Igual para
       `te_ayudo` en `app/api/comments/[id]/util/route.ts` · 2026-08-03
+      → CERRADO A MEDIAS 2026-08-26 (rama `disparadores-push`):
+      `te_escucharon` está cableado en `app/api/comments/route.ts`, dentro del
+      bloque de validación confirmada, con guarda de autoaviso y try/catch que
+      no rompe la respuesta. **`te_ayudo` sigue SIN disparador** — queda como
+      único resto de este apunte.
 - [ ] **De B13 → B10** · el aviso más importante del bloque necesita su
       disparador: `avisarAlmasAfines(userId)` de `@/lib/push`, cuando alguien
       pone `profiles.availability = 'necesito_hablar'`. Resuelve destinatarios
@@ -742,6 +752,12 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `idx_kindred_reverse` y ya filtra `blocks`). Y `mensaje_refugio` con
       `avisar({..., tipo: 'mensaje_refugio', refugeId })`, que respeta
       `refuge_members.muted` · 2026-08-03
+      → CERRADO A MEDIAS 2026-08-26 (rama `disparadores-push`):
+      `avisarAlmasAfines()` está cableado en la Server Action del perfil, SOLO
+      en la transición a `necesito_hablar` (la disponibilidad previa sale de la
+      fila memoizada de `mi_sesion()`, cero consultas extra), decidido por
+      `transicionANecesitoHablar()` pura y probada. **`mensaje_refugio` sigue
+      SIN disparador** — queda como único resto de este apunte.
 - [ ] **De B13 → B16** · `public/icono-darma.svg` y
       `public/icono-darma-maskable.svg` son provisionales (SVG, con los tokens
       de `globals.css`, sin un solo hex inventado). Chrome acepta SVG en el
@@ -814,11 +830,24 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       (`terminos`, `privacidad`, `no_es_terapia`, `edad_minima`) con
       `POST /api/privacy/consentimientos`. Si la edad no llega a 16, **no se
       crea ni la fila de `profiles` ni la de `consents`** · 2026-08-03
-- [ ] **De B20 → B16 / F4** · `AVISO_NO_TERAPIA` (`lib/privacy/avisos.ts`) tiene
+      → CERRADO A MEDIAS 2026-08-26 (rama `onboarding-edad-minima`): (a)-(c)
+      hechos — paso nuevo del asistente con `<input type="date">`, validación
+      SOLO en el cliente (la única forma de que la fecha no viaje), la fecha se
+      vacía del estado en cuanto hay veredicto, y sin cumplir la edad
+      `crearPerfil()` es inalcanzable; guards en test de que el asistente no
+      toca storage y ningún `JSON.stringify` lleva la fecha. **Queda (d): el
+      registro de los cuatro consentimientos por
+      `POST /api/privacy/consentimientos`.**
+- [x] **De B20 → B16 / F4** · `AVISO_NO_TERAPIA` (`lib/privacy/avisos.ts`) tiene
       que renderizarse de forma **permanente** en el layout de `app/(app)` y en
       la tarjeta de recursos de crisis. Es una frase, sin JS. Hoy solo aparece
       en `/legal` y en `/legal/no-es-terapia`, que es donde menos falta hace ·
       2026-08-03
+      → CERRADO 2026-08-26 (rama `aviso-no-terapia-y-logout`): footer discreto
+      en `app/(app)/layout.tsx` (por catálogo, `legal.avisoNoTerapia`, es/en) y
+      la misma clave en `components/refuge/TarjetaCrisis.tsx` sin desplazar los
+      teléfonos. Con guard en `app/(app)/layout.test.ts` de que el texto del
+      catálogo es palabra por palabra el de `lib/privacy/avisos.ts`.
 - [ ] **De B20 → B10** · al borrar una cuenta, `borrar_usuario()` marca los
       `refuge_messages` propios como `removed` y saca a la persona de todas las
       salas, pero **el `ciphertext` se conserva**: su destrucción real es asunto
@@ -880,7 +909,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       `consentimientos.ts` declaran a mano las formas de fila, con el comentario
       que dice por qué · 2026-08-03
       → CERRADO 2026-08-05 (auditoria): `consents` y `privacy_requests` estan en `database.types.ts`.
-- [ ] **De B20 → B17** · deuda de traducción: las páginas de `app/(legal)/**`
+- [x] **De B20 → B17** · deuda de traducción: las páginas de `app/(legal)/**`
       llevan el texto en **español directo**, no `t('…')`. El guard
       `ningún archivo NUEVO de app/** o components/** trae texto sin traducir`
       las señala (junto con `app/(app)/ranking`, `app/(app)/refugios` y
@@ -890,6 +919,14 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       texto exacto se aceptó, así que cada idioma necesita su propio documento
       con su propia versión y su propia huella, no una interpolación ·
       2026-08-03
+      → CERRADO 2026-08-26 (auditoría dedicada, no una sesión de trabajo: al ir
+      a hacerlo ya estaba hecho): `DocumentoBilingue`
+      (`app/(legal)/legal/_documento.tsx`) elige entre `DOCUMENTOS_LEGALES` y
+      `DOCUMENTOS_LEGALES_EN` (`lib/privacy/textosEn.ts`) por `resolverLocale()`,
+      respetando el matiz del sha256 — cada idioma es OTRO documento con su
+      huella; hay rutas estáticas `/legal/en/**`; titulares y navegación por
+      catálogo (24 claves `legal.*` por idioma). Guard de literales con la
+      lista de deuda VACÍA y 936/936 claves en paridad.
 - [ ] **De B20 → B19** · el centro de mando necesita una vista de solicitudes de
       privacidad (cuántas pendientes, cuántas vencidas, cuántas fallidas) para
       poder demostrar el cumplimiento del plazo del art. 12.3. Los datos están
@@ -1027,7 +1064,7 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
 - [x] **De B10 → F4** · `/refugios` y `/refugios/[id]` deben estar en las rutas
       PRIVADAS de `proxy.ts`: exigen sesión · 2026-08-03
       → CERRADO 2026-08-05 (auditoria): `proxy.ts` es privado POR DEFECTO —solo `PUBLIC_ROUTES` se libra— asi que `/refugios` y `/refugios/[id]` ya exigen sesion sin necesidad de listarlas.
-- [ ] **De B10 → B17 (deuda de traducción)** · todo el copy de
+- [x] **De B10 → B17 (deuda de traducción)** · todo el copy de
       `components/refuge/**` y `app/(app)/refugios/**` está escrito **en español
       directamente en el JSX**, sin pasar por `messages/`. Los tres textos que
       hay que traducir con más cuidado que el resto: (a) las **tres advertencias
@@ -1041,19 +1078,42 @@ No los arregles: el arreglo de otro es un conflicto de merge garantizado. Anóta
       NO se traduce jamás**: una frase escrita en un papel en 2026 tiene que
       seguir abriendo la copia en 2030 aunque la persona cambie el idioma de la
       app · 2026-08-03
-- [ ] **De B10 → B05 / B01** · falta el punto de entrada para ABRIR un refugio.
+      → CERRADO 2026-08-26 (auditoría dedicada: al ir a hacerlo ya estaba
+      hecho — el propio `i18n/literales.test.ts` cuenta que cuatro sesiones
+      migraron los 52 archivos de la deuda). Verificado punto por punto: 63
+      llamadas `t('refugios.…')` en los 13 componentes con UI; las tres
+      advertencias son claves `refugios.respaldo.advertencias.*` y el inglés
+      NO está suavizado («Darma cannot recover it if you lose it»); la lista
+      de 256 palabras sigue sin traducirse. 97 claves `refugios.*` por idioma,
+      paridad 936/936. Lo único que quedaba era un comentario desfasado en
+      `lib/crypto/respaldo.ts` que apuntaba a `messages/parches/`, corregido
+      en esta pasada.
+- [x] **De B10 → B05 / B01** · falta el punto de entrada para ABRIR un refugio.
       `POST /api/refuges` existe y funciona, pero nadie lo llama: hace falta un
       botón «Hablar en privado» en el perfil ajeno (B05) que use
       `prepararSobresDeSalaNueva()` de `components/refuge/identidad.ts` y luego
       la ruta. Igual con «Guardar como alma afín»
       (`POST /api/refuges/kindred`). Mientras tanto `/refugios` solo enseña lo
       que ya exista · 2026-08-03
-- [ ] **De B10 → B01** · al **cerrar sesión** hay que llamar a
+      → CERRADO 2026-08-26: otro caso de acta, no de trabajo — el botón LLEGÓ
+      con la ola de pendientes (#24: `components/refuge/BotonHablarEnPrivado.tsx`,
+      montado en el perfil ajeno) y nadie tachó el apunte. Verificado pieza a
+      pieza contra este pedido, y la rama `boton-hablar-en-privado` añade lo
+      único que faltaba: pruebas que fijan el ritual (identidad → sobres →
+      POST → guardar clave SOLO cuando la sala existe → navegar). «Guardar como
+      alma afín» también existe (`ListaAlmasAfines`/`guardarAlmaAfin`).
+- [x] **De B10 → B01** · al **cerrar sesión** hay que llamar a
       `olvidarDispositivo(userId)` de `lib/crypto/almacen.ts`. Sin eso, dejar la
       cuenta cerrada en un ordenador prestado deja la clave de identidad y las de
       cada refugio en IndexedDB: la cookie ya no vale, pero **la clave es lo que
       abre las conversaciones, no la sesión**. Tiene que ejecutarse en el
       navegador, porque IndexedDB solo existe allí · 2026-08-03
+      → CERRADO 2026-08-26 (rama `aviso-no-terapia-y-logout`): `BotonSalir`
+      llama a `olvidarEsteDispositivo()` (nueva en `lib/crypto/almacen.ts`),
+      que borra TODAS las identidades y claves de refugio del dispositivo, no
+      solo las del usuario actual — quien pulsa Salir está entregando el
+      aparato, y una clave de OTRA cuenta viva abriría sus refugios. En
+      try/catch: un fallo de IndexedDB no retiene a nadie.
 - [ ] **De B10 → B20 (RGPD)** · el borrado de cuenta tiene un caso que no es
       obvio: `refuge_messages` **no se puede descifrar para borrar contenido
       selectivamente**, y borrar la sala entera borraría el historial de la otra
@@ -1844,6 +1904,11 @@ reportó desde su worktree y ninguna podía aplicarlo.
       sistema de diseño de B16, en la primera pantalla que ve alguien que llega
       de madrugada. Quien decida: o se acepta el cambio visual, o se acepta que
       la puerta de entrada nunca aparezca en los datos de campo · 2026-08-09
+      → CERRADO 2026-08-26 (#32): decidido aceptar el cambio visual. El
+      keyframe `darma-fade-in` pierde la `opacity` y queda solo el
+      `translateY`: la pantalla sigue entrando con movimiento pero deja de
+      fundirse, y `/entrar` y `/onboarding` vuelven a emitir FCP/LCP. El
+      porqué queda comentado junto al keyframe en `app/globals.css`.
 
 - [ ] **De B23 → B01 / B05 · un 500 con sesión anónima sin onboarding.** Con una
       cuenta anónima recién creada y el onboarding **sin completar**, `/perfil` y
@@ -1853,6 +1918,12 @@ reportó desde su worktree y ninguna podía aplicarlo.
       toque «perfil» antes de terminar: no es un caso de laboratorio. Apareció
       midiendo rendimiento, no buscándolo, así que **no está reproducido en un
       test**: eso es lo primero que hay que hacer · 2026-08-09
+      → CERRADO 2026-08-26 (#32): las tres páginas de perfil cambian
+      `requirePerfil()` (que lanza y acaba en 500) por el idioma de
+      `/publicar` — `requireSesion()` + `redirect('/onboarding')` —, con 7
+      casos nuevos en `app/(app)/perfil/page.test.ts` (test primero, patrón
+      «fuente, no runtime» del propio archivo) y un guard de que la Server
+      Action conserva `requirePerfil()`.
 
 - [ ] **De B23 → B14 · Next 16 con Turbopack ya no imprime `First Load JS`.** La
       tabla del build es solo la lista de rutas con su marca ○/ƒ, y los
@@ -1887,6 +1958,21 @@ reportó desde su worktree y ninguna podía aplicarlo.
       minuto y medio cada una: abrir el vídeo, anotar el segundo en que empieza
       lo que merece la pena y el segundo en que termina. El enlace de la
       pantalla salta solo al inicio escrito para poder comprobarlo · 2026-08-08
+      → CERRADO 2026-08-26, por delegación explícita del propietario. Los 25
+      recortes están hechos y aplicados en `darma-dev`, cada uno elegido con
+      el contenido delante: subtítulos automáticos del vídeo + mapa de calor de
+      «lo más repetido» (los momentos que la gente rebobina), leyendo la
+      transcripción alrededor de cada pico y ajustando los bordes a frase
+      completa. Además: 5 charlas de la cola de pendientes aprobadas CON
+      fragmento (Enhamed, Biciclown, Jane Goodall, Mago More, Albert Espinosa),
+      3 microclips de la OPS aprobados, y 19 piezas institucionales rechazadas
+      con motivo. Cada decisión tiene su fila en `admin_audit_log` con
+      `params.delegado = 'claude'` — la pregunta «¿quién eligió este minuto?»
+      tiene respuesta. Resultado medido: 34 piezas aprobadas, duración útil
+      media 121 s (antes: 55 min). Quedan 6 «Mirar al Futuro» de enfermedad
+      concreta en `pending` a propósito: son decisión de producto, no de
+      encuadre. Las notas de curación (qué dice cada fragmento y por qué ese)
+      están guardadas por si alguien quiere revisarlas.
 
 - [x] **De B22 → B15 · dos funciones `security definer` alcanzables por `anon`.** CERRADO 2026-08-09 por `0225_1_b15_definer_sin_anon.sql`: 2 → 0 de 81 definers, con barrido en `rls_privilegios.sql` y lista blanca vacía.
       Encontradas midiendo, no leyendo: `previos_del_autor(timestamptz,integer)`
