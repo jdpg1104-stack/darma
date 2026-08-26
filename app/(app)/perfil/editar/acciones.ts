@@ -27,12 +27,16 @@ import { revalidatePath } from 'next/cache'
 
 import { obtenerTraductor, resolverLocale, traducirCodigoError, type Traductor } from '@/i18n'
 import { createClient } from '@/lib/supabase/server'
-import { requirePerfil } from '@/lib/auth/session'
-import { esErrorApi } from '@/lib/auth/errores'
+import { exigirPerfil, getContextoSesion } from '@/lib/auth/session'
+import { esErrorApi, ErrorApi } from '@/lib/auth/errores'
 import { assertNoPii, PiiDetectedError } from '@/lib/anonymity'
+import { avisarAlmasAfines } from '@/lib/push'
 import { limitarPerfil } from '@/components/perfil/limites'
 import { esquemaEditarPerfil } from '@/components/perfil/validacion'
-import { cambiosPerfilDesdeEntrada } from '@/components/perfil/proyecciones'
+import {
+  cambiosPerfilDesdeEntrada,
+  transicionANecesitoHablar,
+} from '@/components/perfil/proyecciones'
 import type { EstadoEdicion } from '@/components/perfil/tipos'
 
 // La traducción de "entrada validada" a "objeto del UPDATE" vive en
@@ -72,7 +76,14 @@ export async function editarPerfil(
   const t: Traductor = obtenerTraductor(await resolverLocale())
 
   try {
-    const sesion = await requirePerfil()
+    // El contexto completo en vez de `requirePerfil()`: la MISMA consulta
+    // memoizada de `mi_sesion()` trae la fila, y de ella sale la disponibilidad
+    // ANTERIOR al guardado — que es lo que permite avisar solo en la transición
+    // a `necesito_hablar` sin pagar una lectura extra de `profiles`.
+    const contexto = await getContextoSesion()
+    if (!contexto) throw new ErrorApi('no_autenticado')
+    const sesion = exigirPerfil(contexto.sesion)
+    const disponibilidadPrevia = contexto.fila?.availability ?? null
 
     const disponibilidad = datos.get('disponibilidad')
 
@@ -120,6 +131,24 @@ export async function editarPerfil(
       // constraint (que además le contaría el nombre del índice).
       if (error.code === '23505') return fallo(t('perfil.edicion.errores.aliasEnUso'), 'alias')
       return fallo(t('perfil.edicion.errores.noGuardado'))
+    }
+
+    // ── Aviso «alma afín disponible» (B13). SOLO en la TRANSICIÓN a
+    // `necesito_hablar` (ver `transicionANecesitoHablar`): el formulario
+    // reenvía siempre la disponibilidad actual, así que sin comparar con la
+    // previa cada guardado de la bio re-avisaría. Va DESPUÉS de confirmarse el
+    // UPDATE —avisar de una señal que no se escribió sería mentir— y dentro de
+    // su propio `try`: sin llaves VAPID es un no-op silencioso, y con ellas un
+    // fallo del push jamás puede convertir en error el guardado de quien acaba
+    // de decir que está mal. Los destinatarios y toda la política (bloqueos,
+    // preferencias, techo, silencio) los resuelve `avisarAlmasAfines` sola.
+    if (transicionANecesitoHablar(disponibilidadPrevia, cambios)) {
+      try {
+        await avisarAlmasAfines(sesion.userId)
+      } catch {
+        // Sin uuids: quién necesita hablar no aparece en ningún log.
+        console.warn('[darma][b13] aviso de alma afín no enviado')
+      }
     }
 
     // Las dos pantallas que muestran estos datos.
